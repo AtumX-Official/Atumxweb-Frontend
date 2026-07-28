@@ -1,0 +1,71 @@
+#scrollbar::-webkit-scrollbar-track {
+  background-color: #000000;
+}
+
+#scrollbar::-webkit-scrollbar {
+  width: 10px;
+  background-color: #9146e8;
+}
+
+#scrollbar::-webkit-scrollbar-thumb {
+  background-color: oklch(90.5% 0.182 98.111);
+  border-radius: 10px;
+  min-height: 48px;
+  border: 2px solid transparent;
+}
+
+.myHighlight {
+    background-color: rgba(255, 230, 0, 0.6);
+    border-radius: 2px;
+}
+
+
+#scrollbar-py {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#scrollbar-py::-webkit-scrollbar{
+    width: 10px;
+    background-color: rgb(246, 243, 246);
+    border-radius: 8px;
+}
+
+#scrollbar-py::-webkit-scrollbar-track{
+    background-color: rgb(234, 183, 245);
+    border-radius: 8px;
+}
+
+#scrollbar-py::-webkit-scrollbar-thumb {
+    background-color: #a44bbc;
+    min-height: 8px;
+    /* border: 1px solid ;
+    border-color: rgb(74, 2, 67); */
+    border-radius: 10px;
+}   
+
+
+#scrollbar-cpp {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#scrollbar-cpp::-webkit-scrollbar{
+    width: 10px;
+    background-color: rgb(246, 243, 246);
+    border-radius: 8px;
+}
+
+#scrollbar-cpp::-webkit-scrollbar-track{
+    background-color: rgb(250, 138, 187);
+    border-radius: 8px;
+}
+
+#scrollbar-cpp::-webkit-scrollbar-thumb {
+    background-color: #e32e79;
+    min-height: 8px;
+    /* border: 1px solid ;
+    border-color: rgb(74, 2, 67); */
+    border-radius: 10px;
+}   
+

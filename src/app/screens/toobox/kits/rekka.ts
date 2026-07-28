@@ -1,0 +1,12 @@
+export const REKKA = {
+    BASIC: 'DRONE',
+    SENSOR: 'DRONE',
+    LOGIC: 'LOGIC_GENERIC',
+    LOOP: 'LOOP_GENERIC',
+    PINS: 'DRONE',
+    MATH: 'MATH_GENERIC',
+    DISPLAY: 'SUBO',
+    VARIABLE: 'VARIABLE_GENERIC',
+    REKKA : 'DRONE'
+};
+  

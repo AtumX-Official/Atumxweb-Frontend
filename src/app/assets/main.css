@@ -1,0 +1,254 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --animate-moving-bg: moving-bg 10s linear infinite;
+  @keyframes moving-bg {
+    0% {
+      background-position-x: 256px;
+      background-position-y: 256px;
+    }
+    100% {
+      background-position-x: 0;
+      background-position-y: 0;
+    }
+  }
+
+  --animate-loading-dots: loading-dots 1s ease-in-out infinite;
+  @keyframes loading-dots {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: 0.75;
+    }
+    50% {
+      transform: translateY(-6px);
+      opacity: 1;
+    }
+  }
+
+  /* GPU-accelerated tiled scroll. Pair with an overflow-hidden parent and
+     a child sized larger than the viewport (e.g. -inset-[480px]). */
+  --animate-moving-bg-gpu: moving-bg-gpu 18s linear infinite;
+  @keyframes moving-bg-gpu {
+    0%   { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-480px, -480px, 0); }
+  }
+}
+
+body {
+  overflow: hidden;
+  background-color: azure;
+  user-select: none;
+  font-family: 'Nunito', sans-serif;
+}
+/* In your global CSS file */
+.nunito-font {
+font-family: 'Nunito', sans-serif;
+}
+code {
+  font-weight: 600;
+  padding: 3px 5px;
+  border-radius: 2px;
+  background-color: var(--color-background-mute);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    SF Mono,
+    Menlo,
+    Consolas,
+    Liberation Mono,
+    monospace;
+  font-size: 85%;
+}
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.logo {
+  margin-bottom: 20px;
+  -webkit-user-drag: none;
+  height: 128px;
+  width: 128px;
+  will-change: filter;
+  transition: filter 300ms;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 1.2em #6988e6aa);
+}
+
+.creator {
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--ev-c-text-2);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* Blockly-like dotted grid */
+.dot-grid {
+  background-image: radial-gradient(
+    rgba(204, 204, 204, 0.6) 1.5px,
+    transparent 1.5px
+  );
+  background-size: 20px 20px;
+}
+
+/* Selfie/mirror view: flip the camera horizontally so it behaves like a
+   mirror (right hand -> right side). Applied to BOTH the <video> and the
+   landmark <canvas> in HandTracker/PoseTracker so the overlay stays aligned.
+   Display-only — detection runs on the raw (un-flipped) frame. */
+.mirror { transform: scaleX(-1); }
+
+/* Theme variables */
+:root {
+  --slider-track: #000000;
+  --slider-thumb: #FFFFFF;
+}
+
+.dark {
+  --slider-track: #FFFFFF;
+  --slider-thumb: #000000;
+}
+
+.custom-scrollbar {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Thin scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* Transparent track */
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Hidden thumb by default */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+
+/* Show thumb only when hovering the scrollable area */
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+/* Keep same color when hovering thumb */
+.custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+
+
+/* .blocklyFlyout {
+  top: 60px !important;
+  height: calc(100vh - 70px) !important;
+  max-height: none !important;
+}
+
+
+.blocklyFlyoutBackground {
+  height: calc(100vh - 70px) !important;
+}
+
+
+.blocklyMainWorkspace {
+  margin-top: 60px !important;
+} */
+
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.5); 
+  border-radius: 9999px; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 100, 100, 0.8); 
+}
+
+@media (max-width: 720px) {
+  .text {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 620px) {
+  .versions {
+    display: none;
+  }
+}
+
+@media (max-width: 350px) {
+  .tip,
+  .actions {
+    display: none;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; 
+  scrollbar-width: none;     
+}
+
+/* Remove number input arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #2195ff;
+  animation: loading-bounce 1.4s infinite ease-in-out;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes loading-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

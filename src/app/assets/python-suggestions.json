@@ -1,0 +1,32 @@
+[
+  {
+    "label": "print",
+    "kind": "Function",
+    "insertText": "print($1)",
+    "documentation": "Print to standard output"
+  },
+  {
+    "label": "len",
+    "kind": "Function",
+    "insertText": "len($1)",
+    "documentation": "Return the length of a sequence"
+  },
+  {
+    "label": "range",
+    "kind": "Function",
+    "insertText": "range($1)",
+    "documentation": "Generate a range of numbers"
+  },
+  {
+    "label": "for-loop",
+    "kind": "Snippet",
+    "insertText": "for ${1:item} in ${2:iterable}:\n\t$0",
+    "documentation": "Python for loop"
+  },
+  {
+    "label": "if-block",
+    "kind": "Snippet",
+    "insertText": "if ${1:condition}:\n\t$0",
+    "documentation": "Python if block"
+  }
+]

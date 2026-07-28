@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Created with Vectornator (http://vectornator.io/) -->
+<svg height="100%" strokeMiterlimit="10" style="fill-rule:nonzero;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;" version="1.1" viewBox="256.311 573.18 1874.66 521.64" width="100%" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:vectornator="http://vectornator.io" xmlns:xlink="http://www.w3.org/1999/xlink">
+<defs>
+<filter color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse" height="306.329" id="Filter" width="347.52" x="256.311" y="679.322">
+<feGaussianBlur in="SourceGraphic" result="Blur" stdDeviation="0.28721"/>
+</filter>
+</defs>
+<g id="Layer-2" vectornator:layerName="Layer 2">
+<g opacity="1" vectornator:layerName="Group 2">
+<path d="M398.852 683.271L260.259 981.702L331.245 980.4L358.882 918.369L502.969 917.067L531.054 981.254L599.882 980.4L466.418 683.271L398.852 683.271ZM424.006 750.267L474.681 865.985L375.611 866.473L424.006 750.267Z" fill="#000000" fillRule="nonzero" filter="url(#Filter)" opacity="1" stroke="#000000" strokeLinecap="butt" strokeLinejoin="round" strokeWidth="6.46104" vectornator:blur="0.57442"/>
+<path d="M589.21 732.066L589.978 681.922L847.347 682.434L847.858 731.554L752.078 733.021L751.291 979.856L690.237 980.111L686.402 733.675L589.21 732.066Z" fill="#000000" fillRule="nonzero" opacity="1" stroke="#000000" strokeLinecap="butt" strokeLinejoin="round" strokeWidth="6.46104" vectornator:layerName="Curve 3"/>
+<path d="M886.511 683.453L950.542 684.271L953.427 881C953.427 881 958.673 931.887 1024.77 931.625C1090.88 931.362 1093.42 884.527 1093.66 877.159C1093.89 869.791 1094.54 682.694 1094.54 682.694L1159.03 683.025L1157.71 881.806C1157.71 881.806 1146.79 988.639 1025.08 986.985C903.361 985.332 887.939 892.132 888.204 880.723C888.469 869.314 886.511 683.453 886.511 683.453Z" fill="#000000" fillRule="nonzero" opacity="1" stroke="#000000" strokeLinecap="butt" strokeLinejoin="round" strokeWidth="6.46104" vectornator:layerName="Curve 6"/>
+<path d="M1236.01 980.074L1236.41 683.424L1289.91 683.019L1405.98 872.88L1521.18 682.589L1573.47 682.983L1575.44 980.999L1516.85 981.785L1514.1 795.034L1422.5 947.58L1390.26 948.367L1299.04 799.358L1296.88 980.17L1236.01 980.074Z" fill="#000000" fillRule="nonzero" opacity="1" stroke="#000000" strokeLinecap="butt" strokeLinejoin="round" strokeWidth="6.46104" vectornator:layerName="Curve 4"/>
+<path d="M1584.69 578.577L1810 576.41L1906.76 736.004L2010.03 577.132L2101.74 577.132L1948.65 803.164L2127.74 1088.41L1906.76 1091.3L1791.54 912.087L1670.96 1091.59L1585.5 1091.2L1747.65 844.995L1584.69 578.577Z" fill="#ff8202" fillRule="nonzero" opacity="1" stroke="#ff8201" strokeLinecap="butt" strokeLinejoin="round" strokeWidth="6.46104" vectornator:layerName="Curve 7"/>
+</g>
+</g>
+</svg>

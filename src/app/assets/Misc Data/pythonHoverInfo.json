@@ -1,0 +1,11 @@
+{
+  "print": "print(value) → Prints output to console.",
+  "len": "len(obj) → Returns number of items.",
+  "int": "int(x) → Converts value to integer.",
+  "str": "str(x) → Converts value to string.",
+  "list": "list() → Creates a list.",
+  "dict": "dict() → Creates a dictionary.",
+  "for": "for loop → Iterates over sequence.",
+  "if": "if statement → Executes when condition is true.",
+  "def": "def → Defines a function."
+}

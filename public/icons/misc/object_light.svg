@@ -1,0 +1,27 @@
+<svg width="210" height="180" viewBox="0 0 210 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bounding Box Corner Target Markers -->
+  <path d="M 30 50 L 30 30 L 50 30" stroke="black" strokeWidth="5" strokeLinecap="round"/>
+  <path d="M 180 50 L 180 30 L 160 30" stroke="black" strokeWidth="5" strokeLinecap="round"/>
+  <path d="M 30 130 L 30 150 L 50 150" stroke="black" strokeWidth="5" strokeLinecap="round"/>
+  <path d="M 180 130 L 180 150 L 160 150" stroke="black" strokeWidth="5" strokeLinecap="round"/>
+
+  <!-- Dashed Bounding Box -->
+  <rect x="35" y="35" width="140" height="110" stroke="black" strokeWidth="2.5" strokeDasharray="6 6" opacity="0.4" rx="4"/>
+
+  <!-- Inside Target Objects: 3D Cube and Sphere -->
+  <!-- Cube Lines -->
+  <path d="M 70 85 L 105 65 L 140 85 L 140 125 L 105 145 L 70 125 Z" fill="none" stroke="black" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M 70 85 L 105 105 M 140 85 L 105 105 M 105 145 L 105 105" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+
+  <!-- Tracking Nodes on the Cube Corners (Matching Hand/Pose design) -->
+  <circle cx="105" cy="65" r="5" fill="#8726F6" stroke="black" strokeWidth="1"/>
+  <circle cx="70" cy="85" r="5" fill="#F6268B" stroke="black" strokeWidth="1"/>
+  <circle cx="140" cy="85" r="5" fill="#F6268B" stroke="black" strokeWidth="1"/>
+  <circle cx="105" cy="105" r="6" fill="#F6EC24" stroke="black" strokeWidth="1.5"/>
+  <circle cx="70" cy="125" r="5" fill="#8726F6" stroke="black" strokeWidth="1"/>
+  <circle cx="140" cy="125" r="5" fill="#8726F6" stroke="black" strokeWidth="1"/>
+  <circle cx="105" cy="145" r="5" fill="#8726F6" stroke="black" strokeWidth="1"/>
+
+  <!-- Tracking Crosshair reticle -->
+  <circle cx="105" cy="105" r="22" stroke="#F6268B" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.85"/>
+</svg>
