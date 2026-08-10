@@ -7,8 +7,8 @@ type SaveMode = "save" | "saveAs";
 
 interface SaveParams {
   workspaceRef: React.MutableRefObject<Blockly.WorkspaceSvg | null>;
-  filePath: string;
-  setFilePath: (path: string) => void;
+  fileHandle: FileSystemFileHandle | null;
+  setFileHandle: React.Dispatch<React.SetStateAction<FileSystemFileHandle | null>>;
   setProjectName: (name: string) => void;
   setOutput: (msg: string) => void;
   setUnsavedChanges: (state: boolean) => void;
@@ -27,10 +27,10 @@ interface SaveParams {
 interface ImportFileParams {
   workspaceRef: React.MutableRefObject<Blockly.WorkspaceSvg | null>;
   originalSnapshotRef: React.MutableRefObject<string | null>;
-  filePath: string,
   savedWorkspaceStates: React.MutableRefObject<Record<string, any>>;
   setCode: (code: string) => void;
-  setFilePath: (path: string) => void;
+  fileHandle: FileSystemFileHandle | null;
+  setFileHandle: React.Dispatch<React.SetStateAction<FileSystemFileHandle | null>>;
   setProjectName: (name: string) => void;
   setOutput: (msg: string) => void;
   setUnsavedChanges: (state: boolean) => void;
@@ -52,10 +52,10 @@ interface ImportFileParams {
 interface NewFileParams {
   workspaceRef: React.MutableRefObject<Blockly.WorkspaceSvg | null>;
   originalSnapshotRef: React.MutableRefObject<string | null>;
-  filePath: string,
   savedWorkspaceStates: React.MutableRefObject<Record<string, any>>;
   setCode: (code: string) => void;
-  setFilePath: (path: string) => void;
+  fileHandle: FileSystemFileHandle | null;
+  setFileHandle: React.Dispatch<React.SetStateAction<FileSystemFileHandle | null>>;
   setProjectName: (name: string) => void;
   setOutput: (msg: string) => void;
   setUnsavedChanges: (state: boolean) => void;
@@ -70,9 +70,10 @@ interface NewFileParams {
   setShowKits: (state: boolean) => void;
   projectName: (name: string) => void;
 }
-export const handleSave = ({
+export const handleSave = async ({
   workspaceRef,
-  setFilePath,
+  fileHandle,
+  setFileHandle,
   setProjectName,
   projectName,
   setOutput,
@@ -81,55 +82,75 @@ export const handleSave = ({
   savedWorkspaceStates,
   code,
   sendSerialMessage,
-  selectedKit,
   importedSnapshotRef,
+  selectedKit,
   selectedCategory,
-  filePath,
-  savemode
+  savemode,
 }: SaveParams & { savemode?: SaveMode }) => {
   if (workspaceRef.current) {
-    const workspaceJson = Blockly.serialization.workspaces.save(workspaceRef.current) as any;
-    if (window.__aiModels && window.__aiLoadedModels) {
-      workspaceJson.aiModels = window.__aiModels;
-      workspaceJson.aiLoadedModels = window.__aiLoadedModels;
-    }
-    const jsonText = JSON.stringify(workspaceJson, null, 2);
-      // Extract filename from existing path
-      const finalPath = savemode === "save" ? filePath : null;
-      window.api.file.save(
-      finalPath,
-      jsonText,
-      "blocks",
-      projectName,
-      selectedKit,
-      selectedCategory
-    ).then((result: any) => {
-      if (result.success) {
-        setOutput(`> File saved to ${result.path}`);
-        setFilePath(result.path);
-    
-        const baseName = result.path
-          ? result.path.split(/[\\/]/).pop() || "untitled"
-          : "untitled";
-    
-        setProjectName(baseName.replace(/\.[^/.]+$/, ""));
-    
-        importedSnapshotRef.current = JSON.stringify(
-          Blockly.serialization.workspaces.save(workspaceRef.current!)
-        );
-    
-        setUnsavedChanges(false);
-        showSavePopup();
-    
-        savedWorkspaceStates.current = {};
-      } else {
-        setOutput(`> Error saving file: ${result.error}`);
+    try {
+      const workspaceJson = Blockly.serialization.workspaces.save(
+        workspaceRef.current
+      ) as any;
+
+      // Save AI information
+      if (window.__aiModels && window.__aiLoadedModels) {
+        workspaceJson.aiModels = window.__aiModels;
+        workspaceJson.aiLoadedModels = window.__aiLoadedModels;
       }
-    });
+
+      // Save board information (same as desktop version)
+      workspaceJson.selectedKit = selectedKit;
+      workspaceJson.selectedCategory = selectedCategory;
+
+      const jsonText = JSON.stringify(workspaceJson, null, 2);
+
+      let handle = fileHandle;
+
+      // Save As or first save
+      if (!handle || savemode !== "save") {
+        handle = await (window as any).showSaveFilePicker({
+          suggestedName: `${projectName || "Untitled"}.blocks`,
+          types: [
+            {
+              description: "Blockly Project",
+              accept: {
+                "application/json": [".blocks"],
+              },
+            },
+          ],
+        });
+
+        setFileHandle(handle);
+      }
+
+      const writable = await handle.createWritable();
+
+      await writable.write(jsonText);
+
+      await writable.close();
+
+      const name = handle.name;
+
+      setProjectName(name.replace(/\.[^/.]+$/, ""));
+
+      importedSnapshotRef.current = JSON.stringify(
+        Blockly.serialization.workspaces.save(workspaceRef.current)
+      );
+
+      setUnsavedChanges(false);
+
+      savedWorkspaceStates.current = {};
+
+      setOutput(`> File saved to ${name}`);
+
+      showSavePopup();
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        setOutput(`> Error saving file: ${err.message}`);
+      }
+    }
   } else {
-    window.api.serial.onData((data) => {
-      if (/PDone/i.test(data)) setrunStatus("Start");
-    });
     sendSerialMessage(code);
   }
 };
@@ -139,132 +160,183 @@ export const handleImport = async ({
   originalSnapshotRef,
   savedWorkspaceStates,
   setCode,
-  filePath,
-  setFilePath,
+  fileHandle,
+  setFileHandle,
   setProjectName,
   setOutput,
   setUnsavedChanges,
   unsavedChanges,
   customGenerator,
   setIsToolboxVisible,
-  handleIconClick,   // initializes workspace
-  selectedKit,       // selected kit
-  setSelectedIcon,   // sets Basic as default
+  handleIconClick,
+  selectedKit,
+  setSelectedIcon,
   dispatch,
   importedSnapshotRef,
   projectName,
   selectedCategory,
   modifiedToolboxes,
   toolboxXmlRef,
-  setToolboxXml
+  setToolboxXml,
 }: ImportFileParams) => {
   const workspace = workspaceRef?.current;
 
+  // Ask to save if there are unsaved changes
   const hasBlocks =
     workspace && workspace.getAllBlocks(false).length > 0;
-    //sessionStorage.removeItem('blockly_workspace_snapshot')
 
   if (hasBlocks && unsavedChanges) {
-
     const popupResult = await showConfirmModal({
-      title: filePath ? "SAVE THE CHANGES!" : "SAVE YOUR PROJECT!",
-      message: filePath
+      title: fileHandle ? "SAVE THE CHANGES!" : "SAVE YOUR PROJECT!",
+      message: fileHandle
         ? "You have unsaved changes. Do you want to save it?"
         : "You haven't saved your file. Do you want to save first?",
-      variant: "unsaved"
+      variant: "unsaved",
+    });
 
-    })
-
-
-    // SAVE
     if (popupResult.yes) {
-      const workspaceJson = Blockly.serialization.workspaces.save(workspaceRef.current!) as any;
+      const workspaceJson = Blockly.serialization.workspaces.save(
+        workspaceRef.current!
+      ) as any;
+
       if (window.__aiModels && window.__aiLoadedModels) {
         workspaceJson.aiModels = window.__aiModels;
         workspaceJson.aiLoadedModels = window.__aiLoadedModels;
       }
+
       const jsonText = JSON.stringify(workspaceJson, null, 2);
 
-      const result = await window.api.file.save(
-        filePath,
-        jsonText,
-        "blocks",
-        projectName,
-        selectedKit,
-        selectedCategory
-      );
+      try {
+        let saveHandle: FileSystemFileHandle;
 
-      if (result.success) {
-        setOutput(`> File saved to ${filePath}`);
+        if ((window as any).__currentFileHandle) {
+          saveHandle = (window as any).__currentFileHandle;
+        } else {
+          saveHandle = await (window as any).showSaveFilePicker({
+            suggestedName: `${projectName || "Untitled"}.blocks`,
+            types: [
+              {
+                description: "Blockly Project",
+                accept: {
+                  "application/json": [".blocks"],
+                },
+              },
+            ],
+          });
+
+          (window as any).__currentFileHandle = saveHandle;
+        }
+
+        const writable = await saveHandle.createWritable();
+        await writable.write(jsonText);
+        await writable.close();
+
+        setOutput(`> File saved to ${saveHandle.name}`);
         originalSnapshotRef.current = jsonText;
         setUnsavedChanges(false);
         savedWorkspaceStates.current = {};
         showSavePopup();
-      } else {
-        setOutput(`> Error saving file: ${result.error}`);
+      } catch (err) {
+        console.error(err);
+        setOutput("> Error saving file");
         return;
       }
     }
-
   }
 
-  const result = await window.api.file.open("blocks");
+  // Open file
+  let handle: FileSystemFileHandle;
 
-  if (!result.success) {
-    setOutput(`> Error importing file: ${result.error}`);
+  try {
+    [handle] = await (window as any).showOpenFilePicker({
+      multiple: false,
+      types: [
+        {
+          description: "Blockly Project",
+          accept: {
+            "application/json": [".blocks"],
+          },
+        },
+      ],
+    });
+  } catch (err: any) {
+    if (err.name === "AbortError") return;
+
+    setOutput("> Error opening file");
     return;
   }
 
+  // Store the handle for future Save
+  (window as any).__currentFileHandle = handle;
+
+  const file = await handle.getFile();
+  const text = await file.text();
+
   try {
-    const workspaceData = JSON.parse(result.data);
+    const workspaceData = JSON.parse(text);
+
     const fileKit = workspaceData.selectedKit || "Default";
     const fileCategory = workspaceData.selectedCategory || null;
+
     dispatch(setKit(fileKit));
+
     if (fileCategory) {
-      dispatch(setCategory(fileCategory));   // ✅ RESTORE CATEGORY
+      dispatch(setCategory(fileCategory));
     }
+
     if (!workspaceRef.current) {
-      console.warn("Workspace not initialized before import. Initializing now...");
-      await handleIconClick(selectedKit || "Default");
+      console.warn("Workspace not initialized. Initializing...");
+      await handleIconClick(fileKit);
       setSelectedIcon("Basic");
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
+
     if (!workspaceRef.current) {
-      console.error("Workspace failed to initialize.");
+      console.error("Workspace initialization failed.");
       return;
     }
 
     registerPlaceholderAIBlocks(workspaceData);
-    Blockly.serialization.workspaces.load(workspaceData, workspaceRef.current, {
-      recordUndo: true,
+
+    Blockly.serialization.workspaces.load(
+      workspaceData,
+      workspaceRef.current,
+      {
+        recordUndo: true,
+      }
+    );
+
+    restoreVariableBlocksToToolbox({
+      workspace: workspaceRef.current,
+      modifiedToolboxes,
+      toolboxXmlRef,
+      setToolboxXml,
     });
-  
-      restoreVariableBlocksToToolbox({
-        workspace: workspaceRef.current,
-        modifiedToolboxes,
-        toolboxXmlRef,
-        setToolboxXml
-      });
+
     setIsToolboxVisible(true);
-    const generatedCode = customGenerator.workspaceToCode(workspaceRef.current);
+
+    const generatedCode =
+      customGenerator.workspaceToCode(workspaceRef.current);
+
     setCode(generatedCode);
-    setOutput(`> File imported from ${result.path}`);
-    setFilePath(result.path);
 
-    const baseName = result.path
-      ? result.path.split(/[\\/]/).pop() || "untitled"
-      : "untitled";
-    setProjectName(baseName.replace(/\.[^/.]+$/, ""));
+    setOutput(`> File imported from ${handle.name}`);
 
-    // Reset refs
+    // No absolute path available in browsers
+    setFileHandle(handle.name);
+
+    const baseName = handle.name.replace(/\.[^/.]+$/, "");
+    setProjectName(baseName);
+
     const snapshot = JSON.stringify(
-      Blockly.serialization.workspaces.save(workspaceRef.current!)
+      Blockly.serialization.workspaces.save(workspaceRef.current)
     );
 
     importedSnapshotRef.current = snapshot;
+    originalSnapshotRef.current = snapshot;
+
     setUnsavedChanges(false);
     savedWorkspaceStates.current = {};
-
   } catch (error) {
     console.error("Error loading workspace:", error);
     setOutput("> Error: Could not load the workspace");
@@ -280,7 +352,7 @@ export const handleNewFileCreation = async ({
   originalSnapshotRef,
   savedWorkspaceStates,
   setCode,
-  setFilePath,
+  setFileHandle,
   setProjectName,
   setOutput,
   setUnsavedChanges,
@@ -336,7 +408,7 @@ export const handleNewFileCreation = async ({
   }
  // modifiedToolboxes.current['VARIABLE'] = `<xml id="toolbox">${Variables.VARIABLE_GENERIC}</xml>`;
   setCode("");
-  setFilePath("");
+  setFileHandle("");
   setProjectName("untitled");
   setShowKits(true)
   setOutput("> New Blocks project created");
@@ -355,65 +427,117 @@ export const handleNewFileCreation = async ({
 
 export const handleExitApp = async ({
   workspaceRef,
-  filePath,
+  fileHandle,
+  setFileHandle,
   unsavedChanges,
   selectedKit,
+  selectedCategory,
   setOutput,
-  navigate,
+  router,
   projectName,
-  selectedCategory
 }: {
   workspaceRef: React.MutableRefObject<Blockly.WorkspaceSvg | null>;
-  filePath: string;
+  fileHandle: FileSystemFileHandle | null;
+  setFileHandle: (handle: FileSystemFileHandle | null) => void;
   unsavedChanges: boolean;
   selectedKit: string;
-  setOutput: (msg: string) => void;
-  navigate: any;
-  projectName: (name: string) => void;
   selectedCategory: string;
+  setOutput: (msg: string) => void;
+  router: any;
+  projectName: string;
 }) => {
   const workspace = workspaceRef.current;
-  const hasBlocks = workspace && workspace.getAllBlocks(false).length > 0;
 
-  // CASE: Unsaved changes exist
-  if (hasBlocks && unsavedChanges) {
-    const isSavedFile = filePath !== "";
+  const hasBlocks =
+    workspace && workspace.getAllBlocks(false).length > 0;
 
-    const res = await showConfirmModal({
-      title: isSavedFile ? "SAVE THE CHANGES!" : "SAVE YOUR PROJECT!",
-      message: isSavedFile
-        ? "You have unsaved changes. Do you want to save before exiting?"
-        : "Are you sure you want to exit before saving your file?",
-      variant: "unsaved"
-    });
+  // Nothing to save → go to home page
+  if (!hasBlocks || !unsavedChanges) {
+    router.push("/");
+    return;
+  }
 
-    if (res.yes) {
-      const workspaceJson = Blockly.serialization.workspaces.save(workspace!);
-      const jsonText = JSON.stringify(workspaceJson, null, 2);
+  const isSavedFile = !!fileHandle;
 
-      const saveResult = await window.api.file.save(
-        filePath,
-        jsonText,
-        "blocks",
-        projectName,
-        selectedKit,
-        selectedCategory
-      );
+  const res = await showConfirmModal({
+    title: isSavedFile
+      ? "SAVE THE CHANGES!"
+      : "SAVE YOUR PROJECT!",
 
-      if (!saveResult.success) {
-        setOutput(`> Error saving file: ${saveResult.error}`);
-        return;
-      }
+    message: isSavedFile
+      ? "You have unsaved changes. Do you want to save before exiting?"
+      : "Are you sure you want to exit before saving your file?",
 
-      showSavePopup();
-      setOutput(`> File saved to ${filePath}`);
+    variant: "unsaved",
+  });
 
-      navigate("/");
+  // User chose NO
+  if (!res.yes) {
+    router.push("/");
+    return;
+  }
+
+  // User chose YES
+  try {
+    const workspaceJson =
+      Blockly.serialization.workspaces.save(workspace) as any;
+
+    // Save AI information
+    if (window.__aiModels && window.__aiLoadedModels) {
+      workspaceJson.aiModels = window.__aiModels;
+      workspaceJson.aiLoadedModels = window.__aiLoadedModels;
+    }
+
+    // Save board information
+    workspaceJson.selectedKit = selectedKit;
+    workspaceJson.selectedCategory = selectedCategory;
+
+    const jsonText = JSON.stringify(workspaceJson, null, 2);
+
+    let handle = fileHandle;
+
+    // First save → ask user where to save
+    if (!handle) {
+      handle = await (window as any).showSaveFilePicker({
+        suggestedName: `${projectName || "Untitled"}.blocks`,
+        types: [
+          {
+            description: "Blockly Project",
+            accept: {
+              "application/json": [".blocks"],
+            },
+          },
+        ],
+      });
+
+      setFileHandle(handle);
+    }
+
+    // Write to the selected file
+    const writable = await handle.createWritable();
+
+    await writable.write(jsonText);
+    await writable.close();
+
+    setOutput(`> File saved to ${handle.name}`);
+
+    showSavePopup();
+
+    // Go to home page after successful save
+    router.push("/");
+  } catch (err: any) {
+    // User cancelled the save dialog
+    if (err?.name === "AbortError") {
       return;
     }
 
-    navigate("/");
+    console.error("Error saving before exit:", err);
+
+    setOutput(
+      `> Error saving file: ${err?.message || "Unknown error"}`
+    );
+
+    // Don't leave the page if saving failed
     return;
   }
-  navigate("/");
 };

@@ -18,7 +18,7 @@ export default function({
 }){
     
     const [autoScroll, setAutoScroll] = useState(() => {
-    const saved = localStorage.getItem("serial_autoscroll");
+    const saved = window.localStorage.getItem("serial_autoscroll");
     return saved !== null ? JSON.parse(saved) : true;
     });
     const scrollPosRef = useRef(0);
@@ -145,7 +145,7 @@ export default function({
                 <button
                   onClick={() => {
                     setShowTerminal(false);
-                    localStorage.setItem('cpp_showTerminal', 'false');
+                    window.localStorage.setItem('cpp_showTerminal', 'false');
                   }}
                   title="Close"
                   className="bg-red-600 w-5 h-5 rounded flex items-center justify-center hover:bg-red-500 transition-colors"

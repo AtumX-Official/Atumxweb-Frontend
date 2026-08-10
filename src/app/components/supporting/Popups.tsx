@@ -1,21 +1,21 @@
 import { useState,useEffect,useRef } from 'react'
 import { useSelector } from 'react-redux'
 import Blocks from './assets/Blocks.svg'
-import Arrow from './assets/Arrows.svg'
+import Arrow from './assets/Arrows'
 import Python from './assets/Python.svg'
 import Cimg from './assets/Cimg.svg'
 import Usbicon from './assets/Usbicon.svg'
 import type { RootState } from '../../../store'
-import Wifiicon from './assets/Wifiicon.svg'
+import Wifiicon from './assets/Wifiicon'
 import Exclamation from './assets/Exclamation.svg'
-import Files from './assets/Files.svg'
-import ExitImage from './assets/Exit.svg'
+import Files from './assets/Files'
+import ExitImage from './assets/Exit'
 import { motion, AnimatePresence } from "framer-motion";
-import Savedicon from './assets/Savedfile.svg'
-import Savedkit from './assets/Savetokit.svg'
-import Connect from './assets/Connect.svg'
-import Oops from './assets/Oops.svg'
-import Underdev from './assets/Underdev.svg'
+import Savedicon from './assets/Savedfile'
+import Savedkit from './assets/Savetokit'
+import Connect from './assets/Connect'
+import Oops from './assets/Oops'
+import Underdev from './assets/Underdev'
 import Delete from './assets/Delete.svg'
 import { FiCheck, FiX } from "react-icons/fi";
 import LArrow from './assets/DArrows.svg'
@@ -250,11 +250,8 @@ export const ConfirmUnsavedChangesModal = ({
             "
           >
             <div className="absolute -top-6 -right-6 z-[60] transform translate-x-1/4 -translate-y-1/4">
-               <img 
-                 src={Exclamation} 
-                 alt="Warning" 
-                 className="w-16 h-16 md:w-20 md:h-20 drop-shadow-2xl"
-               />
+               
+               <Exclamation className="w-16 h-16 md:w-20 md:h-20 drop-shadow-2xl"/>
             </div>
 
             <div className="flex flex-col w-full h-full rounded-lg overflow-hidden">
@@ -346,14 +343,13 @@ export const SavePopup =() =>{
 >
 
             {/* Responsive Icon */}
-            <img
-              src={Savedicon}
-              className="
-                object-contain flex-shrink-0
-                w-[clamp(40px,5vw,60px)]
-                h-[clamp(40px,5vw,60px)]
-              "
-            />
+            <Savedicon
+  className="
+    object-contain flex-shrink-0
+    w-[clamp(40px,5vw,60px)]
+    h-[clamp(40px,5vw,60px)]
+  "
+/>
 
             {/* Responsive Text */}
             <div className="flex flex-col leading-tight">
@@ -414,14 +410,13 @@ export const Savetokitpop = ({ type = "save" }: SavetokitpopProps) => {
 >
 
             {/* Responsive Icon */}
-            <img
-              src={Savedkit}
-              className="
-                object-contain flex-shrink-0
-                w-[clamp(40px,5vw,60px)]
-                h-[clamp(40px,5vw,60px)]
-              "
-            />
+            <Savedkit
+  className="
+    object-contain flex-shrink-0
+    w-[clamp(40px,5vw,60px)]
+    h-[clamp(40px,5vw,60px)]
+  "
+/>
 
             {/* Responsive Text */}
             <div className="flex flex-col leading-tight">
@@ -548,11 +543,7 @@ export const UnderdevelopmentPopup = ({ onNo }) => {
         >
           {/* Warning Icon - Positioned outside using negative values */}
           <div className="absolute -top-5 -right-5 z-[60]">
-            <img 
-              src={Exclamation} 
-              alt="Warning" 
-              className="w-14 h-14 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]"
-            />
+          <Exclamation className="w-16 h-16 md:w-20 md:h-20 drop-shadow-2xl"/>
           </div>
 
           {/* Top Yellow Section */}
@@ -562,10 +553,18 @@ export const UnderdevelopmentPopup = ({ onNo }) => {
           >
             {/* Larger Image Row */}
             <div className="flex items-center justify-center gap-4 mt-2">
-              <img src={Underdev} alt="img-1" className="w-28 h-28 drop-shadow-lg opacity-95 ml-4" />
-              <img src={Arrow} alt="img-2" className="w-18 h-18 drop-shadow-lg" />
-              <img src={buildImgData} className="w-[140px] h-[140px]" />
-            </div>
+  <div className="w-28 h-28 ml-4 drop-shadow-lg opacity-95 flex items-center justify-center">
+  <Underdev className="w-28 h-28" width={112} height={112}/>  
+  </div>
+  <div className="w-10 h-10 drop-shadow-lg flex items-center justify-center">
+  <Arrow className="w-[72px] h-[72px]" width={80} height={80}/>  
+  </div>
+  <img
+    src={buildImgData}
+    alt="Build"
+    className="w-[140px] h-[140px] object-contain"
+  />
+</div>
 
             <div className="mb-1">
               <h2 className="text-black font-bold text-lg leading-none">
@@ -768,11 +767,8 @@ export const Deletepythonfile = ({
               shadow-2xl border border-white/10
             "
           >
-<div className="absolute -top-6 -right-6 z-[100000]">               <img 
-                 src={Exclamation} 
-                 alt="Warning" 
-                 className="w-16 h-16 md:w-20 md:h-20 drop-shadow-2xl"
-               />
+<div className="absolute -top-6 -right-6 z-[100000]">
+<Exclamation className="w-16 h-16 md:w-20 md:h-20 drop-shadow-2xl"/>
             </div>
 
             <div className="flex flex-col w-full h-full rounded-lg overflow-hidden">
@@ -856,7 +852,7 @@ export const FlashSuccessPopup = ({ open, onOk }: FlashSuccessPopupProps) => {
           >
             {/* Right corner image */}
             <div className="absolute -top-6 -right-6 z-[60] transform translate-x-1/4 -translate-y-1/4">
-              <img src={Exclamation} alt="Icon" className="w-12 h-12 md:w-14 md:h-14 drop-shadow-2xl" />
+            <Exclamation className="w-16 h-16 md:w-20 md:h-20 drop-shadow-2xl"/>
             </div>
 
             <div className="flex flex-col items-center justify-center p-8 gap-4">
@@ -920,11 +916,8 @@ export const PressResetPopup = ({ open, onOk }: PressResetPopupProps) => {
           >
             {/* Exclamation top right corner */}
             <div className="absolute -top-6 -right-6 z-[60] transform translate-x-1/4 -translate-y-1/4">
-              <img
-                src={Exclamation}
-                alt="Warning"
-                className="w-14 h-14 md:w-16 md:h-16 drop-shadow-2xl"
-              />
+            <Exclamation className="w-16 h-16 md:w-20 md:h-20 drop-shadow-2xl"/>
+
             </div>
 
             <div className={`flex flex-col w-full rounded-lg overflow-hidden ${bgColor} py-4`}>
@@ -996,11 +989,8 @@ export const PressBootResetPopup = ({ open, onOk,onClose }: BootResetProps) => {
             <div className="absolute -top-6 -right-6 z-[60] transform translate-x-1/4 -translate-y-1/4"
                 onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={Exclamation}
-                alt="Warning"
-                className="w-14 h-14 md:w-16 md:h-16 drop-shadow-2xl"
-              />
+                           <Exclamation className="w-16 h-16 md:w-20 md:h-20 drop-shadow-2xl"/>
+
             </div>
 
             <div className={`flex flex-col w-full rounded-lg overflow-hidden ${bgColor} py-4`}>

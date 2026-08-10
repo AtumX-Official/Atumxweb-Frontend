@@ -6,6 +6,7 @@ import type { RootState } from "../../../../store";
 import { getWebSocket } from "../../../../store/websocketSlice";
 import Refreshicon from "../../assets/Refresh";
 import AutoScroll from "../../assets/AutoScroll"
+import SerialService from "@/app/services/Serialservice";
 const SerialMonitor = ({
   onClose,
   iconRef,
@@ -19,11 +20,11 @@ const SerialMonitor = ({
   const ws = getWebSocket();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [autoScroll, setAutoScroll] = useState(() => {
-    const saved = localStorage.getItem("serial_autoscroll");
+    const saved = window.localStorage.getItem("serial_autoscroll");
     return saved !== null ? JSON.parse(saved) : true;
   });
   useEffect(() => {
-    localStorage.setItem("serial_autoscroll", JSON.stringify(autoScroll));
+    window.localStorage.setItem("serial_autoscroll", JSON.stringify(autoScroll));
   }, [autoScroll]);
   const bgColor =
     themeMode === "dark" ? "bg-white text-black" : "bg-black text-white";
@@ -36,12 +37,15 @@ const SerialMonitor = ({
     };
   }, [ws]);
   useEffect(() => {
-    const handleSerialData = (data: string) => {
-      console.log('Received data from serial:', data);
-      setSerialData(prev => prev + data + '\n'); // append new line
+    SerialService.startReading((data: string) => {
+      console.log("Received data:", data);
+      setSerialData((prev) => prev + data + "\n");
+    });
+  
+    return () => {
+      SerialService.stopReading();
     };
-    window.api.serial.onData(handleSerialData);
-  }, [])
+  }, []);
   useEffect(() => {
     if (iconRef?.current && rndRef?.current) {
       const iconRect = iconRef.current.getBoundingClientRect();

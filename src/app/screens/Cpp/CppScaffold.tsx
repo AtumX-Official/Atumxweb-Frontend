@@ -137,13 +137,13 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
   const [examples, setExamples] = useState<Example[]>([])
   const [leftPanel, setLeftPanel] = useState<null | 'folder' | 'library' | 'example' | 'search' | 'filesearch'>(() => {
-    return localStorage.getItem('cpp_leftPanel') as 'folder' | 'library' | 'search' | 'filesearch' | 'example' | null
+    return window.localStorage.getItem('cpp_leftPanel') as 'folder' | 'library' | 'search' | 'filesearch' | 'example' | null
   })
   const [showTerminal, setShowTerminal] = useState(() => {
-    return localStorage.getItem('cpp_showTerminal') === 'true'
+    return window.localStorage.getItem('cpp_showTerminal') === 'true'
   })
   const [showSerialTerminal, setShowSerialTerminal] = useState(() => {
-    return localStorage.getItem('cpp_showSerialTerminal') === 'true'
+    return window.localStorage.getItem('cpp_showSerialTerminal') === 'true'
   })
   const [terminalHeight, setTerminalHeight] = useState(300)
   const isDragging = useRef(false)
@@ -257,7 +257,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   
     // Open folder panel automatically
     setLeftPanel('folder');
-    localStorage.setItem('cpp_leftPanel', 'folder');
+    window.localStorage.setItem('cpp_leftPanel', 'folder');
   
     setTerminalPath(res.data);
     refresh();
@@ -325,7 +325,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   const toggleLeftPanel = (panel: 'folder' | 'library' | 'example' | 'search' | 'filesearch') => {
     setLeftPanel((prev) => {
       const newState = prev === panel ? null : panel
-      localStorage.setItem('cpp_leftPanel', newState ?? '')
+      window.localStorage.setItem('cpp_leftPanel', newState ?? '')
       return newState
     })
   }
@@ -342,8 +342,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       setTerminalHeight(300);
     }
   
-    localStorage.setItem('cpp_showTerminal', String(shouldOpen));
-    localStorage.setItem('cpp_showSerialTerminal', 'false');
+    window.localStorage.setItem('cpp_showTerminal', String(shouldOpen));
+    window.localStorage.setItem('cpp_showSerialTerminal', 'false');
   };
   
   const toggleSerial = () => {
@@ -356,8 +356,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       setTerminalHeight(300);
     }
   
-    localStorage.setItem('cpp_showSerialTerminal', String(shouldOpen));
-    localStorage.setItem('cpp_showTerminal', 'false');
+    window.localStorage.setItem('cpp_showSerialTerminal', String(shouldOpen));
+    window.localStorage.setItem('cpp_showTerminal', 'false');
   };
   const handleMouseDown = () => {
     isDragging.current = true
@@ -372,7 +372,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     const newHeight = window.innerHeight - e.clientY
     if (newHeight < 50) {
       setShowTerminal(false)
-      localStorage.setItem('cpp_showTerminal', 'false')
+      window.localStorage.setItem('cpp_showTerminal', 'false')
       isDragging.current = false
     } else {
       setTerminalHeight(Math.min(newHeight, 500))
@@ -457,7 +457,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     refresh,
     revealProject: () => {
       setLeftPanel('folder')
-      localStorage.setItem('cpp_leftPanel', 'folder')
+      window.localStorage.setItem('cpp_leftPanel', 'folder')
       setIsImported(true)
       refresh()
     },
@@ -582,7 +582,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       if (e.key === 'F5') {
         e.preventDefault()
         setShowTerminal(true)
-        localStorage.setItem('cpp_showTerminal', 'true')
+        window.localStorage.setItem('cpp_showTerminal', 'true')
         onRun()
       }
     }
@@ -684,8 +684,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       setShowTerminal(true);
       setShowSerialTerminal(false);
   
-      localStorage.setItem('cpp_showTerminal', 'true');
-      localStorage.setItem('cpp_showSerialTerminal', 'false');
+     window.localStorage.setItem('cpp_showTerminal', 'true');
+     window.localStorage.setItem('cpp_showSerialTerminal', 'false');
     }
   }, [output]);
   useEffect(() => {
@@ -695,8 +695,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       setShowSerialTerminal(true);
       setShowTerminal(false);
   
-      localStorage.setItem('cpp_showSerialTerminal', 'true');
-      localStorage.setItem('cpp_showTerminal', 'false');
+      window.localStorage.setItem('cpp_showSerialTerminal', 'true');
+      window.localStorage.setItem('cpp_showTerminal', 'false');
     }
   }, [serialData]);
   const handleKeyDown = async (e) => {
@@ -731,13 +731,9 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     setIsSwitchingOta(true);
   
     try {
-      await window.api.cpp.switchOta(0);
+    
   
-      await new Promise(resolve => setTimeout(resolve, 300));
-  
-      await window.api.serial.close();
-  
-      localStorage.clear();
+      window.localStorage.clear();
   
       navigate('/', { state: { showResetAlert: true } });
     } catch (error) {
@@ -866,7 +862,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                   onClick={() => {
                     setShowTerminal(true);
                     setShowSerialTerminal(false);
-                    localStorage.setItem("cpp_showTerminal", "true");
+                    window.localStorage.setItem("cpp_showTerminal", "true");
                     onRun();
                      }}
                      >

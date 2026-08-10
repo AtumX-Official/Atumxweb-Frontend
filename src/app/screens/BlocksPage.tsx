@@ -64,7 +64,7 @@ const BlocksPage: React.FC = () => {
   const [code, setCode] = useState('')
   const [output, setOutput] = useState('')
   const [projectName, setProjectName] = useState('project 1')
-  const [filePath, setFilePath] = useState('')
+  const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [unsavedChanges, setUnsavedChanges] = useState(true)
 
   // ── UI overlay state ─────────────────────────────────────────────────────
@@ -218,12 +218,12 @@ const BlocksPage: React.FC = () => {
     savedWorkspaceStates: workspace.savedWorkspaceStates,
     importedSnapshotRef: workspace.importedSnapshotRef,
     setCode,
-    setFilePath,
+    setFileHandle,
     setProjectName,
     setOutput,
     setUnsavedChanges,
     code,
-    filePath,
+    fileHandle,
     projectName,
     selectedKit,
     selectedCategory,
@@ -282,7 +282,6 @@ if (currentWorkspace) {
 
   return (
     <>
-      <Header />
 
       <DndContext
         onDragEnd={({ delta }) =>
@@ -351,7 +350,7 @@ if (currentWorkspace) {
                   
                     handleExitApp({
                       workspaceRef: workspace.workspaceRef,
-                      filePath,
+                      fileHandle,
                       unsavedChanges,
                       selectedKit,
                       setOutput,

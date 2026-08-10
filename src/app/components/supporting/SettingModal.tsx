@@ -17,7 +17,7 @@ import Aboutinfo from './Aboutcomp';
 import ThemeSelector from './Themecomp'
 import SoundControl from './Soundcomp';
 import Settingsbg from './assets/Settingsbg';
-import Close from './assets/Wrong.svg'
+import Closeicon from './assets/Wrong'
 export default function SettingModal({  onClose }) {
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'checking' | 'available' | 'not_available' | 'downloading' | 'downloaded'
@@ -36,12 +36,8 @@ export default function SettingModal({  onClose }) {
   const clickbg = themeMode === "dark" ? 'bg-black' : 'bg-white'
   const textcolor = themeMode === "dark" ? 'text-white' : 'text-black'
   const bgOpacity = themeMode === "dark" ? "opacity-10" : "opacity-5";
-  const modecard = localStorage.getItem("modecard");
+  const modecard = window.localStorage.getItem("modecard");
   const isCpp = modecard === "cpp";
-  const handleAppUpdate = () => {
-    setUpdateStatus('checking')
-    window.api.checkForUpdates()
-  }
   const bgMap = {
     theme: Themebg,
     sound: Soundbg,
@@ -50,30 +46,7 @@ export default function SettingModal({  onClose }) {
   };
   
   const BgComponent = bgMap[section];
-  
-  useEffect(() => {
-    window.api.onUpdateStatus((data) => {
-      setUpdateStatus(data.status as
-        | "idle"
-        | "checking"
-        | "available"
-        | "not_available"
-        | "downloading"
-        | "downloaded"
-      )            
-      if (data.status === 'downloading' && data.progress) {
-        setDownloadProgress(data.progress)
-      }
-    })
-  }, [])
-
-  useEffect(() => {
-    window.api.getAppVersion().then((version) => {
-      setAppVersion(version)
-    })
-  }, [])
-
-  
+    
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-hidden">
@@ -95,7 +68,7 @@ export default function SettingModal({  onClose }) {
       height: "30px",
     }}
   >
-   <img src={Close} className='w-10 h-10'/>
+   <Closeicon className='w-10 h-10'/>
   </button>
 </div>
   

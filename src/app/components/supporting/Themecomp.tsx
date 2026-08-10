@@ -1,6 +1,6 @@
 import { FiCheck } from "react-icons/fi";
-import LightTheme from "./assets/Light.svg";
-import DarkTheme from "./assets/Dark.svg";
+import LightTheme from "./assets/Light";
+import DarkTheme from "./assets/Dark";
 import { useSelector, useDispatch } from 'react-redux'
 import { setTheme } from '../../../../store/themeSlice'
 
@@ -18,19 +18,19 @@ export default function ThemeSelector() {
     type,
     bgColor,
     textColor,
-    image,
+    Icon,
   }: {
     type: Theme;
     bgColor: string;
     textColor: string;
-    image: string;
+    Icon: React.ComponentType<{ className?: string }>;
   }) => {
     const isSelected = selectedTheme === type;
 
     return (
       <div
       onClick={() => handleSelectTheme(type)}
-        className="relative cursor-pointer rounded-md p-4"
+        className="relative cursor-pointer rounded-md p-4 overflow-hidden"
         style={{
           width: "260px",
           height: "150px",
@@ -56,13 +56,10 @@ export default function ThemeSelector() {
         </div>
 
         {/* Image on Right End Corner */}
-        <img
-  src={image}
-  alt={type}
-  className={`absolute right-0 ${
-    type === "dark" ? "-bottom-10" : "-bottom-5"
-  } w-[175px] h-[175px] object-contain block`}
-/>
+    {/* Theme Illustration */}
+<div className={`absolute right-0 bottom-0 -translate-y-[20px]`}>
+  <Icon className="w-[175px] h-[175px] object-contain block" />
+</div>
       </div>
     );
   };
@@ -77,14 +74,14 @@ export default function ThemeSelector() {
         type="light"
         bgColor="#F0F0F0"
         textColor="#000000"
-        image={LightTheme}
+        Icon={LightTheme}
       />
 
       <ThemeBox
         type="dark"
         bgColor="#272727"
         textColor="#FFFFFF"
-        image={DarkTheme}
+        Icon={DarkTheme}
       />
     </div>
     </div>

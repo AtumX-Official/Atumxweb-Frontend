@@ -1,21 +1,20 @@
 "use client";
 import React, { useRef, useEffect } from 'react'
-import Subu from '../assets/Subu.svg';
-import Wheels from '../assets/Wheels.svg'
-import Rekka from '../assets/Rekka.svg'
-import Playmo from '../assets/Playmo.svg'
+import Subu from '../assets/Subu';
+import Wheels from '../assets/Wheels'
+import Rekka from '../assets/Rekkamodel'
+import Playmomodel from '../assets/Playmomodel'
 import { useDispatch, useSelector } from 'react-redux'
 import { setKit, setCategory } from '../../../store/kitslice'
 import type { RootState } from '../../../store'
-import Gripper from '../assets/Gripperimg.svg'
-import Walker from '../assets/Walkerimg.svg'
-import Crawler from '../assets/Crawlerimg.svg'
+import Gripper from '../assets/Gripperimg'
+import Walker from '../assets/Walkerimg'
+import Crawler from '../assets/Crawlerimg'
 import BackgroundImg from "../assets/Background.svg"
 
 const Models: React.FC = () => {
   const dispatch = useDispatch()
   const activeModel = useSelector((state: RootState) => state.kits.kit)
-  console.log(Subu);
   const models = [
     // { id: "cayo", label: "CAYO", Icon: Cayo },
     // { id: "snowflake", label: "SNOWFLAKE", Icon: Snowflake },
@@ -125,7 +124,7 @@ export const AddBlocks: React.FC<TopLeftBarProps> = ({
 
   const allModels = [
     { id: "gaadi", label: "GAADI", Icon: Wheels },
-    { id: "playmo", label: "PLAYMO", Icon: Playmo },
+    { id: "playmo", label: "PLAYMO", Icon: Playmomodel },
     { id: "gripper", label: 'GRIPPER', Icon: Gripper },
     { id: "walker", label: 'WALKER', Icon: Walker },
     { id: "crawler", label: 'CRAWLER', Icon: Crawler }

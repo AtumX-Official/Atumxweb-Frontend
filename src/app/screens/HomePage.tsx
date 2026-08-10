@@ -3,21 +3,20 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 
 import { setMode } from "../../../store/modeSlice";
 
 import "../assets/css/homepage.css";
 
-import BackgroundImg from "../assets/Background.svg";
-import Backgrounddark from "../assets/Backgrounddark.svg";
-
+import BackgroundImg from "../assets/Background.svg?url";
+import Backgrounddark from "../assets/Backgrounddark.svg?url";
 import Header from "../components/Header";
 import ModeCard from "../components/ModeCard";
 import ModeSwitch from "../components/ModeSwitch";
 import Navbar from "../components/Navbar";
-
+import ResetPopupHandler from "../components/ResetPopHandler";
+import '../assets/main.css'
 import {
   UnderdevelopmentPopup,
   PressResetPopup,
@@ -28,10 +27,6 @@ type Mode = "code" | "ai box" | "games";
 export default function HomePage() {
   const dispatch = useDispatch();
 
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
   const mode = useSelector((state: { mode: Mode }) => state.mode);
 
   const themeMode = useSelector(
@@ -39,26 +34,17 @@ export default function HomePage() {
   );
 
   const [pressResetOpen, setPressResetOpen] = useState(false);
-
-  /* -------------------- Effects -------------------- */
-
-  useEffect(() => {
-    const showResetPopup = searchParams.get("showResetPopup");
-    const showResetAlert = searchParams.get("showResetAlert");
-
-    if (showResetPopup === "true" || showResetAlert === "true") {
-      setPressResetOpen(true);
-
-      // Remove query parameters after showing popup
-      router.replace(pathname);
-    }
-  }, [searchParams, router, pathname]);
+  const [showUnderDev, setShowUnderDev] = useState(false)
 
   /* -------------------- Handlers -------------------- */
 
   const handleModeChange = (newMode: Mode) => {
-    dispatch(setMode(newMode));
-  };
+    if(newMode === 'ai box' || newMode === "games"){
+      setShowUnderDev(true)
+      return
+    }
+    dispatch(setMode(newMode))
+  }
 
   const handlePressResetOk = () => {
     setPressResetOpen(false);
@@ -92,15 +78,15 @@ export default function HomePage() {
             />
             <ModeCard
               mode={mode}
-              linkto="python"
               image="python"
               text="PYTHON"
+              onClick={() => setShowUnderDev(true)} 
             />
             <ModeCard
               mode={mode}
-              linkto="cpp"
               image="cpp"
               text="C++"
+              onClick={() => setShowUnderDev(true)} 
             />
           </div>
         );
@@ -156,7 +142,9 @@ export default function HomePage() {
 
   return (
     <>
-      <Header />
+      <Suspense fallback={null}>
+        <ResetPopupHandler onTrigger={() => setPressResetOpen(true)} />
+      </Suspense>
 
       <div
         className={`${bgColor} h-screen w-screen flex flex-col relative overflow-hidden`}
@@ -166,7 +154,7 @@ export default function HomePage() {
             <div
               className="absolute -inset-[3836px] animate-moving-bg-gpu opacity-70 will-change-transform"
               style={{
-                backgroundImage: `url(${Backgrounddark.src})`,
+                backgroundImage: `url(${Backgrounddark})`,
                 backgroundSize: "auto",
                 backgroundRepeat: "repeat",
               }}
@@ -175,7 +163,7 @@ export default function HomePage() {
             <div
               className="absolute -inset-[1960px] animate-moving-bg-gpu opacity-30 will-change-transform"
               style={{
-                backgroundImage: `url(${BackgroundImg.src})`,
+                backgroundImage: `url(${BackgroundImg})`,
                 backgroundSize: "980px 980px",
                 backgroundRepeat: "repeat",
               }}
@@ -190,7 +178,9 @@ export default function HomePage() {
           <ModeSwitch mode={mode} setMode={handleModeChange} />
         </div>
       </div>
-
+      {showUnderDev && (
+        <UnderdevelopmentPopup onNo={() => setShowUnderDev(false)} />
+      )}
       <PressResetPopup
         open={pressResetOpen}
         onOk={handlePressResetOk}

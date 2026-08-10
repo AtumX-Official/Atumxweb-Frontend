@@ -13,7 +13,7 @@ export default function SerialMonitor({
 }
 ){
     const [autoScroll, setAutoScroll] = useState(() => {
-        const saved = localStorage.getItem("serial_autoscroll");
+        const saved = window.localStorage.getItem("serial_autoscroll");
         return saved !== null ? JSON.parse(saved) : true;
       });
       
@@ -91,7 +91,7 @@ export default function SerialMonitor({
           <button
             onClick={() => {
               setShowSerialTerminal(false);
-              localStorage.setItem('cpp_showSerialTerminal', 'false');
+              window.localStorage.setItem('cpp_showSerialTerminal', 'false');
             }}
             title="Close"
             className="bg-red-600 w-5 h-5 rounded flex items-center justify-center hover:bg-red-500 transition-colors"

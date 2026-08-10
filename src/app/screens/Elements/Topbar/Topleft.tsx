@@ -1,10 +1,11 @@
+"use client"
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../../../../../store/index';
 import { setSelectedComPort } from '../../../../../store/comPortSlice';
 import { disconnectSerial, sendSerialMessage, connectSerial } from '../../../../../store/serialSlice';
-
+import SerialService from "../../../services/Serialservice";
 import Back from '../../../assets/Blockback';
 import New from '../../../assets/Edit';
 import Import from '../../../assets/Import';
@@ -76,6 +77,7 @@ const TopLeftBar: React.FC<TopLeftBarProps> = ({
       return () => window.removeEventListener("click", handler);
     }, []);
   return (
+    
     <div className="flex flex-col flex-shrink-0 min-w-0 relative overflow-visible z-50">
       {/* Project Name box ABOVE icons */}
 

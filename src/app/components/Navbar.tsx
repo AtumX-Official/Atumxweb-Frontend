@@ -45,7 +45,10 @@ export default function Navbar({ mode }: { mode: AppMode }) {
 
       <div className="flex gap-3 z-10">
         <button
-          onClick={() => router.push('/project')}
+                    onClick={() => {
+                      setShowUnderDev(true)
+                    }}
+          
           className={`cursor-pointer group flex items-center justify-center p-2 rounded-md border transition-all duration-200 focus:outline-none focus:ring-2 ${theme.mode === 'light' ? 'bg-black' : darkBgColor} hover:border-white`}
 
         >

@@ -1,11 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { AppDispatch, RootState } from '../store';
 import { setConnected,setDisconnected } from './websocketSlice';
-import { encode } from '@msgpack/msgpack';
-
+import { createAsyncThunk } from '@reduxjs/toolkit';
+import SerialService from '@/app/services/Serialservice';
 interface SerialState {
-  portPath: string | null;
   isOpen: boolean;
+  deviceName: string | null;
   lastData: string | null;
 }
 
@@ -35,26 +35,18 @@ const serialSlice = createSlice({
 });
 
 // --- Thunks ---
-export const connectSerial =
-  (portPath: string) => async (dispatch: AppDispatch) => {
-    if (!portPath) {
-      console.warn('No COM port provided');
-      return false;
-    }
+export const connectSerial = () => async (dispatch: AppDispatch) => {
+  try {
+    await SerialService.connect();
 
-    try {
-      dispatch(setPort(portPath));
-      await window.api.serial.open(portPath, { baudRate: 9600 });
-      dispatch(setOpen(true));
-      console.log(`Serial port ${portPath} opened`);
-      dispatch(setConnected('Wired'));
-      return true;
-    } catch (err) {
-      console.error('Error opening serial port:', err);
-      dispatch(setOpen(false));
-      return false
-    }
-  };
+    dispatch(setOpen(true));
+    dispatch(setConnected());
+
+    console.log("Serial port connected");
+  } catch (err) {
+    console.error("Failed to connect:", err);
+  }
+};
 
   export const sendSerialMessage = async (message: unknown) => {
     if (!isPortOpenInternal) return; // Prevent writing when port is not open
@@ -80,8 +72,7 @@ export const connectSerial =
       jsonString += '\n';
   
       // Send to serial
-      await window.api.serial.write(jsonString);
-  
+      await SerialService.send(jsonString);  
       
       if (typeof parsed === "object") {
         console.log("Data sent to serial:\n", JSON.stringify(parsed, null, 2));
@@ -97,7 +88,7 @@ export const connectSerial =
 export const disconnectSerial = () => async (dispatch: AppDispatch) => {
   try {
     console.log('Attempting to close serial port...');
-    await window.api.serial.close();
+    await SerialService.disconnect();    
     dispatch(setOpen(false));
     dispatch(setPort(null));
     dispatch(setDisconnected());

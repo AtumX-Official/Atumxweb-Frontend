@@ -10,7 +10,7 @@ import {
   getWebSocket,
 } from '../../../../../store/websocketSlice'
 import { sendSerialMessage } from '../../../../../store/serialSlice'
-
+import SerialService from '@/app/services/Serialservice'
 declare global {
   interface Window {
     __aiModels?: Record<string, object>
@@ -146,11 +146,13 @@ export function useBlocklyActions({ workspaceRef, isConnected, mode }: UseBlockl
     console.log("Json:", JSON.stringify(result, null, 2));
         setRunStatus('Stop')
 
-    if (mode !== 'Wireless') {
-      window.api.serial.onData((data: string) => {
-        if (/PDone/i.test(data)) setRunStatus('Start')
-      })
-    }
+        if (mode !== "Wireless") {
+           SerialService.startReading((data: string) => {
+            if (/PDone/i.test(data)) {
+              setRunStatus("Start");
+            }
+          });
+        }
 
     // Start AI overlay if workspace contains any AI block whose model is loaded.
     // Two ways to introduce an AI block:
@@ -189,11 +191,12 @@ export function useBlocklyActions({ workspaceRef, isConnected, mode }: UseBlockl
     sendToDevice(result.outputForDevice)
   }
 
-  const handleRunStop = () => {
+  const handleRunStop = async () => {
     if (runstatus === 'Stop') {
       setRunStatus('Start')
       sendToDevice({ msg: 'stop' })
       window.dispatchEvent(new Event('ai:stopPrediction'))
+      await SerialService.stopReading()   // <-- release the reader
     } else {
       generateAndRun()
     }

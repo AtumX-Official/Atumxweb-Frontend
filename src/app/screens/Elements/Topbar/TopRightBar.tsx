@@ -34,44 +34,70 @@ const TopBarRight: React.FC<TopBarRightProps> = ({ setShowKits }) => {
       const [showSettings, setShowSettings] = useState(false)
       console.log("isConnected : ",isConnected)
       console.log("activeIcon : ",activeIcon)
-      const handleUsbClick = () => {
-  if (isConnected) {
-    dispatch(disconnectSerial());
-    setShowConnectivity(true);
-    setActiveIcon("none");
-    dispatch(setSelectedComPort(null));
-    console.log("Disconnected from serial");
-  }  else if (activeIcon === "usb") {
-    setActiveIcon("none");
-  } else {
-    dispatch(setConnectionMode("Wired"));
-    setActiveIcon("usb");
-  }
-};
-
-const handlePortSelected = (port: string) => {
-  dispatch(setSelectedComPort(port));
-  let timeoutId: NodeJS.Timeout;
-  if (port) {
-    dispatch(connectSerial(port))
-      .then(() => {
-        console.log("Connected to serial successfully");
-        dispatch(setConnectionMode("Wired"));
-        timeoutId = setTimeout(() => {
-          sendSerialMessage({ msg: "usbconn" });
-          setShowConnectivity(true);
-          console.log("usbconn message sent after 2 seconds");
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error("Serial connection failed:", err);
-        dispatch(disconnectSerial());
-      });
-  }
-  return () => {
-    if (timeoutId) clearTimeout(timeoutId);
-  };
-};
+      const handleUsbClick = async () => {
+        // Disconnect
+        if (isConnected) {
+          try {
+            await dispatch(disconnectSerial());
+      
+            setShowConnectivity(true);
+            setActiveIcon("none");
+      
+            console.log("Disconnected");
+          } catch (error) {
+            console.error("Failed to disconnect:", error);
+          }
+      
+          return;
+        }
+      
+        // Check Web Serial availability
+        if (
+          typeof navigator === "undefined" ||
+          !("serial" in navigator)
+        ) {
+          console.error("Web Serial API is not available.");
+      
+          setActiveIcon("none");
+          setShowConnectivity(false);
+      
+          // You can replace this with your own popup if you have one
+          alert(
+            "USB connection is not available. Please open this website using HTTPS or localhost in Chrome or Edge."
+          );
+      
+          return;
+        }
+      
+        try {
+          dispatch(setConnectionMode("Wired"));
+      
+          await dispatch(connectSerial());      
+          setActiveIcon("usb");
+          setShowConnectivity(false);
+      
+          console.log("Connected");
+      
+          // Wait 2 seconds for the board to initialize
+          setTimeout(async () => {
+            try {
+              await sendSerialMessage({ msg: "usbconn" });
+      
+              setShowConnectivity(true);
+      
+              console.log("usbconn message sent");
+            } catch (err) {
+              console.error("Failed to send usbconn:", err);
+            }
+          }, 2000);
+      
+        } catch (error) {
+          console.error("Failed to connect:", error);
+      
+          setActiveIcon("none");
+          setShowConnectivity(false);
+        }
+      };
 
 const handleWirelessClick = () => {
   dispatch(setConnectionMode("Wireless"));
@@ -117,59 +143,35 @@ useEffect(() => {
 return(
 <div className="flex items-center gap-2">
 <div className=" relative flex items-center space-x-2">
-  {activeIcon !== 'usb' && mode !== 'Wireless' && (
-    <div
-      className={`bg-black rounded-[8px] flex items-center justify-center transition-all duration-300 
-        border-[1px] border-transparent
-    hover:border-[#F6EC24] mb-1
-        ${
-        isConnected ? 'lg:w-[50px] lg:h-[50px] ' : 'lg:w-[175px] lg:h-[45px]'
-      }`}
-    >
-      <div className="pl-2 pr-2">
-  <button 
+<div
+  className={`bg-black rounded-[8px] flex items-center justify-center
+    border border-transparent hover:border-[#F6EC24]
+    transition-all duration-300
+    ${
+      isConnected
+        ? "w-[50px] h-[50px]"
+        : "w-[50px] h-[50px]"
+    }`}
+>
+  <button
     onClick={handleUsbClick}
     className="group relative flex items-center justify-center hover:scale-110 transition-transform duration-200"
   >
     <Usb
       isConnected={isConnected}
-      className={`lg:w-[20px] lg:h-[35px]  cursor-pointer ${
-        isSerialOpen ? 'text-green-400' : ''
+      className={`w-[20px] h-[35px] cursor-pointer ${
+        isConnected ? "text-green-400" : "text-white"
       }`}
     />
-    <Tooltip text="Connect with USB" marginTop="mt-2" />
+
+    <Tooltip
+      text={isConnected ? "Disconnect USB" : "Connect USB"}
+      marginTop="mt-2"
+    />
   </button>
 </div>
-      {!isConnected && (
-        <>
-          <div className="ml-auto mr-auto">
-            <Wiredicon className="lg:w-[40px] lg:h-[40px]  cursor-pointer" />
-          </div>
-          <button 
-  onClick={handleWirelessClick}
-  className="group relative pr-3 flex items-center justify-center hover:scale-110 transition-transform duration-200"
->
-  <Wirelessicon className="lg:w-[35px] lg:h-[25px]" />
-  
-  {/* Reusable Tooltip component replaces the span */}
-  <Tooltip text="Connect with WIFI" marginTop='mt-2' py='py-1' />
-</button>
-        </>
-      )}
-    </div>
-  )}
-  {activeIcon === 'usb' && (
-    <div className="bg-black rounded-[8px] w-[50px] h-[50px] flex items-center justify-center" onClick={handleUsbClick}>
-      <Usb
-        isConnected={isConnected}
-        className={`lg:w-[20px] lg:h-[35px] cursor-pointer ${
-          isSerialOpen ? 'text-green-400' : ''
-        }`}      />
-    </div>
-  )}
-  {(activeIcon === 'usb' && mode === 'Wired') && (
-    <ComPortSelector isConnected={isConnected} onPortSelected={handlePortSelected} />
-  )}
+
+ 
 </div>
 
 {showConnectivity && <Connectivity />}  {/* Group 2: Wireless Connected (outside black box) */}
@@ -197,7 +199,7 @@ return(
       <Tooltip text="Disconnect"/>
     </div>
   )}
-
+ {mode == "Wireless" && (
 <button 
   onClick={() => router.push('/rccar')}
   className="group relative hover:scale-110 transition-transform duration-200"
@@ -205,6 +207,7 @@ return(
   <Games className="lg:w-[50px] lg:h-[50px]  cusor-pointer" />
   <Tooltip text="Control space"/>
 </button>
+ )}
 {/* <button 
   className="group relative hover:scale-110 transition-transform duration-200"
   onClick={() =>  navigate('/Mainlayout')}

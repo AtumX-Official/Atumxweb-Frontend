@@ -117,36 +117,35 @@ export default function ModeCard({ onClick, mode, image, text, linkto }: ModeCar
   const handleClick = async () => {
 
     if (mode === 'code' && image === 'python') {
-      localStorage.setItem("modecard", "python");
+      window.localStorage.setItem("modecard", "python");
     }
   
     if (mode === 'code' && image === 'blocks') {
-      localStorage.setItem("modecard", "blocks");
+     window.localStorage.setItem("modecard", "blocks");
     }
   
     if (mode === 'code' && image === 'cpp') {
-      localStorage.setItem("modecard", "cpp");
+     window.localStorage.setItem("modecard", "cpp");
     }
   
-    if (mode === 'code' && image === 'python') {
-      const latest = await detectBoardMode()
+    // if (mode === 'code' && image === 'python') {
+    //   const latest = await detectBoardMode()
   
-      if (latest && latest.port && latest.mode !== 'Python Mode') {
-        try {
-          await window.api.serial.open(latest.port, { baudRate: 115200 })
-          await new Promise((resolve) => setTimeout(resolve, 300))
-          await window.api.serial.write(JSON.stringify({ msg: 'switch' }) + '\n')
-          await new Promise((resolve) => setTimeout(resolve, 300))
-        } catch (err) {
-          console.error('Serial port error:', err)
-        }
-      }
-    }
+    //   if (latest && latest.port && latest.mode !== 'Python Mode') {
+    //     try {
+    //       await window.api.serial.open(latest.port, { baudRate: 115200 })
+    //       await new Promise((resolve) => setTimeout(resolve, 300))
+    //       await window.api.serial.write(JSON.stringify({ msg: 'switch' }) + '\n')
+    //       await new Promise((resolve) => setTimeout(resolve, 300))
+    //     } catch (err) {
+    //       console.error('Serial port error:', err)
+    //     }
+    //   }
+    // }
   
     if (linkto) {
     router.push(
-  `/${linkto}${linkto === "blockly" ? "?showModal=true" : ""}`
-);
+`${linkto}${linkto === "blockly" ? "?showModal=true" : ""}`);
     }
       onClick?.()
   }

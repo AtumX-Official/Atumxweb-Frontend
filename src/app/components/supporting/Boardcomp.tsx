@@ -1,7 +1,7 @@
 import { useSelector } from "react-redux";
-import type { RootState } from '../../../store/index';
+import type { RootState } from '../../../../store/index';
 import snowflake from '../../assets/Snowflake.svg'
-import subo from '../../assets/Subu.svg'
+import subo from '../../assets/Subu'
 import cayo from '../../assets/Cayo.svg'
 import { useState,useEffect } from "react";
 import { FiEdit2 } from "react-icons/fi";
@@ -38,7 +38,7 @@ export default function BoardInfo() {
   };
 
   const BoardIcon = kitMap[selectedKit];
-  const modecard = localStorage.getItem("modecard");
+  const modecard = window.localStorage.getItem("modecard");
   const isPython = modecard === "python";
   
   /* ---------------- WIFI FETCH ---------------- */

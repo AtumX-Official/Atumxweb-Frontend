@@ -95,7 +95,7 @@ export default function PythonScaffold({
   const [activeTab, setActiveTab] = useState<'serial' | 'errors'>('serial') 
    const [runStatus, setRunStatus] = useState<'running' | 'stopped'>('stopped')
   const [autoScroll, setAutoScroll] = useState(() => {
-    const saved = localStorage.getItem("serial_autoscroll");
+    const saved = window.localStorage.getItem("serial_autoscroll");
     return saved !== null ? JSON.parse(saved) : true;
   });
   //Global Search
@@ -124,16 +124,16 @@ export default function PythonScaffold({
   const [fileSearchText, setFileSearchText] = useState("");
   const [fileResults, setFileResults] = useState<any[]>([]);
   useEffect(() => {
-    localStorage.setItem("serial_autoscroll", JSON.stringify(autoScroll));
+    window.localStorage.setItem("serial_autoscroll", JSON.stringify(autoScroll));
   }, [autoScroll]);
 
   const [examples, setExamples] = useState<any[]>([])
   const [libraries, setLibraries] = useState([])
   const [leftPanel, setLeftPanel] = useState<null | 'Searchall'| 'folder' | 'library' | 'example' | 'board files'>(() => {
-    return localStorage.getItem('py_leftPanel') as 'Searchall'|'folder' | 'library' | 'example' | null
+    return window.localStorage.getItem('py_leftPanel') as 'Searchall'|'folder' | 'library' | 'example' | null
   })
   const [showTerminal, setShowTerminal] = useState(() => {
-    return localStorage.getItem('py_showTerminal') === 'true'
+    return window.localStorage.getItem('py_showTerminal') === 'true'
   })
   const [terminalHeight, setTerminalHeight] = useState(300)
   const isDragging = useRef(false)
@@ -260,7 +260,7 @@ export default function PythonScaffold({
     clearSearch()
     setLeftPanel((prev) => {
       const newState = prev === panel ? null : panel
-      localStorage.setItem('py_leftPanel', newState ?? '')
+      window.localStorage.setItem('py_leftPanel', newState ?? '')
       return newState
     })
   }
@@ -268,7 +268,7 @@ export default function PythonScaffold({
   const toggleTerminal = () => {
     setShowTerminal((prev) => {
       const newVal = !prev
-      localStorage.setItem('py_showTerminal', String(newVal))
+      window.localStorage.setItem('py_showTerminal', String(newVal))
       if (newVal) setTerminalHeight(300)
       return newVal
     })
@@ -287,7 +287,7 @@ export default function PythonScaffold({
     const newHeight = window.innerHeight - e.clientY
     if (newHeight < 50) {
       setShowTerminal(false)
-      localStorage.setItem('py_showTerminal', 'false')
+      window.localStorage.setItem('py_showTerminal', 'false')
       isDragging.current = false
     } else {
       setTerminalHeight(Math.min(newHeight, 500))
@@ -567,7 +567,7 @@ export default function PythonScaffold({
       if (e.key === 'F5') {
         e.preventDefault()
         setShowTerminal(true)
-        localStorage.setItem('py_showTerminal', 'true')
+        window.localStorage.setItem('py_showTerminal', 'true')
         onRun()
       }
     }
@@ -769,7 +769,7 @@ export default function PythonScaffold({
                       className="group relative w-12 h-12 rounded-full bg-white flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200"
                       onClick={() => {
                         setShowTerminal(true);
-                        localStorage.setItem("py_showTerminal", "true");
+                        window.localStorage.setItem("py_showTerminal", "true");
                         onRun();
                         setRunStatus('running');
                       }}
@@ -1061,7 +1061,7 @@ export default function PythonScaffold({
             <button
               onClick={() => {
                 setShowTerminal(false);
-                localStorage.setItem('py_showTerminal', 'false');
+                window.localStorage.setItem('py_showTerminal', 'false');
               }}
               title="Close"
               className="bg-[#EA221F] rounded w-6 h-6 flex items-center justify-center"

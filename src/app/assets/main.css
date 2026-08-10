@@ -5,17 +5,7 @@
 
 @theme {
   --animate-moving-bg: moving-bg 10s linear infinite;
-  @keyframes moving-bg {
-    0% {
-      background-position-x: 256px;
-      background-position-y: 256px;
-    }
-    100% {
-      background-position-x: 0;
-      background-position-y: 0;
-    }
-  }
-
+  
   --animate-loading-dots: loading-dots 1s ease-in-out infinite;
   @keyframes loading-dots {
     0%, 100% {
