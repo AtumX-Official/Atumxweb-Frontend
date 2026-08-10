@@ -179,12 +179,12 @@ const TopLeftBar: React.FC<TopLeftBarProps> = ({
     </div>
   )}
 </button>
-        <button className="group relative hover:scale-110 transition-transform duration-200" onClick={handleBookfunction}
+        {/* <button className="group relative hover:scale-110 transition-transform duration-200" onClick={handleBookfunction}
         >
           <Book className="lg:w-[50px] lg:h-[50px] cursor-pointer "
           />
           <Tooltip text="Book" />
-        </button>
+        </button> */}
       </div>
 
     </div>
