@@ -37,14 +37,13 @@ const SerialMonitor = ({
     };
   }, [ws]);
   useEffect(() => {
-    SerialService.startReading((data: string) => {
+    const removeListener = SerialService.addDataListener((data) => {
       console.log("Received data:", data);
-      setSerialData((prev) => prev + data + "\n");
+  
+      setSerialData((prev) => prev + data);
     });
   
-    return () => {
-      SerialService.stopReading();
-    };
+    return removeListener;
   }, []);
   useEffect(() => {
     if (iconRef?.current && rndRef?.current) {
