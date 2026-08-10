@@ -4,7 +4,7 @@ import Blocks from './assets/Blocks.svg'
 import Arrow from './assets/Arrows'
 import Python from './assets/Python.svg'
 import Cimg from './assets/Cimg.svg'
-import Usbicon from './assets/Usbicon.svg'
+import Usbicon from './assets/Usbicon'
 import type { RootState } from '../../../store'
 import Wifiicon from './assets/Wifiicon'
 import Exclamation from './assets/Exclamation.svg'
@@ -116,7 +116,7 @@ export function Connectivity() {
 
   const connectionType = lastMode || mode;
   const isWired = connectionType === "Wired";
-  const icon = isWired ? Usbicon : Wifiicon;
+  const Icon = isWired ? Usbicon : Wifiicon;
 
   const statusText = isConnected
     ? isWired
@@ -170,9 +170,7 @@ export function Connectivity() {
               }}
             >
               {/* Responsive Icon */}
-              <img
-                src={icon}
-                alt={connectionType}
+              <Icon
                 className="
                   object-contain flex-shrink-0
                   w-[clamp(28px,3vw,44px)]
@@ -221,7 +219,7 @@ export const ConfirmUnsavedChangesModal = ({
   onNo,
   variant,
 }: ConfirmUnsavedChangesModalProps) => {
-  const modalImage = variant === "exit" ? ExitImage : Files; 
+  const ModalImage = variant === "exit" ? ExitImage : Files; 
   const themeMode = useSelector((state: any) => state.theme.mode)
   const bgColor = themeMode === 'dark' ? 'bg-[#000000]' : 'bg-[#F0F0F0]'
   const textColor = themeMode === 'dark' ? 'text-white' : 'text-black'
@@ -260,9 +258,7 @@ export const ConfirmUnsavedChangesModal = ({
 <div className={`flex-[72] flex flex-col items-center justify-center text-center gap-1 px-10 relative ${bgColor}`}>
 
 
-<img
-  src={modalImage}
-  alt="Unsaved"
+<ModalImage
   className={`
     drop-shadow-lg  object-contain
     ${
@@ -444,23 +440,23 @@ export const Savetokitpop = ({ type = "save" }: SavetokitpopProps) => {
 export const RunPopup = ({ variant }) => {
   const config = {
     CONNECT: {
-      image: Connect,
+      Icon: Connect,
       title: "HOLD ON",
       message: "CONNECT A KIT FIRST!",
     },
     NOCODE: {
-      image: Oops,
+      Icon: Oops,
       title: "OOPS..",
       message: "CAN'T RUN WITHOUT A CODE",
     },
     RUNNING: {
-      image: Oops,
+      Icon: Oops,
       title: "OOPS..",
       message: "CAN'T EXIT WHEN CODE IS RUNNING",
     },
   };
 
-  const { image, title, message } = config[variant] || {};
+  const { Icon, title, message } = config[variant] || {};
 
   return (
     <AnimatePresence>
@@ -488,9 +484,7 @@ export const RunPopup = ({ variant }) => {
             }}
           >
             {/* Icon */}
-            <img
-              src={image}
-              alt={variant}
+            <Icon
               className="
                 object-contain flex-shrink-0
                 w-[clamp(40px,5vw,60px)]

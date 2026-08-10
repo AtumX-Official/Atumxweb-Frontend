@@ -87,7 +87,7 @@ Blockly.Blocks['button_block'] = {
         headerRow.style.fontSize = "20px";
 
         const icon = document.createElement("img");
-        icon.src = VariableImg; // your image
+        icon.src = VariableImg.src; // your image
         icon.style.width = "28px";
         icon.style.height = "28px";
 
@@ -241,7 +241,7 @@ Blockly.Blocks['get_variable'] = {
     popup.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
 
     const img = document.createElement('img');
-    img.src = DeleteVarImg;
+    img.src = DeleteVarImg.src;
     img.style.width = '100px';
     img.style.height = '100px';
     img.style.margin = '0 auto 15px auto';

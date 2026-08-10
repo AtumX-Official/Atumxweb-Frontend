@@ -98,7 +98,33 @@ const TopBarRight: React.FC<TopBarRightProps> = ({ setShowKits }) => {
           setShowConnectivity(false);
         }
       };
-
+      useEffect(() => {
+        if (typeof navigator === "undefined" || !("serial" in navigator)) {
+          return;
+        }
+      
+        const handleSerialDisconnect = (event: Event) => {
+          console.log("🔌 USB physically disconnected", event);
+      
+          setActiveIcon("none");
+          setShowConnectivity(true);
+      
+          // Update Redux state
+          dispatch(disconnectSerial());
+        };
+      
+        navigator.serial.addEventListener(
+          "disconnect",
+          handleSerialDisconnect
+        );
+      
+        return () => {
+          navigator.serial.removeEventListener(
+            "disconnect",
+            handleSerialDisconnect
+          );
+        };
+      }, [dispatch]);
 const handleWirelessClick = () => {
   dispatch(setConnectionMode("Wireless"));
   const ws = getWebSocket();

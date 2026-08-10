@@ -1,4 +1,4 @@
-export default function Savedkit({ className }: { className?: string }) {
+export default function Connect({ className }: { className?: string }) {
     return (
     <svg className={className} width="68" height="68" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g filter="url(#filter0_d_2918_5233)">
