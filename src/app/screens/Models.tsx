@@ -11,6 +11,7 @@ import Gripper from '../assets/Gripperimg'
 import Walker from '../assets/Walkerimg'
 import Crawler from '../assets/Crawlerimg'
 import BackgroundImg from "../assets/Background.svg"
+import DemoBoard from '../assets/Demo'
 
 const Models: React.FC = () => {
   const dispatch = useDispatch()
@@ -20,6 +21,7 @@ const Models: React.FC = () => {
     // { id: "snowflake", label: "SNOWFLAKE", Icon: Snowflake },
     { id: "subo", label: "SUBO", Icon: Subu },
     { id: "rekka", label: "REKKA", Icon: Rekka },
+    {id: "stemrobo", label: "STEMROBO", Icon: DemoBoard}
   ]
 
   const handleKitClick = (id: string) => {

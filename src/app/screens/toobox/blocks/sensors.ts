@@ -64,6 +64,28 @@ export const Sensors = {
          <block type="droneservo_individual"></block>
          <block type="drone360ServoR"></block>
          <block type="drone360ServoS"></block>
-      `
+      `,
+      STEMROBO : `
+      <block type="stemroboconnect_us1"></block>
+  <block type="US1"></block>
+  <block type="stemroboconnect_ldr"></block>
+  <block type="ldr"></block>
+  <block type="stemrobosensor_pin"></block>
+  <block type="ir"></block>
+  <block type= "stemrobosetup_DHT"></block>
+  <block type="DTHSensor"></block>
+  <block type="stemrobocolor_sensor_init"></block>
+  <block type="color_sensor"></block>
+  <block type="colorsensor"></block>
+    <block type="stemrobosetvibration"></block>
+    <block type="stemroboVibration"></block>
+    <block type="stemrobosettouch"></block>
+    <block type="stemroboTouch"></block>
+    <block type="stemrobosetgas"></block>
+    <block type="stemroboGas"></block>
+   <block type="stemrobosetsoilmoisture"></block>
+    <block type="stemroboSoil"></block>
+    <block type="stemrobosetsound"></block>
+    <block type="stemroboSound"></block>`
   };
   

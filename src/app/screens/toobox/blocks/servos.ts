@@ -17,6 +17,12 @@ export const Servos = {
     `,
     DRONE : `
          
-    `
+    `,
+    STEMROBO : `
+    <block type="stemroboservo_init"></block>
+    <block type="servo_individual"></block>
+    <block type="360ServoR"></block>
+    <block type="360ServoS"></block>
+  `,
   };
   
