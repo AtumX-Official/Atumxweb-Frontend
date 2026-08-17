@@ -16,7 +16,7 @@ onClick={() => {
 <path d="M36 60C36 46.8007 36 40.201 40.1005 36.1005C44.201 32 50.8007 32 64 32C77.1992 32 83.7991 32 87.8994 36.1005C92 40.201 92 46.8007 92 60C92 73.1992 92 79.7991 87.8994 83.8994C83.7991 88 77.1992 88 64 88C50.8007 88 44.201 88 40.1005 83.8994C36 79.7991 36 73.1992 36 60Z" fill="white"/>
 </g>
 <defs>
-<filter id="filter0_d_432_220" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_432_220" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dy="4"/>

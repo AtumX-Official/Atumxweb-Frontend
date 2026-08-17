@@ -1,12 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    // Temporarily allow production builds despite TypeScript errors.
-    // Remove this after the migration is complete.
-    ignoreBuildErrors: true,
-  },
-
   webpack(config) {
     // Find the default asset rule
     const fileLoaderRule = config.module.rules.find(

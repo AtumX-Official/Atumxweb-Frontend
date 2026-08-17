@@ -1,4 +1,3 @@
-import { LRN } from "@tensorflow/tfjs";
 import customGenerator from ".";
 import * as Blockly from 'blockly/core';
 

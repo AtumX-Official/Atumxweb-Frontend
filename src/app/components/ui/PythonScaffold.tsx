@@ -20,7 +20,7 @@ import Help from '@renderer/assets/icons/common/Help'
 import {Deletepythonfile} from "@renderer/components/supporting/Popups"
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
 import {  useSelector } from 'react-redux';
-import { handlePortRefreshWithPromise } from '@renderer/screens/PythonHelper/ListPorts'
+import { handlePortRefreshWithPromise } from '@renderer/screens/CommonHelper/ListPorts'
 import { Tooltip } from './Tooltip'
 import Header from '../Header'
 import { UnderdevelopmentPopup } from '../supporting/Popups'

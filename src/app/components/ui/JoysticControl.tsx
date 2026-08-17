@@ -151,7 +151,7 @@ interface JoysticControllerProps{
   <path d="M169 32L177.66 47H160.34L169 32Z" fill="white"/>
   </g></g>
   <defs>
-  <filter id="filter0_i_346_88" x="0" y="-2" width="336" height="338" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+  <filter id="filter0_i_346_88" x="0" y="-2" width="336" height="338" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
   <feFlood floodOpacity="0" result="BackgroundImageFix"/>
   <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
   <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
@@ -161,22 +161,22 @@ interface JoysticControllerProps{
   <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0"/>
   <feBlend mode="normal" in2="shape" result="effect1_innerShadow_346_88"/>
   </filter>
-  <filter id="filter1_f_346_88" x="123" y="184.004" width="92" height="142.004" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+  <filter id="filter1_f_346_88" x="123" y="184.004" width="92" height="142.004" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
   <feFlood floodOpacity="0" result="BackgroundImageFix"/>
   <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
   <feGaussianBlur stdDeviation="5" result="effect1_foregroundBlur_346_88"/>
   </filter>
-  <filter id="filter2_f_346_88" x="13" y="122" width="142.004" height="92" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+  <filter id="filter2_f_346_88" x="13" y="122" width="142.004" height="92" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
   <feFlood floodOpacity="0" result="BackgroundImageFix"/>
   <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
   <feGaussianBlur stdDeviation="5" result="effect1_foregroundBlur_346_88"/>
   </filter>
-  <filter id="filter3_f_346_88" x="183.381" y="122" width="142.004" height="92" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+  <filter id="filter3_f_346_88" x="183.381" y="122" width="142.004" height="92" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
   <feFlood floodOpacity="0" result="BackgroundImageFix"/>
   <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
   <feGaussianBlur stdDeviation="5" result="effect1_foregroundBlur_346_88"/>
   </filter>
-  <filter id="filter4_f_346_88" x="123" y="14" width="92" height="142.004" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+  <filter id="filter4_f_346_88" x="123" y="14" width="92" height="142.004" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
   <feFlood floodOpacity="0" result="BackgroundImageFix"/>
   <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
   <feGaussianBlur stdDeviation="5" result="effect1_foregroundBlur_346_88"/>

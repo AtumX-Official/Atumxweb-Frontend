@@ -24,9 +24,13 @@ const BLOCKLY_USB_IDS = ['303a:1001', '2e8a:000a']
 const PYTHON_USB_IDS = ['303a:817a', '2e8a:0005']
 
 async function detectBoardMode(): Promise<PortInfo | null> {
+  // The Electron preload bridge is not available when this app runs in a browser.
+  const listPorts = window.api?.mpRemote?.listPorts
+  if (typeof listPorts !== 'function') return null
+
   let result
   try {
-    result = await window.api.mpRemote.listPorts()
+    result = await listPorts()
   } catch (err) {
     console.error('listPorts threw:', err)
     return null

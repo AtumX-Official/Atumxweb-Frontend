@@ -5,8 +5,8 @@ export default function Arrow({ className }: { className?: string }) {
 <path d="M4 30.5V72L71.5 63V97L120.5 46L71.5 0V30.5H4Z" fill="white"/>
 </g>
 <defs>
-<filter id="filter0_d_1545_1599" x="0" y="0" width="124.5" height="105" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<filter id="filter0_d_1545_1599" x="0" y="0" width="124.5" height="105" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+<feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dy="4"/>
 <feGaussianBlur stdDeviation="2"/>

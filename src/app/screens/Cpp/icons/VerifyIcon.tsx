@@ -9,7 +9,7 @@ export default function ArrowIcon({ size = 72 }: { size?: number }) {
             </g>
             <path d="M16 33.803L27.1364 45L52 20" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
             <defs>
-                <filter id="filter0_d_5131_15493" x="0" y="0" width="72" height="72" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <filter id="filter0_d_5131_15493" x="0" y="0" width="72" height="72" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
                     <feFlood floodOpacity="0" result="BackgroundImageFix" />
                     <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
                     <feOffset dx="2" dy="4" />

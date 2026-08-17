@@ -46,7 +46,7 @@ return(
 <path d="M47.0725 40C47.0725 42.8014 44.8014 45.0725 42 45.0725C39.1986 45.0725 36.9275 42.8014 36.9275 40C36.9275 37.1986 39.1986 34.9275 42 34.9275C44.8014 34.9275 47.0725 37.1986 47.0725 40Z" fill="black"/>
 </g>
 <defs>
-<filter id="filter0_d_3247_7448" x="0" y="0" width="88" height="88" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_3247_7448" x="0" y="0" width="88" height="88" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="2" dy="4"/>

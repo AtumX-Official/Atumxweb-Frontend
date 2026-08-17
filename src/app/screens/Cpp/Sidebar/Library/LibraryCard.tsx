@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../store";
+import type { RootState } from "../../../../../../store";
 import Swal from "sweetalert2";
 import File from '../../../../components/ui/assets/File'
 import { PlusCircle } from "lucide-react";
