@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter, useSearchParams } from 'next/navigation'
 import '../../assets/css/scrollbar.css'
 import BookmarkIcon from '@renderer/assets/icons/common/BookmarkIcon'
 import DownloadIcon from '@renderer/assets/icons/common/DownloadIcon'
@@ -21,13 +21,12 @@ import {Deletepythonfile} from "@renderer/components/supporting/Popups"
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
 import {  useSelector } from 'react-redux';
 import { handlePortRefreshWithPromise } from '@renderer/screens/CommonHelper/ListPorts'
+import serialService from '@renderer/services/Serialservice'
 import { Tooltip } from './Tooltip'
 import Header from '../Header'
-import { UnderdevelopmentPopup } from '../supporting/Popups'
 import { CopyToast } from '../supporting/Popups'
 import Exampleicon from "@renderer/assets/icons/common/Exampleicon"
 import LeftSidebarPanel from "./Sidebar/Pysidebar"
-import { useLocation } from 'react-router-dom'
 import AutoScroll from "@renderer/assets/AutoScroll"
 import Refreshicon from "@renderer/assets/Refresh";
 import {  FiX } from "react-icons/fi";
@@ -37,6 +36,11 @@ interface Project {
   created: string
   filepath: string
   filename: string
+}
+
+interface NavigationOptions {
+  replace?: boolean
+  state?: Record<string, string | number | undefined>
 }
 
 export default function PythonScaffold({
@@ -84,7 +88,8 @@ export default function PythonScaffold({
   onOpenpdf: () => any
   onOpenBoardFile:(file: string) => void
 }) {
-  const navigate = useNavigate()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [showSettings, setShowSettings] = useState(false)
   const [logoHovered, setLogoHovered] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
@@ -103,13 +108,27 @@ export default function PythonScaffold({
   const [searchText, setSearchText] = useState("")
   const [searchResults, setSearchResults] = useState<any[]>([])
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
-  const [showUnderDev, setShowUnderDev] = useState(false)
   const bgColor = themeMode === 'dark' ? 'bg-[#000000]' : 'bg-[#D6D6D6]'
   const bgtext = themeMode === 'dark' ? 'text-white' : 'text-black'
   const hoverbg = themeMode === 'dark' ? 'bg-[#3A3A3A]' : 'bg-[#F0F0F0]'
   const clickbg = themeMode === 'dark' ? 'bg-[#29CB09]' : 'bg-[#2EED08]'
   const [activeItem, setActiveItem] = useState<string | null>(null);
-  const location = useLocation()
+  const onNavigate = (path: string, options?: NavigationOptions) => {
+    const params = new URLSearchParams()
+
+    Object.entries(options?.state ?? {}).forEach(([key, value]) => {
+      if (value !== undefined) params.set(key, String(value))
+    })
+
+    const query = params.toString()
+    const target = query ? `${path}?${query}` : path
+
+    if (options?.replace) {
+      router.replace(target)
+    } else {
+      router.push(target)
+    }
+  }
   const menuItemClass = (item: string) =>
     `flex items-center px-2 py-1 rounded-md cursor-pointer transition-colors
      ${
@@ -300,6 +319,14 @@ export default function PythonScaffold({
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const hasWebSerial = typeof navigator !== 'undefined' && 'serial' in navigator;
+  const reportBoardCommunicationUnavailable = () => {
+    const message = hasWebSerial
+      ? 'Board file operations need a Web Serial protocol adapter.'
+      : 'Board file operations require Chrome or Edge over HTTPS or localhost.';
+    console.warn(message);
+  };
+
   const handleDeleteClick = (file: string, e: React.MouseEvent) => {
     e.stopPropagation(); // prevent opening the file
     setFileToDelete(file);
@@ -308,13 +335,9 @@ export default function PythonScaffold({
 
   const handleConfirmDelete = async () => {
     if (!fileToDelete) return;
-    await window.api.mpRemote.runCommand(['fs', 'rm', fileToDelete]);
+    reportBoardCommunicationUnavailable();
     setIsModalOpen(false);
     setFileToDelete(null);
-    // Refresh file list
-    setTimeout(() => {
-      window.api.mpRemote.listBoardFiles();
-    }, 400);
   };
 
   const handleCancelDelete = () => {
@@ -339,17 +362,17 @@ export default function PythonScaffold({
     };
   }, []);
   useEffect(() => {
-    const handleBoardFiles = (files: string[]) => {
-      setBoardFiles(files);
-    };
-    window.api.mpRemote.onBoardFiles(handleBoardFiles);
+    // Electron's mpRemote event bridge is unavailable in a browser.
+    // Board files will be populated when the Web Serial protocol adapter is connected.
+    if (!hasWebSerial) return;
+    setBoardFiles([]);
   }, []);
 
 
   useEffect(() => {
     if (leftPanel === 'folder') {
       setBoardFiles([]);
-      window.api.mpRemote.listBoardFiles();
+      reportBoardCommunicationUnavailable();
     }
   }, [leftPanel]);
   useEffect(() => {
@@ -413,14 +436,7 @@ export default function PythonScaffold({
     setShowFileSearch(false)
   }
 
-  const refresh = async () => {
-    const res = await window.api.file.fetchDirs('python')
-    if (res.success) {
-      setFileTree(res.data)
-      setTerminalPath(res.rootPath)
-      setRootFolder(res.folderName)
-    }
-  }
+  const refresh = () => Promise.resolve()
 
   const clearSearch = () => {
     setSearchText("");
@@ -593,12 +609,8 @@ export default function PythonScaffold({
 
   useEffect(() => {
     const fetchAllProjects = async () => {
-      const result = await window.api.file.fetchProject('python')
-      if (result.success && result.data && typeof result.data === 'object') {
-        setProjects(result.data)
-      } else {
-        console.error('❌ Error fetching all projects:', result.error)
-      }
+      console.log('Browser mode: Electron project API is unavailable')
+      setProjects([])
     }
     fetchAllProjects()
   }, [onSave, onImport, onNewFile])
@@ -606,23 +618,15 @@ export default function PythonScaffold({
   // Fetch example files
   useEffect(() => {
     const fetchExamples = async () => {
-      const result = await window.api.file.fetchExamples('python')
-      if (result.success && result.data && typeof result.data === 'object') {
-        setExamples(result.data)
-      } else {
-        console.error('Error fetching example files:', result.error)
-      }
+      console.log('Browser mode: Electron examples API is unavailable')
+      setExamples([])
     }
     fetchExamples()
   }, [])
   useEffect(() => {
     const fetchLibraries = async () => {
-      const result = await window.api.file.fetchLibraries('python')
-      if (result.success && result.data && typeof result.data === 'object') {
-        setLibraries(result.data)
-      } else {
-        console.error('Error fetching library files:', result.error)
-      }
+      console.log('Browser mode: Electron libraries API is unavailable')
+      setLibraries([])
     }
   
     fetchLibraries()
@@ -639,18 +643,15 @@ export default function PythonScaffold({
   };
 
   const items = [
-    { Icon: Settings, label: "Settings" },
-    { Icon: Help, label: "Help" }
+    { Icon: Settings, label: "Settings", onClick: () => setShowSettings(true) },
+    { Icon: Help, label: "Python manual", onClick: onOpenpdf }
   ];
 
   useEffect(() => {
-    const state = location.state as any
+    const searchText = searchParams.get('searchText')
+    const lineNumber = Number(searchParams.get('lineNumber'))
 
-    if (!state || !window.monacoEditor) return
-
-    const { searchText, lineNumber } = state
-
-    if (!searchText) return
+    if (!searchText || !window.monacoEditor) return
 
     setTimeout(() => {
 
@@ -669,7 +670,7 @@ export default function PythonScaffold({
       editor.revealLineInCenter(lineNumber || 1)
 
     }, 500) // wait for file to load
-  }, [location.state])
+  }, [searchParams])
 
   return (
     <>
@@ -781,8 +782,16 @@ export default function PythonScaffold({
                     <div
                       className="group relative w-12 h-12 rounded-full bg-white flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200"
                       onClick={async () => {
-                        const result = await window.api.mpRemote.stop();
-                        console.log(result);
+                        if (!hasWebSerial) {
+                          reportBoardCommunicationUnavailable();
+                          return;
+                        }
+
+                        try {
+                          await serialService.send('\u0003');
+                        } catch (error) {
+                          console.error('Unable to stop board execution:', error);
+                        }
                         setRunStatus('stopped');
                       }}
                     >
@@ -846,9 +855,9 @@ export default function PythonScaffold({
                 </div>
 
                 {/* Remaining Icons (USB, Star, Settings) */}
-                {items.map(({ Icon, label }, i) => (
+                {items.map(({ Icon, label, onClick }, i) => (
                <div key={i} className="group relative w-12 h-13 bg-black rounded border-2 border-black hover:border-[#FFFFFF] transition-all duration-200 cursor-pointer flex items-center justify-center"
-               onClick={() =>  setShowUnderDev(true)}
+               onClick={onClick}
                >
                <Icon className="w-8 h-8" />
                <Tooltip text={label} />
@@ -917,7 +926,7 @@ export default function PythonScaffold({
                   clearSearch={clearSearch}
                   highlightWord={highlightWord}
                   renderHighlightedLine={renderHighlightedLine}
-                  navigate={navigate}
+                  onNavigate={onNavigate}
                   onAddNewFolder={onAddNewFolder}
                   handleDeleteClick={handleDeleteClick}
                   onAddNewFile ={onAddNewFile}
@@ -933,9 +942,6 @@ export default function PythonScaffold({
                 </div>
               </div>
             )}
-            {showUnderDev && (
-            <UnderdevelopmentPopup onNo={() => setShowUnderDev(false)} />
-          )}
             <Deletepythonfile
               open={isModalOpen}
               title="Delete File"

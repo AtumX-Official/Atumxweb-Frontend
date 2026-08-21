@@ -78,9 +78,9 @@ export default function HomePage() {
             />
             <ModeCard
               mode={mode}
+              linkto="python"
               image="python"
               text="PYTHON"
-              onClick={() => setShowUnderDev(true)} 
             />
             <ModeCard
               mode={mode}

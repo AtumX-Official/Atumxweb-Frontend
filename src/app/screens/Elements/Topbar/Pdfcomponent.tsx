@@ -3,10 +3,13 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { useDraggable } from "@dnd-kit/core";
 import {  FiX } from "react-icons/fi";
 import { createPortal } from "react-dom";
-// @ts-ignore
-import workerSrc from '../../../../src/pdf.worker.min.js?url'; 
 import 'react-pdf/dist/Page/TextLayer.css';
-pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+
+// Keep the worker beside the installed pdfjs package so Next can bundle it.
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).toString();
 
 const PDFComponent = ({ pdfUrl, onClose, position, title }) => {
   const [numPages, setNumPages] = useState(0);

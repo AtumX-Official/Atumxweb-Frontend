@@ -49,7 +49,7 @@ interface LeftSidebarPanelProps {
     matchLength: number
   ) => React.ReactNode
 
-  navigate: any
+  onNavigate: (path: string, options?: { replace?: boolean; state?: Record<string, string | number | undefined> }) => void
   onAddNewFolder: () => void
   onAddNewFile: () => void
   handleDeleteClick: (file: string, e: React.MouseEvent<HTMLSpanElement>) => void
@@ -96,7 +96,7 @@ const LeftSidebarPanel = ({
   highlightWord,
   renderHighlightedLine,
 
-  navigate,
+  onNavigate,
   onAddNewFolder,
   onAddNewFile,
   handleDeleteClick,
@@ -112,7 +112,7 @@ const LeftSidebarPanel = ({
         groupedResults={groupedResults}
         highlightWord={highlightWord}
         renderHighlightedLine={renderHighlightedLine}
-        navigate={navigate}
+        onNavigate={onNavigate}
         clearSearch={clearSearch}
       />
     )
@@ -145,7 +145,7 @@ const LeftSidebarPanel = ({
           clearSearch={clearSearch}
           highlightWord={highlightWord}
           renderHighlightedLine={renderHighlightedLine}
-          navigate={navigate}
+          onNavigate={onNavigate}
           onAddNewFolder={onAddNewFolder}
           onAddNewFile={onAddNewFile}
         />
@@ -176,7 +176,7 @@ const LeftSidebarPanel = ({
         groupedResults={groupedResults}
         highlightWord={highlightWord}
         renderHighlightedLine={renderHighlightedLine}
-        navigate={navigate}
+        onNavigate={onNavigate}
         clearSearch={clearSearch}
       />
     )
@@ -198,7 +198,7 @@ const LeftSidebarPanel = ({
       groupedResults={groupedResults}
       highlightWord={highlightWord}
       renderHighlightedLine={renderHighlightedLine}
-      navigate={navigate}
+      onNavigate={onNavigate}
       clearSearch={clearSearch}
     />
     )

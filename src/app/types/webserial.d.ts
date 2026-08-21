@@ -29,4 +29,10 @@ interface Navigator {
   
     readonly readable: ReadableStream<Uint8Array> | null;
     readonly writable: WritableStream<Uint8Array> | null;
+    getInfo(): SerialPortInfo;
+  }
+
+  interface SerialPortInfo {
+    usbVendorId?: number;
+    usbProductId?: number;
   }

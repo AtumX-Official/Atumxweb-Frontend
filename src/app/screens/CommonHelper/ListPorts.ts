@@ -183,13 +183,11 @@ if (boardName.startsWith("E4650")) {
 export const handleExitPythonApp = async ({
   activeTab,
   updateActiveTabData,
-  appendOutput,
-  navigate
+  appendOutput
 }: {
   activeTab: any;
   updateActiveTabData: any;
   appendOutput: (msg: string, type?: "out" | "err") => void;
-  navigate: any;
 }): Promise<boolean> => {
 
   const code = activeTab?.code || "";

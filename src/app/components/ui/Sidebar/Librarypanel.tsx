@@ -23,7 +23,7 @@ interface LibraryPanelProps {
       matchStart: number,
       matchLength: number
   ) => React.ReactNode
-  navigate: any
+  onNavigate: (path: string, options?: { replace?: boolean; state?: Record<string, string | number | undefined> }) => void
   clearSearch: () => void
 }
 
@@ -41,7 +41,7 @@ const LibraryPanel = ({
   groupedResults,
   highlightWord,
   renderHighlightedLine,
-  navigate,
+  onNavigate,
   clearSearch
 }: LibraryPanelProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -165,7 +165,7 @@ const LibraryPanel = ({
                           sessionStorage.setItem("py_searchText", searchText)
                           sessionStorage.setItem("py_searchOpen", "true")
 
-                          navigate('/python', {
+                          onNavigate('/python', {
                             state: {
                               filePath,
                               fileName,

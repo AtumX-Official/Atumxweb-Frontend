@@ -1,11 +1,11 @@
+'use client'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { useEffect, useState, useRef } from 'react'
 import PythonScaffold from '../components/ui/PythonScaffold'
 import Editor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import { useSelector, useDispatch } from 'react-redux'
-import { useLocation } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { IoIosStar } from 'react-icons/io'
 import controlSuggestions from '../blockly/python/control'
 import eventSuggestions from '../blockly/python/event'
@@ -18,12 +18,19 @@ import { setKit } from '../../../store/kitslice'
 import { SaveToKitPopup } from './Elements/SavetokitPopup'
 import {Savetokitpop} from '../components/supporting/Popups'
 import { handlePythonImport,handlePythonSave,handleExitPythonApp,handleUnsavedBeforeAction } from '../screens/CommonHelper/ListPorts'
-import PDFComponent from './Elements/Topbar/Pdfcomponent'
 import samplePdf from './Elements/Topbar/Code App (V1) - Python User Manual.pdf';
 import { DndContext } from "@dnd-kit/core";
 import {DeletionToast,FlashSuccessPopup,PressResetPopup} from '../components/supporting/Popups'
 import pythonHoverInfo from '../assets/Misc Data/pythonHoverInfo.json'
+import dynamic from 'next/dynamic'
+import serialService from '../services/Serialservice'
 
+const PDFComponent = dynamic(
+  () => import('./Elements/Topbar/Pdfcomponent'),
+  {
+    ssr: false,
+  }
+)
 interface Tab {
   id: string;
   name: string;
@@ -71,16 +78,19 @@ export default function PythonPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [showSavetokitpop, setSavetokitpop] = useState(false)
 
-  const location = useLocation()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const dispatch = useDispatch()
   const theme = useSelector((state: any) => state.theme.mode)
-  const { filePath: incomingFilePath, fileName } = location.state || {}
-  const filePath = location.state?.filePath
-const isReadOnly = location.state?.isReadOnly ?? false
-const sourceType = location.state?.sourceType ?? "user"
+  
+  const incomingFilePath = searchParams.get('filePath')
+  const fileName = searchParams.get('fileName') || 'untitled'
+  const isReadOnly = searchParams.get('isReadOnly') === 'true'
+  const sourceType =
+    (searchParams.get('sourceType') as Tab['source']) || 'user'
   const [Savetokitpopup, ShowSavetokitpop] = useState(false)
   // --- Tab Management Logic ---
-  const navigate = useNavigate()
   const [showPDF, setShowPDF] = useState(false);
   const [showToast, setShowToast] = useState(false);
 const [contextMenu, setContextMenu] = useState<{ 
@@ -103,7 +113,7 @@ const editorMenuItems = (editor: any) => [
       const text = model.getValueInRange(sel);
 
       if (text) {
-        await window.api.copyText(text);
+        await navigator.clipboard.writeText(text);
 
         editor.executeEdits('custom-cut', [
           {
@@ -130,7 +140,7 @@ const editorMenuItems = (editor: any) => [
       const text = model.getValueInRange(sel);
 
       if (text) {
-        await window.api.copyText(text);
+        await navigator.clipboard.writeText(text);
       }
 
     }
@@ -143,7 +153,7 @@ const editorMenuItems = (editor: any) => [
       const sel = editor.getSelection();
       if (!sel) return;
 
-      const text = await window.api.pasteText(); // ✅ IMPORTANT await
+      const text = await navigator.clipboard.readText();
 
       if (text) {
         editor.executeEdits('custom-paste', [
@@ -159,43 +169,9 @@ const editorMenuItems = (editor: any) => [
     }
   }
 ];
-const handleBoardFileOpen = async (file: string) => {
-  window.api.mpRemote.readBoardFile(file)
-}
-
 const handleOpenBoardFile = (file: string) => {
-  window.api.mpRemote.readBoardFile(file)
+  appendOutput(`> Board file transfer is not available in the browser yet: ${file}\n`, 'err');
 }
-useEffect(() => {
-  const handleBoardFileRead = (data: { filename: string; content: string }) => {
-    const tabId = `board-${data.filename}`
-
-    setTabs(prevTabs => {
-      const existingTab = prevTabs.find(tab => tab.id === tabId)
-
-      if (existingTab) {
-        setActiveTabId(existingTab.id)
-        return prevTabs
-      }
-
-      const newTab: Tab = {
-        id: tabId,
-        name: data.filename,
-        code: data.content,
-        path: `board:/${data.filename}`,
-        isUnsaved: false,
-        originalCode: data.content,
-        source: 'board',
-        isReadOnly: false,
-      }
-
-      setActiveTabId(tabId)
-      return [...prevTabs, newTab]
-    })
-  }
-
-  window.api.mpRemote.onFileContent(handleBoardFileRead)
-}, [])
   const createNewTab = (name = 'untitled', code = '', path = '') => {
     const newId = Date.now().toString();
     const newTab: Tab = {
@@ -280,7 +256,6 @@ useEffect(() => {
       activeTab,
       updateActiveTabData,
       appendOutput,
-      navigate,
     });
   
     if (!canExit) return;
@@ -294,11 +269,9 @@ useEffect(() => {
       }
   
       if (res.success) {
-        navigate("/", {
-          state: { showResetPopup: true }
-        });
+        router.replace("/?showResetPopup=true");
           } else {
-        navigate("/", { replace: true });
+        router.replace("/");
       }
     } catch (err) {
       console.error("Flash error:", err);
@@ -307,10 +280,7 @@ useEffect(() => {
 
   const handleFlashOk = () => {
     setFlashSuccessOpen(false);
-    navigate("/", {
-      replace: true,
-      state: { showResetPopup: true }
-    });
+    router.replace("/?showResetPopup=true");
     };
 
   // OK handler for PressResetPopup
@@ -328,89 +298,13 @@ useEffect(() => {
 
   const [boardName, setBoardName] = useState("");
   const listAvailablePorts = () => {
-    console.log("Calling listPorts…");
-    window.api.mpRemote
-      .listPorts()
+    serialService.listPorts()
       .then((result) => {
-        console.log("listPorts raw result:", result);
-
-        if (!result || !Array.isArray(result.ports)) {
-          console.error("result.ports is missing or not an array");
-          return;
-        }
-
-        if (!result.success) {
-          console.error("Error listing ports:", result.error);
-          appendOutput(`> Error listing ports: ${result.error}\n`, 'err');
-          return;
-        }
-        let mode = "";
-        let boardPort = "";
-
-
-        const pythonIndex = result.ports.findIndex(
-          (line) =>
-            line.includes("303a:817a") ||
-            line.includes("2e8a:0005")
-        );
-        const blocklyIndex = result.ports.findIndex(
-          line =>
-            line.includes("303a:1001") ||
-            line.includes("2e8a:000a")
-        );
-
-        if (pythonIndex !== -1) {
-          mode = "Python Mode";
-        
-          const pythonLine = result.ports[pythonIndex];
-          const parts = pythonLine.split(" ");
-        
-          boardPort = parts[0] || "";
-          const detectedName = parts[1] || "";
-        
-          //setBoardName(detectedName);
-        
-          console.log("Detected Python board:", detectedName);
-        
-          if (detectedName.includes("CAYO")) {
-            dispatch(setKit("cayo"));
-            setBoardName("Cayo")
-          } else if (detectedName.includes("SUBO")) {
-            dispatch(setKit("subo"));
-            setBoardName("Subo")
-          } else if (detectedName.startsWith("E4650")) {
-            dispatch(setKit("snowflake"));
-            setBoardName("Snowflake")
-          }
-        }
-        else if (blocklyIndex !== -1) {
-          mode = "Blockly Mode";
-          const blocklyLine = result.ports[blocklyIndex];
-          const parts = blocklyLine.split(" ");
-          boardPort = parts[0];
-          const detectedName = parts[1] || "";
-          setBoardName(detectedName);          
-          console.log("Detected Blockly board:", detectedName);
-        }
-
-
-        const comPorts = result.ports.map((line) => line.split(" ")[0]);
-        console.log("comPorts:", comPorts);
-
-        const orderedPorts =
-          boardPort !== ""
-            ? [boardPort, ...comPorts.filter((p) => p !== boardPort)]
-            : comPorts;
-
-        console.log("orderedPorts:", orderedPorts);
-        setAvailablePorts(orderedPorts);
-        setPorts(orderedPorts);
-        if (mode === "Python Mode") {
-          appendOutput(`\n> Board Detected: ${boardName}\n> Port: ${boardPort}\n> Mode: ${mode}\n`, 'out');
-        }
+        setAvailablePorts(result);
+        setPorts(result);
       })
-      .catch((err) => {
-        console.error("listPorts threw:", err);
+      .catch((error: Error) => {
+        appendOutput(`> Unable to list Web Serial ports: ${error.message}\n`, 'err');
       });
   };
 
@@ -420,24 +314,19 @@ useEffect(() => {
   setContextMenuRef.current = setContextMenu;
 }, [setContextMenu]);
   const handleRunUsingMpRemote = () => {
-    window.api.mpRemote.run(activeTab.code).then((result) => {
-      if (result.success) {
-        appendOutput(`> Running script...\n`, 'out');
-      } else {
-        appendOutput(`> Error:\n${result.error}`, 'err')
-      }
-    })
+    serialService.send(`${activeTab.code}\r\n`).then(() => {
+      appendOutput(`> Running script...\n`, 'out');
+    }).catch((error: Error) => {
+      appendOutput(`> Error:\n${error.message}`, 'err');
+    });
   }
   
   const handleSaveToKit = (filename: string) => {
     //if (!activeTab.name) return;
     console.log("File name front : ", filename)
-    window.api.mpRemote.SaveToKit(filename, activeTab.code);
+    appendOutput(`> Save to kit is not available in the browser yet: ${filename}\n`, 'err');
     setSavetokitpop(true)
     setTimeout(() => setSavetokitpop(false), 2500);  
-        setTimeout(() => {
-      window.api.mpRemote.listBoardFiles();
-    }, 500);
   };
 
   const handleStop = () => {
@@ -543,91 +432,15 @@ useEffect(() => {
       ]);
     };
 
-    const onError = (_: any, data: string) => {
-      console.error("ERR:", data);
-
-      setOutput(prev => [
-        ...prev,
-        { text: data, type: 'err' }
-      ]);
-    };
-
-    const onExit = (_: any, data: { code: number; args: string[] }) => {
-      console.log("EXIT:", data);
-    
-      // Detect deletion command
-      if (data.code === 0 && data.args.includes('rm')) {
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 2000);
-      }
-    };
-
-    window.electron.ipcRenderer.on('mpremote-output', onOutput);
-    window.electron.ipcRenderer.on('mpremote-error', onError);
-    window.electron.ipcRenderer.on('mpremote-exit', onExit);
+    const removeSerialListener = serialService.addDataListener((data) => {
+      onOutput(null, data);
+    });
 
     listAvailablePorts();
 
     return () => {
-      window.electron.ipcRenderer.removeListener('mpremote-output', onOutput);
-      window.electron.ipcRenderer.removeListener('mpremote-error', onError);
-      window.electron.ipcRenderer.removeListener('mpremote-exit', onExit);
+      removeSerialListener();
     };
-  }, []);
-  useEffect(() => {
-    const handler = (data) => {
-      const { filename, content } = data;
-  
-      setTabs(prevTabs => {
-        const existing = prevTabs.find(t => t.name === filename);
-  
-        if (existing) {
-          setActiveTabId(existing.id);
-          return prevTabs;
-        }
-  
-        const newId = Date.now().toString();
-  
-        const newTab = {
-          id: newId,
-          name: filename,
-          code: content,
-          originalCode: content,
-          isUnsaved: false,
-          path: ''
-        };
-  
-        setActiveTabId(newId);
-  
-        return [...prevTabs, newTab];
-      });
-    };
-  
-    window.api.mpRemote.onFileContent(handler);
-  
-    
-  }, []);
-  useEffect(() => {
-    const deleteHandler = (data) => {
-      const { filename } = data;
-  
-      setTabs(prevTabs =>
-        prevTabs.map(tab => {
-          if (tab.name === filename) {
-            return {
-              ...tab,
-              name: "untitled",
-              path: "",
-              isUnsaved: true
-            };
-          }
-          return tab;
-        })
-      );
-    };
-  
-    window.api.mpRemote.onOutput(deleteHandler);
-  
   }, []);
 
   // const theme = useSelector((state: any) => state.theme.mode)

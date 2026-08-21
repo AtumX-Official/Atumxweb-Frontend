@@ -25,7 +25,13 @@ const nextConfig: NextConfig = {
         issuer: /\.[jt]sx?$/,
         resourceQuery: { not: [/url/] },
         use: ["@svgr/webpack"],
-      }
+      },
+
+      // Bundle imported manuals and other PDF assets as URLs.
+      {
+        test: /\.pdf$/i,
+        type: "asset/resource",
+      },
     );
 
     return config;

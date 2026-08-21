@@ -13,7 +13,7 @@ interface SearchallpanelProps {
     matchStart: number,
     matchLength: number
   ) => React.ReactNode
-  navigate: any
+  onNavigate: (path: string, options?: { replace?: boolean; state?: Record<string, string | number | undefined> }) => void
   clearSearch: () => void
 }
 
@@ -25,7 +25,7 @@ const SearchallPanel = ({
   groupedResults,
   highlightWord,
   renderHighlightedLine,
-  navigate,
+  onNavigate,
   clearSearch
 }: SearchallpanelProps) => {
   return (
@@ -92,7 +92,7 @@ const SearchallPanel = ({
                         const { filePath, fileName, lineNumber } = r
 
                         if (filePath !== '__unsaved__') {
-                          navigate('/python', { state: { filePath, fileName } })
+                          onNavigate('/python', { state: { filePath, fileName } })
                         }
 
                         setTimeout(() => {

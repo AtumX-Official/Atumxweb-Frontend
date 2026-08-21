@@ -45,6 +45,20 @@ class SerialService {
     this.startReading();
   }
 
+  async listPorts(): Promise<string[]> {
+    this.checkWebSerialSupport();
+
+    const ports = await navigator.serial.getPorts();
+    return ports.map((port, index) => {
+      const info = port.getInfo();
+      const vendor = info.usbVendorId?.toString(16).padStart(4, '0');
+      const product = info.usbProductId?.toString(16).padStart(4, '0');
+      return vendor && product
+        ? `${vendor}:${product}`
+        : `Web Serial Port ${index + 1}`;
+    });
+  }
+
   async startReading() {
     if (!this.port?.readable) {
       console.warn("Serial port is not readable");

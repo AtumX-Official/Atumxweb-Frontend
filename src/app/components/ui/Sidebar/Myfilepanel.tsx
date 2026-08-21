@@ -36,7 +36,7 @@ interface MyFilesPanelProps {
     matchStart: number,
     matchLength: number
   ) => React.ReactNode
-  navigate: any
+  onNavigate: (path: string, options?: { replace?: boolean; state?: Record<string, string | number | undefined> }) => void
   onAddNewFolder: () => void
   onAddNewFile:() => void
 }
@@ -66,7 +66,7 @@ const MyFilesPanel = ({
   clearSearch,
   highlightWord,
   renderHighlightedLine,
-  navigate,
+  onNavigate,
   onAddNewFolder,
   onAddNewFile
 }: MyFilesPanelProps) => {
@@ -210,7 +210,7 @@ const MyFilesPanel = ({
                       if (filePath !== '__unsaved__') {
                         sessionStorage.setItem('py_searchText', searchText)
                         sessionStorage.setItem('py_searchOpen', 'true')
-                        navigate('/python', { state: { filePath, fileName } })
+                        onNavigate('/python', { state: { filePath, fileName } })
                       }
 
                       setTimeout(() => {
