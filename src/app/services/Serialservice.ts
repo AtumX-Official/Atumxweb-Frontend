@@ -5,6 +5,10 @@ class SerialService {
 
   private listeners = new Set<(data: string) => void>();
 
+  isConnected() {
+    return !!this.port?.writable;
+  }
+
   addDataListener(callback: (data: string) => void) {
     this.listeners.add(callback);
 

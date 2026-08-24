@@ -313,12 +313,21 @@ const setContextMenuRef = useRef(setContextMenu);
 useEffect(() => {
   setContextMenuRef.current = setContextMenu;
 }, [setContextMenu]);
-  const handleRunUsingMpRemote = () => {
-    serialService.send(`${activeTab.code}\r\n`).then(() => {
+  const handleRunUsingSerial = async () => {
+    try {
+      if (!serialService.isConnected()) {
+        await serialService.connect();
+      }
+
+      await serialService.send(`${activeTab.code}\r\n`);
       appendOutput(`> Running script...\n`, 'out');
-    }).catch((error: Error) => {
-      appendOutput(`> Error:\n${error.message}`, 'err');
-    });
+      setIsRunning(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      appendOutput(`> Error:\n${message}\n`, 'err');
+      console.error('Serial run error:', error);
+      setIsRunning(false);
+    }
   }
   
   const handleSaveToKit = (filename: string) => {
@@ -487,7 +496,7 @@ useEffect(() => {
         }      
         onNewFile={handleNewFileCreation}        
         fontFn={(size) => setOptions(prev => ({ ...prev, fontSize: size === 'increase' ? prev.fontSize + 2 : prev.fontSize - 2 }))}
-        onRun={handleRunUsingMpRemote}
+        onRun={handleRunUsingSerial}
         onStop={handleStop}
         output={output}
         serialData={serialData}

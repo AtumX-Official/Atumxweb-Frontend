@@ -782,8 +782,8 @@ export default function PythonScaffold({
                     <div
                       className="group relative w-12 h-12 rounded-full bg-white flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200"
                       onClick={async () => {
-                        if (!hasWebSerial) {
-                          reportBoardCommunicationUnavailable();
+                        if (!serialService.isConnected()) {
+                          setRunStatus('stopped');
                           return;
                         }
 
