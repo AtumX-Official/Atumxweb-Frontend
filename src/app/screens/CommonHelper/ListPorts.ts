@@ -1,5 +1,17 @@
 import { setKit } from '../../../../store/kitslice'
 import { showConfirmModal,showSavePopup } from './Popupfuntionalities';
+import SerialService from '../../services/Serialservice';
+
+const PYTHON_USB_IDS = ["303a:817a", "2e8a:0005"];
+const BLOCKLY_USB_IDS = ["303a:1001", "2e8a:000a"];
+
+const getWebSerialPorts = () => SerialService.listPorts();
+
+const isPythonPort = (port: string) =>
+  PYTHON_USB_IDS.some((id) => port.includes(id));
+
+const isBlocklyPort = (port: string) =>
+  BLOCKLY_USB_IDS.some((id) => port.includes(id));
 export const listAvailablePorts = async ({
     setOutput,
     setAvailablePorts,
@@ -10,32 +22,20 @@ export const listAvailablePorts = async ({
     console.log("Calling listPorts…");
   
     try {
-      const result = await window.api.mpRemote.listPorts();
-      console.log("listPorts raw result:", result);
-  
-      if (!result || !Array.isArray(result.ports)) {
-        console.error("result.ports is missing or not an array");
-        return;
-      }
-  
-      if (!result.success) {
-        setOutput(prev => prev + `\n> Error listing ports: ${result.error}\n`);
-        return;
-      }
+      const ports = await getWebSerialPorts();
+      console.log("listPorts result:", ports);
   
       let mode = "";
       let boardName = "";
       let boardPort = "";
   
-      const pythonIndex = result.ports.findIndex(
-        line => line.includes("303a:817a") || line.includes("2e8a:0005")
-      );
+      const pythonIndex = ports.findIndex(isPythonPort);
   
       if (pythonIndex !== -1) {
         mode = "Python Mode";
-        const parts = result.ports[pythonIndex].split(" ");
-        boardPort = parts[0];
-        boardName = parts[1];
+        boardPort = ports[pythonIndex];
+        // The Web Serial API only exposes USB IDs, not Electron's board-name metadata.
+        boardName = boardPort;
   
         if (boardName.includes("CAYO")) {
   dispatch(setKit("cayo"));
@@ -53,7 +53,7 @@ if (boardName.startsWith("E4650")) {
 }
       }
   
-      const comPorts = result.ports.map(line => line.split(" ")[0]);
+      const comPorts = ports;
   
       const orderedPorts = boardPort
         ? [boardPort, ...comPorts.filter(p => p !== boardPort)]
@@ -71,6 +71,9 @@ if (boardName.startsWith("E4650")) {
   
     } catch (err) {
       console.error("listPorts error:", err);
+      setOutput(prev => prev + `\n> Error listing ports: ${err instanceof Error ? err.message : String(err)}\n`);
+      setAvailablePorts([]);
+      setPorts([]);
     }
   };
   
@@ -78,41 +81,19 @@ if (boardName.startsWith("E4650")) {
     setPorts
  }) => {
     console.log("Refresh function")
-        window.api.mpRemote
-      .listPorts()
-      .then((result) => {
-        console.log('listPorts raw result:', result)
+    try {
+      const ports = await getWebSerialPorts();
+      const boardPort = ports.find((port) => isPythonPort(port) || isBlocklyPort(port));
+      const orderedPorts = boardPort
+        ? [boardPort, ...ports.filter((port) => port !== boardPort)]
+        : ports;
 
-        if (!result || !Array.isArray(result.ports)) {
-          console.error('result.ports is missing or not an array')
-          return
-        }
-
-        if (result.success) {
-          const comPorts = result.ports.map((line) => line.split(' ')[0])
-          console.log('comPorts:', comPorts)
-
-          const boardLine = result.ports.find((line) => {
-            const parts = line.split(' ')
-            return parts[1] && parts[1] !== 'None'
-          })
-          console.log('boardLine:', boardLine)
-
-          const boardPort = boardLine ? boardLine.split(' ')[0] : ''
-          const orderedPorts = boardPort
-            ? [boardPort, ...comPorts.filter((p) => p !== boardPort)]
-            : comPorts
-
-          console.log('orderedPorts:', orderedPorts)
-
-          setPorts(orderedPorts)
-        } else {
-          console.error('Error listing ports:', result.error)
-        }
-      })
-      .catch((err) => {
-        console.error('listPorts threw:', err)
-      })
+      console.log('orderedPorts:', orderedPorts);
+      setPorts(orderedPorts);
+    } catch (err) {
+      console.error('Error refreshing ports:', err);
+      setPorts([]);
+    }
   }
 
 
@@ -280,55 +261,23 @@ export const getboardPort = async (): Promise<PortResult> => {
   try {
     console.log("Calling listPorts…");
 
-    const result = await window.api.mpRemote.listPorts();
+    const ports = await getWebSerialPorts();
 
-    console.log("listPorts raw result:", result);
-
-    if (!result || !Array.isArray(result.ports)) {
-      return {
-        boardPort: "",
-        mode: "",
-        boardName: "",
-        ports: [],
-        error: "Invalid ports data",
-      };
-    }
-
-    if (!result.success) {
-      return {
-        boardPort: "",
-        mode: "",
-        boardName: "",
-        ports: [],
-        error: result.error || "Unknown error",
-      };
-    }
+    console.log("listPorts result:", ports);
 
     let mode = "";
     let boardPort = "";
     let boardName = "";
     let kit: string | undefined;
 
-    const pythonIndex = result.ports.findIndex(
-      (line: string) =>
-        line.includes("303a:817a") ||
-        line.includes("2e8a:0005")
-    );
-
-    const blocklyIndex = result.ports.findIndex(
-      (line: string) =>
-        line.includes("303a:1001") ||
-        line.includes("2e8a:000a")
-    );
+    const pythonIndex = ports.findIndex(isPythonPort);
+    const blocklyIndex = ports.findIndex(isBlocklyPort);
 
     if (pythonIndex !== -1) {
       mode = "Python Mode";
 
-      const pythonLine = result.ports[pythonIndex];
-      const parts = pythonLine.split(" ");
-
-      boardPort = parts[0] || "";
-      const detectedName = parts[1] || "";
+      boardPort = ports[pythonIndex];
+      const detectedName = boardPort;
 
       if (detectedName.includes("CAYO")) {
         kit = "cayo";
@@ -345,14 +294,11 @@ export const getboardPort = async (): Promise<PortResult> => {
     } else if (blocklyIndex !== -1) {
       mode = "Blockly Mode";
 
-      const blocklyLine = result.ports[blocklyIndex];
-      const parts = blocklyLine.split(" ");
-
-      boardPort = parts[0] || "";
-      boardName = parts[1] || "";
+      boardPort = ports[blocklyIndex];
+      boardName = boardPort;
     }
 
-    const comPorts = result.ports.map((line: string) => line.split(" ")[0]);
+    const comPorts = ports;
 
     const orderedPorts =
       boardPort !== ""

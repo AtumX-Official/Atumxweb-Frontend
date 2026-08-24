@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { IoHome } from 'react-icons/io5'
 import { useNavigate } from 'react-router-dom'
+import SerialService from '@/app/services/SerialService'
 import { useSelector, useDispatch } from 'react-redux'
 import Settings from '../assets/icons/common/Settings'
 import SortIcon from '../assets/icons/common/SortIcon'
@@ -227,7 +228,7 @@ const ProjectPage: React.FC = () => {
   const BLOCKLY_USB_IDS = ['303a:1001', '2e8a:000a']
   const PYTHON_USB_IDS = ['303a:817a', '2e8a:0005']
   
-  async function detectBoardMode(): Promise<PortInfo | null> {
+  /* async function detectBoardMode(): Promise<PortInfo | null> {
     let result
     try {
       result = await window.api.mpRemote.listPorts()
@@ -266,7 +267,57 @@ const ProjectPage: React.FC = () => {
       board: parts[1] || '',
       mode: detectedMode
     }
+  } */
+
+  async function detectBoardMode(): Promise<PortInfo | null> {
+  let ports: string[]
+
+  try {
+    ports = await SerialService.listPorts()
+  } catch (err) {
+    console.error('listPorts threw:', err)
+    return null
   }
+
+  if (!Array.isArray(ports)) {
+    return null
+  }
+
+  ports = [...ports]
+
+  let detectedMode = ''
+
+  const blocklyIndex = ports.findIndex((line) =>
+    BLOCKLY_USB_IDS.some((id) => line.includes(id))
+  )
+
+  const pythonIndex = ports.findIndex((line) =>
+    PYTHON_USB_IDS.some((id) => line.includes(id))
+  )
+
+  if (blocklyIndex !== -1) {
+    const [blocklyPort] = ports.splice(blocklyIndex, 1)
+    ports.unshift(blocklyPort)
+    detectedMode = 'Blockly Mode'
+  } else if (pythonIndex !== -1) {
+    const [pythonPort] = ports.splice(pythonIndex, 1)
+    ports.unshift(pythonPort)
+    detectedMode = 'Python Mode'
+  }
+
+  const boardLine = ports.find((line) => {
+    const parts = line.split(' ')
+    return parts[1] && parts[1] !== 'None'
+  })
+
+  const parts = boardLine ? boardLine.split(' ') : []
+
+  return {
+    port: parts[0] || '',
+    board: parts[1] || '',
+    mode: detectedMode
+  }
+}
   const handleModeNavigation = async (
     target: 'python' | 'cpp',
     file: any
