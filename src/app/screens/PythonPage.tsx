@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { useEffect, useState, useRef } from 'react'
 import PythonScaffold from '../components/ui/PythonScaffold'
+import FileService from "@/app/services/FileService";
 import Editor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import { useSelector, useDispatch } from 'react-redux'
@@ -261,21 +262,25 @@ const handleOpenBoardFile = (file: string) => {
     if (!canExit) return;
   
     try {
-      const res = await window.api.flashing.flashBoard();
-  
-      if (!res) {
-        console.log("flashBoard returned undefined");
-        return;
-      }
-  
-      if (res.success) {
-        router.replace("/?showResetPopup=true");
-          } else {
-        router.replace("/");
+      const board = await serialService.detectBoardMode();
+
+      if (board?.mode === 'Python Mode') {
+        console.log('[Board] Switching Python → Blockly');
+        await serialService.ensureBlocklyMode();
+      } else if (board?.mode === 'Blockly Mode') {
+        console.log('[Board] Already in Blockly Mode');
+      } else {
+        console.log('[Board] No board detected - returning home anyway');
       }
     } catch (err) {
-      console.error("Flash error:", err);
+      console.warn('[Board switch] Blockly switch failed:', err);
+      appendOutput(
+        `> Could not switch board to Blockly mode: ${err instanceof Error ? err.message : String(err)}\n`,
+        'err'
+      );
     }
+
+    router.replace('/');
   };
 
   const handleFlashOk = () => {
@@ -315,18 +320,23 @@ useEffect(() => {
 }, [setContextMenu]);
   const handleRunUsingSerial = async () => {
     try {
-      if (!serialService.isConnected()) {
-        await serialService.connect();
+      if (!(await serialService.hasActiveConnection())) {
+        await serialService.disconnect()
+        appendOutput(`> Connect a serial device from the dropdown before running.\n`, 'err');
+        setIsRunning(false);
+        return false;
       }
 
       await serialService.send(`${activeTab.code}\r\n`);
       appendOutput(`> Running script...\n`, 'out');
       setIsRunning(true);
+      return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       appendOutput(`> Error:\n${message}\n`, 'err');
       console.error('Serial run error:', error);
       setIsRunning(false);
+      return false;
     }
   }
   

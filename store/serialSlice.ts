@@ -49,7 +49,10 @@ export const connectSerial = () => async (dispatch: AppDispatch) => {
 };
 
   export const sendSerialMessage = async (message: unknown) => {
-    if (!isPortOpenInternal) return; // Prevent writing when port is not open
+    if (!isPortOpenInternal || !SerialService.isConnected()) {
+      console.warn("[Serial] No board connected. Skipping serial write.");
+      return;
+    }
 
     try {
       let parsed: unknown;
@@ -79,7 +82,7 @@ export const connectSerial = () => async (dispatch: AppDispatch) => {
       }
   
     } catch (err) {
-      console.error("Error writing to serial port:", err);
+      console.warn("[Serial] Serial write skipped:", err);
     }
   };
   

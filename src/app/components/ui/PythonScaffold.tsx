@@ -19,6 +19,7 @@ import SettingModal from '../supporting/SettingModal'
 import Help from '@renderer/assets/icons/common/Help'
 import {Deletepythonfile} from "@renderer/components/supporting/Popups"
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
+import FileService from "@/app/services/FileService";
 import {  useSelector } from 'react-redux';
 import { handlePortRefreshWithPromise } from '@renderer/screens/CommonHelper/ListPorts'
 import serialService from '@renderer/services/Serialservice'
@@ -32,6 +33,7 @@ import Refreshicon from "@renderer/assets/Refresh";
 import {  FiX } from "react-icons/fi";
 import {FiAlertTriangle,FiTerminal} from "react-icons/fi"
 import Backicon from "@renderer/assets/icons/common/Backicon"
+
 interface Project {
   created: string
   filepath: string
@@ -69,12 +71,12 @@ export default function PythonScaffold({
   setIsChangeHappens: (val: boolean) => void
   unsavedChanges: boolean
   ports: Array<string>
-  setPorts: () => void
+  setPorts: React.Dispatch<React.SetStateAction<string[]>>
   projectName: string
   setProjectName: (name: string) => void
   children?: React.ReactNode
   fontFn: (size: string) => void
-  onRun: () => void
+  onRun: () => Promise<boolean>
   onStop: () => void
   output;
   onSave: (mode) => void
@@ -95,6 +97,9 @@ export default function PythonScaffold({
   const [projects, setProjects] = useState<Project[]>([])
   const [terminalPath, setTerminalPath] = useState('')
   const [rootFolder, setRootFolder] = useState('')
+  const [serialDropdownOpen, setSerialDropdownOpen] = useState(false)
+  const [serialPorts, setSerialPorts] = useState<SerialPort[]>([])
+  const [selectedSerialPort, setSelectedSerialPort] = useState<SerialPort | null>(null)
   const themeMode = useSelector((state: any) => state.theme.mode)
   const textColor = themeMode === 'dark' ? 'text-white' : 'text-black'
   const [activeTab, setActiveTab] = useState<'serial' | 'errors'>('serial') 
@@ -200,7 +205,7 @@ export default function PythonScaffold({
   );
   };
 
-  const onOpenFolder = async () => {
+  /* const onOpenFolder = async () => {
     const res = await window.api.file.openFolderDialog('python');
     if (res.success) {
       setTerminalPath(res.data)
@@ -208,7 +213,36 @@ export default function PythonScaffold({
     } else {
       console.error('Error opening folder:', res.error)
     }
+  } */
+
+  const onOpenFolder = async () => {
+  try {
+    if (!('showDirectoryPicker' in window)) {
+      alert(
+        'Folder selection is not supported in this browser. Please use Chrome or Edge.'
+      );
+      return;
+    }
+
+    const directoryHandle =
+      await window.showDirectoryPicker();
+
+    console.log('Selected folder:', directoryHandle.name);
+
+    setTerminalPath(directoryHandle.name);
+
+    // Store the selected folder handle if you need it later
+    // You can use directoryHandle to access files inside the folder.
+
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      console.log('User cancelled folder selection');
+      return;
+    }
+
+    console.error('Error opening folder:', error);
   }
+};
 
   const handleGlobalSearch = async (customPath?: string) => {
     if (!searchText.trim()) return
@@ -438,6 +472,59 @@ export default function PythonScaffold({
 
   const refresh = () => Promise.resolve()
 
+  const refreshSerialPorts = async () => {
+    try {
+      const ports = await serialService.getAuthorizedPorts();
+      setSerialPorts(ports);
+    } catch (error) {
+      console.error('Failed to get serial ports:', error);
+      setSerialPorts([]);
+    }
+  };
+
+  const connectAuthorizedPythonBoard = async () => {
+    await serialService.enterPythonMode()
+  }
+
+  const handleAddSerialDevice = async () => {
+    try {
+      const port = await serialService.requestPort();
+
+      if (!port) {
+        return;
+      }
+
+      setSelectedSerialPort(port)
+      await connectAuthorizedPythonBoard()
+      await refreshSerialPorts()
+      setSerialDropdownOpen(false)
+      console.log('Serial device connected');
+    } catch (error) {
+      console.error('Serial connection failed:', error);
+    }
+  };
+
+  useEffect(() => {
+    refreshSerialPorts();
+  }, []);
+
+  useEffect(() => {
+    const connectBoard = () => {
+      void connectAuthorizedPythonBoard().catch((error) => {
+        console.warn('Could not connect the board for Python mode:', error)
+      })
+    }
+
+    connectBoard()
+
+    if (!('serial' in navigator)) return
+
+    const serial = navigator.serial as unknown as EventTarget
+    serial.addEventListener('connect', connectBoard)
+
+    return () => serial.removeEventListener('connect', connectBoard)
+  }, [])
+
   const clearSearch = () => {
     setSearchText("");
     setSearchResults([]);
@@ -608,30 +695,6 @@ export default function PythonScaffold({
   }, [showSettings])
 
   useEffect(() => {
-    const fetchAllProjects = async () => {
-      console.log('Browser mode: Electron project API is unavailable')
-      setProjects([])
-    }
-    fetchAllProjects()
-  }, [onSave, onImport, onNewFile])
-
-  // Fetch example files
-  useEffect(() => {
-    const fetchExamples = async () => {
-      console.log('Browser mode: Electron examples API is unavailable')
-      setExamples([])
-    }
-    fetchExamples()
-  }, [])
-  useEffect(() => {
-    const fetchLibraries = async () => {
-      console.log('Browser mode: Electron libraries API is unavailable')
-      setLibraries([])
-    }
-  
-    fetchLibraries()
-  }, [])
-  useEffect(() => {
     const handler = () => setOpen(null);
     window.addEventListener("click", handler);
     return () => window.removeEventListener("click", handler);
@@ -768,11 +831,11 @@ export default function PythonScaffold({
                   {runStatus === 'stopped' ? (
                     <div
                       className="group relative w-12 h-12 rounded-full bg-white flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200"
-                      onClick={() => {
+                      onClick={async () => {
                         setShowTerminal(true);
                         window.localStorage.setItem("py_showTerminal", "true");
-                        onRun();
-                        setRunStatus('running');
+                        const didRun = await onRun();
+                        setRunStatus(didRun ? 'running' : 'stopped');
                       }}
                     >
                       <FaPlay size={20} className="text-green-500" />
@@ -829,29 +892,73 @@ export default function PythonScaffold({
                 </div>
               </div>
 
-              <div className="flex items-end gap-2">
-                {/* USB Port Dropdown + Reload inside it */}
-                <div className="flex items-center bg-black rounded border-2 border-black hover:border-[#FFFFFF] transition-all duration-200">
-                  <select
-                    name="ports"
-                    className="bg-black text-white focus:outline-none min-w-[120px] h-12 rounded-l px-2 cursor-pointer"
-                  >
-                    {ports.map((port, idx) => (
-                      <option key={idx} value={port}>
-                        {port}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Reload button INSIDE the port div */}
+              <div className="flex items-end gap-2 relative">
+                <div className="relative">
                   <button
-                    className="h-12 w-12 flex items-center justify-center text-white border-l-2 border-black hover:text-[#F6EC24] transition-all duration-200"
-                    onClick={() => {
-                      handlePortRefreshWithPromise({ setPorts })
+                    onClick={async () => {
+                      setSerialDropdownOpen((prev) => !prev);
+                      await refreshSerialPorts();
                     }}
+                    className="w-[175px] h-12 bg-black text-white rounded-lg border-2 border-black hover:border-white flex items-center justify-between px-3 transition-all"
                   >
-                    <IoReloadOutline className="w-6 h-6" />
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <span className="text-purple-400">🔌</span>
+                      <span className="text-xs font-bold truncate">
+                        {selectedSerialPort ? serialService.getPortName(selectedSerialPort, 0) : 'Select Serial Port'}
+                      </span>
+                    </div>
+                    <span>{serialDropdownOpen ? '▲' : '▼'}</span>
                   </button>
+
+                  {serialDropdownOpen && (
+                    <div className="absolute right-0 top-14 w-[300px] bg-[#0b0b0b] text-white rounded-xl shadow-2xl border border-[#333] z-[9999] overflow-hidden">
+                      <button
+                        onClick={async () => {
+                          await refreshSerialPorts();
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-purple-400 hover:bg-[#222] border-b border-[#333]"
+                      >
+                        <IoReloadOutline className="w-5 h-5" />
+                        <span className="font-semibold">Refresh</span>
+                      </button>
+
+                      {serialPorts.length > 0 ? (
+                        serialPorts.map((port, index) => {
+                          const name = serialService.getPortName(port, index);
+
+                          return (
+                            <button
+                              key={`${name}-${index}`}
+                              onClick={async () => {
+                                try {
+                                  setSelectedSerialPort(port)
+                                  await connectAuthorizedPythonBoard()
+                                  setSerialDropdownOpen(false)
+                                  console.log('Connected:', name);
+                                } catch (error) {
+                                  console.error('Failed to connect:', error);
+                                }
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#222] border-b border-[#333]"
+                            >
+                              <span className="text-purple-400">🔌</span>
+                              <span className="text-sm">{name}</span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="px-4 py-4 text-gray-400 text-sm">No authorized devices</div>
+                      )}
+
+                      <button
+                        onClick={handleAddSerialDevice}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-purple-400 hover:bg-[#222] border-t border-[#333]"
+                      >
+                        <span className="text-xl">＋</span>
+                        <span className="font-semibold">Add Serial Device</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Remaining Icons (USB, Star, Settings) */}

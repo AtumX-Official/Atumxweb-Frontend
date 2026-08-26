@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { IoHome } from 'react-icons/io5'
 import { useNavigate } from 'react-router-dom'
-import SerialService from '@/app/services/SerialService'
+import SerialService from '@/app/services/Serialservice'
 import { useSelector, useDispatch } from 'react-redux'
 import Settings from '../assets/icons/common/Settings'
 import SortIcon from '../assets/icons/common/SortIcon'

@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux"
-export default function Help({ className }) {
+export default function Help({ className }: { className?: string }) {
     const themeMode = useSelector((state: any) => state.theme.mode)
     const color = themeMode === 'dark' ? 'white' : '#E8F5E9'
 

@@ -2,6 +2,7 @@ import { setKit } from '../../../../store/kitslice'
 import { showConfirmModal,showSavePopup } from './Popupfuntionalities';
 import SerialService from '../../services/Serialservice';
 
+
 const PYTHON_USB_IDS = ["303a:817a", "2e8a:0005"];
 const BLOCKLY_USB_IDS = ["303a:1001", "2e8a:000a"];
 
@@ -120,12 +121,12 @@ if (boardName.startsWith("E4650")) {
     pathToSave = undefined;
   }
 
-  const result = await window.api.file.save(
-    pathToSave,
-    activeTab.code,
-    "python",
-    currentName
-  );
+  const result = await FileService.savePythonFile(
+  activeTab.code,
+  currentName
+);
+
+console.log(result);
 
   if (result.success) {
     appendOutput(`> File saved to: ${result.path}\n`, "out");
@@ -151,13 +152,34 @@ if (boardName.startsWith("E4650")) {
     appendOutput,
     createNewTab
   }) => {
-  
-    const result = await window.api.file.open("python");
-  
-    if (result.success) {
-      createNewTab(result.fileName, result.data, result.path);
-    } else {
-      appendOutput(`> Error importing file: ${result.error}\n`, "err");
+    try {
+      const input = document.createElement("input");
+
+      input.type = "file";
+      input.accept = ".py";
+
+      input.onchange = async () => {
+        const file = input.files?.[0];
+
+        if (!file) {
+          console.log("File selection cancelled");
+          return;
+        }
+
+        try {
+          const data = await file.text();
+          createNewTab(file.name, data, file.name);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          appendOutput(`> Error importing file: ${message}\n`, "err");
+        }
+      };
+
+      input.click();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Python file import failed:", error);
+      appendOutput(`> Error importing file: ${message}\n`, "err");
     }
   };
 

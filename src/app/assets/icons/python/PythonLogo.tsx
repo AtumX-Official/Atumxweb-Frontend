@@ -1,4 +1,4 @@
-export default function PythonLogo({ className }) {
+export default function PythonLogo({ className }: { className?: string }) {
   return (
     <svg
       className={className}

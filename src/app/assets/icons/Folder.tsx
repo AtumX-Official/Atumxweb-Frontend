@@ -1,4 +1,4 @@
-export default function Folder({ className }) {
+export default function Folder({ className }: { className?: string }) {
   return (
     <svg
       className={className}

@@ -138,6 +138,12 @@ export function useBlocklyActions({ workspaceRef, isConnected, mode }: UseBlockl
     const workspace = workspaceRef.current
     if (!workspace) return
 
+    if (mode !== 'Wireless' && !SerialService.isConnected()) {
+      console.warn('[Blockly] Board not connected')
+      showRunPopup('CONNECT')
+      return
+    }
+
     const result = validateWorkspace(workspace)
     if (!result.valid) {
       if (result.reason === 'empty') showRunPopup('NOCODE')
