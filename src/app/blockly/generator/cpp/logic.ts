@@ -7,6 +7,13 @@ cppGenerator.forBlock['if'] = function (block) {
   return this.scrub_(block, code);
 };
 
+cppGenerator.forBlock['logical_if'] = function (block) {
+  const left = cppGenerator.valueToCode(block, 'LEFT', cppGenerator.ORDER_NONE) || 'false';
+  const right = cppGenerator.valueToCode(block, 'RIGHT', cppGenerator.ORDER_NONE) || 'false';
+  const operator = block.getFieldValue('LOGIC_OP') === 'AND' ? '&&' : '||';
+  return `${left} ${operator} ${right}`;
+};
+
 // Custom Compare block (==, !=, <, >, <=, >=)
 cppGenerator.forBlock['custom_compare'] = function (block) {
   const operator = block.getFieldValue('OP');
@@ -42,8 +49,8 @@ cppGenerator.forBlock['custom_null'] = function () {
 
 // Ternary if-else block
 cppGenerator.forBlock['custom_if_else'] = function (block) {
-  const test = cppGenerator.valueToCode(block, 'TEST', cppGenerator.ORDER_NONE) || 'false';
-  const ifTrue = cppGenerator.valueToCode(block, 'IF_TRUE', cppGenerator.ORDER_NONE) || '0';
-  const ifFalse = cppGenerator.valueToCode(block, 'IF_FALSE', cppGenerator.ORDER_NONE) || '0';
-  return `(${test}) ? (${ifTrue}) : (${ifFalse})`;
+  const condition = cppGenerator.valueToCode(block, 'COND', cppGenerator.ORDER_NONE) || 'false';
+  const ifTrue = cppGenerator.statementToCode(block, 'DO') || '0';
+  const ifFalse = cppGenerator.statementToCode(block, 'ELSE') || '0';
+  return `(${condition}) ? (${ifTrue}) : (${ifFalse})`;
 };

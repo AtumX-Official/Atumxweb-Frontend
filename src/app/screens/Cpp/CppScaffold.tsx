@@ -1219,7 +1219,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
             {/* Settings Modal */}
   {showSettings && (
-                            <SettingModal onClose={() => setShowSettings(false)} />
+                            <SettingModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
                           )}
 
             {/* Main Area */}

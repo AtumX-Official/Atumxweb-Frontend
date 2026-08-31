@@ -18,7 +18,7 @@ import ThemeSelector from './Themecomp'
 import SoundControl from './Soundcomp';
 import Settingsbg from './assets/Settingsbg';
 import Closeicon from './assets/Wrong'
-export default function SettingModal({  onClose }) {
+export default function SettingModal({ isOpen, onClose }) {
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'checking' | 'available' | 'not_available' | 'downloading' | 'downloaded'
   >('idle')
@@ -46,16 +46,23 @@ export default function SettingModal({  onClose }) {
   };
   
   const BgComponent = bgMap[section];
+
+  // Don't render if not open
+  if (!isOpen) return null;
     
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-hidden">
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-hidden"
+        onClick={onClose}
+      >
         <motion.div
           initial={{ opacity: 0, y: -80, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -40, scale: 0.96 }}
           transition={{ type: "spring", damping: 20, stiffness: 120 }}
           className={`w-[752px] h-[583px] ${bgcolor} rounded-xl shadow-2xl p-4 flex flex-col relative overflow-hidden`}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header - Just the Close Button */}
 <div className="flex items-center justify-end mb-4">
