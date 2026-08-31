@@ -1,4 +1,4 @@
-export default function TickIcon({className}) {
+export default function TickIcon({className}: { className?: string }) {
   return (
     <svg
       className={`${className}`}

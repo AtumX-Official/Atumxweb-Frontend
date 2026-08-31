@@ -372,7 +372,7 @@ customGenerator.forBlock['Oleddisplay'] = function (block: Blockly.Block) {
       return JSON.stringify(jsonOutput);
 }
 
-customGenerator.forBlock['Display'] = function (block) {
+customGenerator.forBlock['Display'] = function (block: Blockly.Block) {
   const userText = block.getFieldValue('text') || "";
   const jsonOutput = {
     display :{
@@ -383,7 +383,7 @@ customGenerator.forBlock['Display'] = function (block) {
   return JSON.stringify(jsonOutput);
 };
 
-customGenerator.forBlock['happy'] = function (block) {
+customGenerator.forBlock['happy'] = function () {
   const jsonOutput = {
     display : {
       "emotion" : "happy",
@@ -393,7 +393,7 @@ customGenerator.forBlock['happy'] = function (block) {
   return JSON.stringify(jsonOutput);
 };
 
-customGenerator.forBlock['alarm'] = function (block) {
+customGenerator.forBlock['alarm'] = function () {
   const jsonOutput = {
     display : {
       "emotion" : "Alarm",
@@ -402,7 +402,7 @@ customGenerator.forBlock['alarm'] = function (block) {
   }
   return JSON.stringify(jsonOutput);};
 
-customGenerator.forBlock['conf'] = function (block) {
+customGenerator.forBlock['conf'] = function () {
   const jsonOutput = {
     display : {
       "emotion" : "Conf",
@@ -411,7 +411,7 @@ customGenerator.forBlock['conf'] = function (block) {
   }
   return JSON.stringify(jsonOutput);};
 
-customGenerator.forBlock['displaytext'] = function (block) {
+customGenerator.forBlock['displaytext'] = function () {
   return null; 
 };
 

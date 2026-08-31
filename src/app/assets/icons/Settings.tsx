@@ -1,5 +1,5 @@
 
-export default function Settings({ className }) {
+export default function Settings({ className }: { className?: string }) {
   return (
     <svg
       className={className}

@@ -16,11 +16,11 @@ customGenerator.blockToCode = function (block: Blockly.Block) {
 }
 
 // Support for nested statements (Processes a list of blocks and expands function calls)
-customGenerator.statementToCode = function (block: Blockly.Block, inputName: string) {
+customGenerator.statementToCode = function (block: Blockly.Block, inputName: string): any[] {
    const firstChild = block.getInputTargetBlock(inputName);
    if (!firstChild) return [];
     const result: any[] = [];
-   let current = firstChild;
+   let current: Blockly.Block | null = firstChild;
     while (current) {
       const blockType = current.type;
       // --- Function Call Expansion Logic ---
@@ -72,7 +72,7 @@ customGenerator.statementToCode = function (block: Blockly.Block, inputName: str
 customGenerator.statementToCodeNested = function (block: Blockly.Block, inputName: string): Record<string, any> {
     const commands = customGenerator.statementToCode(block, inputName);
     const result: Record<string, any> = {};
-    commands.forEach((cmd, index) => {
+    commands.forEach((cmd: any, index: number) => {
         result[index.toString()] = cmd;
     });
     return result;
@@ -81,11 +81,11 @@ customGenerator.statementToCodeNested = function (block: Blockly.Block, inputNam
 
 
 // Prevent default scrub behavior
-customGenerator.scrub_ = function (block, code, thisOnly) {
+customGenerator.scrub_ = function (block: Blockly.Block, code: string, thisOnly: boolean) {
    return code
 }
 customGenerator.__errors = [];
-customGenerator.reportError = function (error) {
+customGenerator.reportError = function (error: unknown) {
   this.__errors.push(error);
 };
 // Main workspace-to-code
@@ -156,7 +156,7 @@ function addToIndexedObject(
     let index = startIndex
     while (current) {
         // Use statementToCode on the current block chain (starting with 'current')
-        const codeEntries = customGenerator.statementToCode({ 
+        const codeEntries: unknown[] = customGenerator.statementToCode({ 
             getInputTargetBlock: (name: string) => (index === startIndex ? current : null), 
             getInput: () => ({ connection: { targetBlock: () => (index === startIndex ? current : null) } }) 
         }, 'DUMMY_INPUT_NAME'); 
@@ -174,11 +174,13 @@ function addToIndexedObject(
 }
 
 // Handle toolbox refresh after function rename
-Blockly.Extensions.register('defer_function_name_update', function () {
-  this.getField('function_name')?.setValidator(function (newValue) {
+Blockly.Extensions.register('defer_function_name_update', function (this: Blockly.Block) {
+  this.getField('function_name')?.setValidator((newValue) => {
     setTimeout(() => {
-      const ws = this.sourceBlock_.workspace
-      if (ws) ws.refreshToolboxSelection_()
+      const workspace = this.workspace as Blockly.Workspace & {
+        refreshToolboxSelection_?: () => void
+      }
+      workspace.refreshToolboxSelection_?.()
     }, 0)
     return newValue
   })
@@ -186,7 +188,7 @@ Blockly.Extensions.register('defer_function_name_update', function () {
 
 // Ensure extension gets mixed into declaration blocks
 Blockly.Blocks['function_declaration']?.init?.call({
-  jsonInit(config) {
+  jsonInit(this: any, config: any) {
     this.jsonInit(config)
     this.mixin({
       extensions: ['defer_function_name_update']

@@ -1,10 +1,15 @@
 import { cppGenerator } from './index';
 
 cppGenerator.forBlock['if'] = function (block) {
-  const condition = this.valueToCode(block, 'condition', this.ORDER_NONE) || 'false';
-  const statements_do = this.statementToCode(block, 'do');
+  const condition =
+    cppGenerator.valueToCode(block, 'condition', cppGenerator.ORDER_NONE) || 'false';
+
+  const statements_do =
+    cppGenerator.statementToCode(block, 'do');
+
   const code = `if (${condition}) {\n${statements_do}}\n`;
-  return this.scrub_(block, code);
+
+  return cppGenerator.scrub_(block, code);
 };
 
 // Custom Compare block (==, !=, <, >, <=, >=)

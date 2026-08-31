@@ -23,62 +23,115 @@ cppGenerator.ORDER_CONDITIONAL = 11;
 cppGenerator.ORDER_NONE = 99;
 
 // Convert block to code
-cppGenerator.blockToCode = function (block) {
+cppGenerator.blockToCode = function (
+  block: Blockly.Block | null,
+  _opt_thisOnly?: boolean
+): string | [string, number] {
   if (!block) return '';
+
   const fn = this.forBlock?.[block.type];
+
   if (typeof fn !== 'function') {
-    console.warn(`CPP generator does not know how to generate code for block type "${block.type}"`);
+    console.warn(
+      `CPP generator does not know how to generate code for block type "${block.type}"`
+    );
     return '';
   }
-  return fn.call(this, block);
+
+  return fn.call(this, block, this) ?? '';
 };
 
 // Handle statement inputs
-cppGenerator.statementToCode = function (block, name) {
+cppGenerator.statementToCode = function (
+  block: Blockly.Block,
+  name: string
+) {
   const target = block?.getInputTargetBlock(name);
+
   if (!target) return '';
+
   const code = this.blockToCode(target);
   const line = Array.isArray(code) ? code[0] : code;
-  return Blockly.Generator.prototype.prefixLines.call(this, line, '  ');
+
+  return Blockly.Generator.prototype.prefixLines.call(
+    this,
+    line,
+    '  '
+  );
 };
 
 // Handle value inputs (conditions)
-cppGenerator.valueToCode = function (block, name, outerOrder) {
+cppGenerator.valueToCode = function (
+  block: Blockly.Block,
+  name: string,
+  outerOrder?: number
+) {
   const targetBlock = block?.getInputTargetBlock(name);
+
   if (!targetBlock) return '';
-  let code = this.blockToCode(targetBlock);
+
+  const code = this.blockToCode(targetBlock);
+
   if (!code) return '';
+
   if (Array.isArray(code)) {
     const [expression, innerOrder] = code;
+
     if (outerOrder && innerOrder && outerOrder > innerOrder) {
       return `(${expression})`;
     }
+
     return expression;
   }
+
   return code;
 };
 
 // Append next connected blocks
-cppGenerator.scrub_ = function (block, code) {
+cppGenerator.scrub_ = function (
+  block: Blockly.Block,
+  code: string
+) {
   const nextBlock = block.getNextBlock();
-  const nextCode = nextBlock ? this.blockToCode(nextBlock) : '';
-  return code + (Array.isArray(nextCode) ? nextCode[0] : nextCode);
+
+  const nextCode = nextBlock
+    ? this.blockToCode(nextBlock)
+    : '';
+
+  return code + (
+    Array.isArray(nextCode)
+      ? nextCode[0]
+      : nextCode
+  );
 };
 
 // Main workspace to code logic
-cppGenerator.workspaceToCode = function (workspace) {
+cppGenerator.workspaceToCode = function (
+  workspace: Blockly.Workspace
+) {
+  if (!workspace) return '';
+
   const topBlocks = workspace.getTopBlocks(true);
 
-  const setupLoopBlock = topBlocks.find(block => block.type === 'setup_loop');
+  const setupLoopBlock = topBlocks.find(
+    (block: Blockly.Block) => block.type === 'setup_loop'
+  );
 
   if (setupLoopBlock) {
     const code = this.blockToCode(setupLoopBlock);
-    return Array.isArray(code) ? code[0] : code;
+
+    return Array.isArray(code)
+      ? code[0]
+      : code;
   }
 
   const setupCode = topBlocks
-    .map(block => this.blockToCode(block))
-    .map(code => (Array.isArray(code) ? code[0] : code))
+    .map((block: Blockly.Block) => this.blockToCode(block))
+    .map(code => (
+      Array.isArray(code)
+        ? code[0]
+        : code
+    ))
     .join('\n');
 
   return `void setup() {\n${setupCode}\n}\n\nvoid loop() {\n  \n}`;
@@ -114,11 +167,15 @@ Blockly.Blocks['setup_loop'] = {
   }
 };
 
-cppGenerator.forBlock['setup_loop'] = function (block) {
-  const setupCode = this.statementToCode(block, 'SETUP');
-  const loopCode = this.statementToCode(block, 'LOOP');
-  const trailingCode = this.scrub_(block, '');
+cppGenerator.forBlock['setup_loop'] = function (
+  block: Blockly.Block,
+  generator: Blockly.CodeGenerator
+): string | [string, number] {
+  const setupCode = cppGenerator.statementToCode(block, 'SETUP');
+  const loopCode = cppGenerator.statementToCode(block, 'LOOP');
+  const trailingCode = cppGenerator.scrub_(block, '');
 
   const code = `void setup() {\n${setupCode}}\n\nvoid loop() {\n${loopCode}${trailingCode}}\n`;
-  return [code, this.ORDER_NONE];
+
+  return [code, cppGenerator.ORDER_NONE];
 };

@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux"
 
-export default function SearchIcon({ className }) {
+export default function SearchIcon({ className }: { className?: string }) {
     const themeMode = useSelector((state: any) => state.theme.mode)
     const color = themeMode === 'dark' ? '#1B2B2D' : 'black'
     return (

@@ -1,5 +1,5 @@
 
-export default function FontDecreaseIcon({ className }) {
+export default function FontDecreaseIcon({ className }: { className?: string }) {
   return (
     <svg
       className={className}

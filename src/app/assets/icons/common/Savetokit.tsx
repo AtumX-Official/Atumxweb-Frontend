@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux"
 
-export default function Savedtokit({ className }) {
+export default function Savedtokit({ className }: { className?: string }) {
     const themeMode = useSelector((state: any) => state.theme.mode)
     const color = themeMode === 'dark' ? 'black' : 'black'
     return (

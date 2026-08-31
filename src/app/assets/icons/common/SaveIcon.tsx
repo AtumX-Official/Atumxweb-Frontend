@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux"
 
-export default function SaveIcon({ className }) {
+export default function SaveIcon({ className }: { className?: string }) {
   const themeMode = useSelector((state: any) => state.theme.mode)
   const color = themeMode === 'dark' ? '#1B2B2D' : 'black'
   return (

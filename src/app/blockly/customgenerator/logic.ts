@@ -345,7 +345,7 @@ customGenerator.forBlock['custom_compare'] = function (block: Blockly.Block) {
     case 'sfanalog_read':  
     case 'dronedigital_read' :
     case 'droneanalog_read' :   
-    const typeMap = {
+    const typeMap: Record<string, string> = {
       cayodigital_read: 'digital_read',
       sfdigital_read: 'digital_read',
       cayoanalog_read: 'analog_read',
@@ -537,14 +537,14 @@ const jsonOutput = {
   return [JSON.stringify(jsonOutput, null, 2), 0] // 0 = precedence (like ORDER_ATOMIC)
 }
 
-customGenerator.forBlock['logical_if'] = function (block) {
+customGenerator.forBlock['logical_if'] = function (block: Blockly.Block) {
   const op = block.getFieldValue('LOGIC_OP') // "AND" or "OR"
 
   const leftBlock = block.getInputTargetBlock('LEFT')
   const rightBlock = block.getInputTargetBlock('RIGHT')
 
   // Helper to build condition
-  const buildCond = (condBlock) => {
+  const buildCond = (condBlock: any) => {
     if (!condBlock) return {}
     if (condBlock.type === "custom_compare") {
       try {
@@ -913,10 +913,10 @@ customGenerator.forBlock['forloop'] = function(block: Blockly.Block) {
 };
 
 
-customGenerator.forBlock['while'] = function (block) {
+customGenerator.forBlock['while'] = function (block: Blockly.Block) {
 
   // --- Convert DO blocks ---
-  const arrayToIndexedObject = (arr) =>
+  const arrayToIndexedObject = (arr: any[]) =>
     arr.reduce((acc, item, index) => {
       acc[index] = item;
       return acc;

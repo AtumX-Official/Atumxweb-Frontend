@@ -747,7 +747,7 @@ else if (valueBlockType === 'colorsensor'){
     return JSON.stringify(temp);
   };
   
-  customGenerator.forBlock['get_variable'] = function(block, generator) {
+  customGenerator.forBlock['get_variable'] = function(block: Blockly.Block, generator: Blockly.CodeGenerator) {
     const varName = block.getFieldValue('VAR');
     // encode as JSON string so it’s still valid string
     return [JSON.stringify({ var: varName }), 0];
