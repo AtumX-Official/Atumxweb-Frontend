@@ -4,12 +4,15 @@ import CppScaffold from './CppScaffold'
 import type { CppScaffoldHandle } from './CppScaffold'
 import Editor,{ useMonaco }  from '@monaco-editor/react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useLocation,useNavigate } from 'react-router-dom'
 import type { RootState } from "../../../../store/index"
 import { setKit } from '../../../../store/kitslice'
 import { setPath } from '../../../../store/projectSlice'
 import { handleCppSave } from './CppHelper/cpphelper'
 
+// Helper to check if running in Electron context with API available
+const isElectronApiAvailable = (): boolean => {
+  return typeof window !== 'undefined' && window.api != null
+}
 
 interface Tab {
   id: string;
@@ -45,7 +48,7 @@ export default function CppPage() {
   })
 
   const [output, setOutput] = useState<TerminalLine[]>([]);
-  const executionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const executionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [serialData, setSerialData] = useState("");
   const [isChangeHappens, setIsChangeHappens] = useState(false)
   const [availablePorts, setAvailablePorts] = useState<string[]>([])
@@ -62,12 +65,14 @@ export default function CppPage() {
   const [buildError, setBuildError] = useState('');
   const runLogRef = useRef('');
 
-  const location = useLocation()
-  const navigate = useNavigate();
   const importingRef = useRef(false);
   const selectedKit = useSelector((state: RootState) => state.kits.kit)
   const theme = useSelector((state: any) => state.theme.mode)
-  const { filePath: incomingFilePath, fileName } = location.state || {}
+  // This page is rendered by Next.js App Router, so React Router's
+  // location.state is not available here. File opening is handled by
+  // the existing Open/Import actions below.
+  const incomingFilePath = '';
+  const fileName = '';
 
   // --- Tab Management Logic ---
 
@@ -121,6 +126,10 @@ export default function CppPage() {
 
 
   useEffect(() => {
+    if (!isElectronApiAvailable() || !window.api?.serial) {
+      console.warn('Serial API not available - running in browser or preload not loaded');
+      return;
+    }
     const handleSerialData = (data: string) => {
       console.log('Received data from serial:', data);
       setSerialData(prev => prev + data + '\n'); // append new line
@@ -159,6 +168,8 @@ export default function CppPage() {
       return;
     }
   
+    if (!isElectronApiAvailable()) return;
+  
     window.api.file.fileOpen(incomingFilePath).then((result) => {
       if (result.success) {
         createNewTab(fileName, result.data, incomingFilePath);
@@ -167,56 +178,14 @@ export default function CppPage() {
   }, [incomingFilePath]);
 
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const latestPort = await listAvailablePorts();
-
-        if (latestPort) {
-          await window.api.serial.open(latestPort, { baudRate: 115200 });
-
-          console.log('Serial opened');
-
-          await new Promise(resolve => setTimeout(resolve, 300));
-          await window.api.serial.write(JSON.stringify({ msg: 'cswitch' }) + '\n');
-
-          console.log('Sent switch command');
-
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-
-        //await window.api.serial.close();
-
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    init();
-  }, []);
-
-  useEffect(() => {
-    if (!activeTab?.path) return;
-  
-    if (activeTab.code === activeTab.originalCode) {
-      return;
-    }
-  
-    const timer = setTimeout(() => {
-      handleCppSave({
-        mode: "autosave",
-        activeTab,
-        updateActiveTabData,
-        appendOutput,
-        showPopup: false,
-      });
-    }, 3000);
-  
-    return () => clearTimeout(timer);
-  }, [activeTab?.code, activeTab?.originalCode]);
   const listAvailablePorts = async (): Promise<string> => {
     try {
       console.log("Calling listPorts…");
+
+      if (!isElectronApiAvailable()) {
+        console.error("Electron API not available - not running in Electron environment");
+        return "";
+      }
 
       const result = await window.api.mpRemote.listPorts();
 
@@ -304,7 +273,61 @@ export default function CppPage() {
     }
   };
 
+  useEffect(() => {
+    const init = async () => {
+      try {
+        if (!isElectronApiAvailable()) {
+          console.warn('Electron API not available - skipping serial init');
+          return;
+        }
+
+        const latestPort = await listAvailablePorts();
+
+        if (latestPort) {
+          await window.api.serial.open(latestPort, { baudRate: 115200 });
+
+          console.log('Serial opened');
+
+          await new Promise(resolve => setTimeout(resolve, 300));
+          await window.api.serial.write(JSON.stringify({ msg: 'cswitch' }) + '\n');
+
+          console.log('Sent switch command');
+
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
+        //await window.api.serial.close();
+
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (!activeTab?.path) return;
+  
+    if (activeTab.code === activeTab.originalCode) {
+      return;
+    }
+  
+    const timer = setTimeout(() => {
+      handleCppSave({
+        mode: "autosave",
+        activeTab,
+        updateActiveTabData,
+        appendOutput,
+        showPopup: false,
+      });
+    }, 3000);
+  
+    return () => clearTimeout(timer);
+  }, [activeTab?.code, activeTab?.originalCode]);
+
   const handleSave = () => {
+    if (!isElectronApiAvailable()) return;
     window.api.file.save(activeTab.path, activeTab.code, 'cpp', activeTab.name).then((result) => {
       if (result.success) {
         appendOutput(`> File saved to: ${result.path}\n`, 'out');
@@ -320,6 +343,7 @@ export default function CppPage() {
   }
 
   const handleImport = async () => {
+    if (!isElectronApiAvailable()) return;
     importingRef.current = true;
   
     const result = await window.api.file.open('cpp');
@@ -368,7 +392,7 @@ export default function CppPage() {
   // A real PlatformIO project has a platformio.ini at its root. The Cpp page's
   // redux path defaults to the bare cpp/ folder (NOT a project), so we must check.
   const isPlatformioProject = async (root: string): Promise<boolean> => {
-    if (!root) return false
+    if (!root || !isElectronApiAvailable()) return false
     try {
       const r = await window.api.file.fileOpen(`${root}\\platformio.ini`) as any
       return !!r?.success
@@ -447,6 +471,7 @@ export default function CppPage() {
     files: { path: string; content: string }[],
   ): Promise<string> => {
     let mainPath = `${root}\\src\\main.cpp`
+    if (!isElectronApiAvailable()) return mainPath
     for (const f of files) {
       const abs = winPath(root, f.path)
       const res = (await window.api.file.save(
@@ -496,7 +521,7 @@ export default function CppPage() {
   // disk so in-editor edits are respected.
   const getEditContext = async (): Promise<string | undefined> => {
     const root = projectRootOfTab(activeTab?.path)
-    if (!root) return undefined
+    if (!root || !isElectronApiAvailable()) return undefined
     let files: { path: string; content: string }[] = []
     try {
       files = (await window.api.agent.readProjectFiles(root)) || []
@@ -517,6 +542,7 @@ export default function CppPage() {
   // "// main.cpp" scaffold counts as empty) — used to decide whether replacing it needs
   // the user's OK.
   const mainHasRealCode = async (mainPath: string): Promise<boolean> => {
+    if (!isElectronApiAvailable()) return false
     try {
       const r = await window.api.file.fileOpen(mainPath) as any
       if (!r?.success) return false
@@ -534,6 +560,10 @@ export default function CppPage() {
   // with collision handling — create-new-project throws on an existing folder). Returns
   // the project path, or '' on failure (after reporting the error to the terminal).
   const createFreshProject = async (suggestedName?: string): Promise<string> => {
+    if (!isElectronApiAvailable()) {
+      appendOutput(`> Cannot create project: not running in Electron environment\n`, 'err')
+      return ''
+    }
     const base = slugifyName(suggestedName) || `AI_${Date.now()}`
     let name = base
     for (let attempt = 1; attempt <= 20; attempt++) {
@@ -572,7 +602,7 @@ export default function CppPage() {
       // Edit mode: the user is modifying the program they have open → write straight back
       // into that project, no new project. Additive edits apply silently; but if the edit
       // looks DESTRUCTIVE (drops a function / big shrink) we confirm first (option 3).
-      if (opts?.editInPlace) {
+      if (opts?.editInPlace && isElectronApiAvailable()) {
         const r = projectRootOfTab(activeTab?.path)
         if (await isPlatformioProject(r)) {
           let current: { path: string; content: string }[] = []
@@ -630,16 +660,18 @@ export default function CppPage() {
 
       // Make it buildable: add any non-bundled libraries #included anywhere in the program
       // (scanned across both files on disk) to platformio.ini lib_deps.
-      try {
-        const libRes = await window.api.agent.ensureLibraries(root, libDeps)
-        if (libRes?.added?.length) {
-          appendOutput(`> Added libraries to platformio.ini: ${libRes.added.join(', ')}\n> They download automatically on the first Run.\n`, 'out')
+      if (isElectronApiAvailable()) {
+        try {
+          const libRes = await window.api.agent.ensureLibraries(root, libDeps)
+          if (libRes?.added?.length) {
+            appendOutput(`> Added libraries to platformio.ini: ${libRes.added.join(', ')}\n> They download automatically on the first Run.\n`, 'out')
+          }
+          if (libRes?.unresolved?.length) {
+            appendOutput(`> Heads up: these includes may need a library that wasn't auto-added — ${libRes.unresolved.join(', ')}. If the build fails, add it from the Library panel.\n`, 'err')
+          }
+        } catch (e) {
+          appendOutput(`> Could not update project libraries: ${e instanceof Error ? e.message : String(e)}\n`, 'err')
         }
-        if (libRes?.unresolved?.length) {
-          appendOutput(`> Heads up: these includes may need a library that wasn't auto-added — ${libRes.unresolved.join(', ')}. If the build fails, add it from the Library panel.\n`, 'err')
-        }
-      } catch (e) {
-        appendOutput(`> Could not update project libraries: ${e instanceof Error ? e.message : String(e)}\n`, 'err')
       }
 
       // Show main.cpp (the logic file) in a tab; config.h is on disk + in Folder View.
@@ -657,7 +689,7 @@ export default function CppPage() {
       // #5 — opt-in "Verify before flashing": compile the project and let the AI auto-fix
       // build errors. The fixed files are written to disk; refresh any open tabs.
       let compiled: boolean | undefined
-      if (opts?.verify) {
+      if (opts?.verify && isElectronApiAvailable()) {
         try {
           const v = await window.api.agent.compileAndFix(root, opts.prompt || '')
           compiled = v?.compiled
@@ -688,6 +720,9 @@ export default function CppPage() {
   // #7 — repair the OPEN project from the last build's errors. The main process reads the
   // project's files, fixes the whole set, and writes them back; we refresh the open tabs.
   const fixBuildErrors = async (): Promise<{ ok: boolean; error?: string }> => {
+    if (!isElectronApiAvailable()) {
+      return { ok: false, error: 'Not running in Electron environment.' }
+    }
     const root = projectRootOfTab(activeTab?.path)
     if (!(await isPlatformioProject(root))) {
       appendOutput(`> No open project to fix. Open or generate a project first.\n`, 'err')
@@ -718,6 +753,10 @@ export default function CppPage() {
   }
 
   const handleRunUsingMpRemote = async () => {
+    if (!isElectronApiAvailable()) {
+      console.error("Electron API not available - cannot run");
+      return;
+    }
     if (!selectedFilePath) {
       console.error("No project path found");
       return;
@@ -783,6 +822,11 @@ export default function CppPage() {
   };
 
   useEffect(() => {
+    if (!isElectronApiAvailable() || !window.api?.cpp) {
+      console.warn('Cpp API not available - running in browser or preload not loaded');
+      return;
+    }
+
     let buffer = "";
   
     window.api.cpp.onOutput(async (data) => {
@@ -867,6 +911,7 @@ export default function CppPage() {
           setTabs([]);
           setActiveTabId('');
         }}      
+        onImport={handleImport}
         onNewFile={handleNewFileCreation}
         fontFn={(size) => setOptions(prev => ({ ...prev, fontSize: size === 'increase' ? prev.fontSize + 2 : prev.fontSize - 2 }))}
         onRun={handleRunUsingMpRemote}

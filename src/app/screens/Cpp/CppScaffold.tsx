@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import '../../assets/css/scrollbar.css'
 import BookIcon from './icons/common/BookIcon'
 import DownloadIcon from './icons/common/DownloadIcon'
@@ -43,6 +43,12 @@ import Backicon from "../../assets/icons/common/Backicon"
 import BackgroundImg from "../../assets/Background.svg?url"
 import SerialMonitor from './Sidebar/SerialMonitor'
 import {PressBootResetPopup} from '../../components/supporting/Popups'
+
+// Helper to check if running in Electron context with API available
+const isElectronApiAvailable = (): boolean => {
+  return typeof window !== 'undefined' && window.api != null
+}
+
 interface Project {
   created: string
   filepath: string
@@ -80,7 +86,7 @@ interface CppScaffoldProps {
   chatOpen: boolean
   onToggleChat: () => void
   ports: Array<string>
-  setPorts: ()=> void
+  setPorts: (ports: string[]) => void
   onCodeGenerated: (
     files: { path: string; content: string }[],
     suggestedName?: string,
@@ -91,6 +97,7 @@ interface CppScaffoldProps {
   hasOpenCode: boolean
   getEditContext: () => Promise<string | undefined>
   onFixBuild: () => Promise<{ ok: boolean; error?: string }>
+  onOpenProject?: () => void
 }
 
 const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function CppScaffold({
@@ -118,7 +125,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   onFixBuild,
   onOpenProject
 }, ref) {
-  const navigate = useNavigate()
+  const router = useRouter()
   const dispatch = useDispatch()
   const [showSettings, setShowSettings] = useState(false)
   const [logoHovered, setLogoHovered] = useState(false)
@@ -226,6 +233,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     await onNewProject()
     // After the popup closes, refresh and only mark imported if a real
     // project tree came back. Avoids flipping state on cancel/close.
+    if (!isElectronApiAvailable()) return
     const res = await window.api.file.fetchDirs('cpp')
     if (res.success && res.data && res.rootPath) {
       setFileTree(res.data)
@@ -246,6 +254,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   }
 
   const onOpenFolder = async (): Promise<boolean> => {
+    if (!isElectronApiAvailable()) return false
     const res = await window.api.file.openFolderDialog('cpp');
   
     if (!res.success) {
@@ -262,12 +271,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     setTerminalPath(res.data);
     refresh();
   
-    navigate("/cpp", {
-      state: {
-        filePath: `${res.data}\\src\\main.cpp`,
-        fileName: "main.cpp"
-      }
-    });
+    router.push("/cpp");
   
     return true;
   };
@@ -279,11 +283,17 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
     const folderPath = terminalPath
 
-    const res = await window.api.globalReplace(folderPath, "old", "new");
     // unsaved editor search
     const unsavedResults = unsavedChanges
       ? searchInUnsavedEditor(searchText)
       : [];
+
+    if (!isElectronApiAvailable()) {
+      setSearchResults(unsavedResults)
+      return
+    }
+
+    const res = await window.api.globalReplace(folderPath, "old", "new");
 
     if (res?.success) {
       setSearchResults([...unsavedResults, ...res.data])
@@ -440,6 +450,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   }
 
   const refresh = async () => {
+    if (!isElectronApiAvailable()) return
     const res = await window.api.file.fetchDirs('cpp')
     if (res.success) {
       setFileTree(res.data)
@@ -608,6 +619,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
   useEffect(() => {
     const fetchAllProjects = async () => {
+      if (!isElectronApiAvailable()) return
       const result = await window.api.file.fetchProject('cpp')
       if (result.success && result.data && typeof result.data === 'object') {
         setProjects(result.data)
@@ -621,6 +633,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   // Fetch example files
   useEffect(() => {
     const fetchExamples = async () => {
+      if (!isElectronApiAvailable()) return
       const result = await window.api.file.fetchExamples('cpp')
       if (result.success && result.data && typeof result.data === 'object') {
         setExamples(result.data)
@@ -644,6 +657,10 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   useEffect(() => {
     const handleSerial = async () => {
       try {
+        if (!window.api?.serial) {
+          console.warn("Serial API not available");
+          return;
+        }
         if (showSerialTerminal) {
           const board = await getboardPort();
 
@@ -664,7 +681,9 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
     // Optional cleanup (recommended)
     return () => {
-      window.api.serial.close();
+      if (window.api?.serial) {
+        window.api.serial.close();
+      }
     }
   }, [showSerialTerminal]);
 
@@ -703,6 +722,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     if (e.key === "Enter") {
       const trimmed = editedName.trim()
       if (!trimmed) return
+      if (!isElectronApiAvailable()) return
       try {
         const res = await window.api.file.rename({
           oldPath: terminalPath,
@@ -815,6 +835,11 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       const value = e.currentTarget.value
 
       setProjectName(value)
+
+      if (!isElectronApiAvailable()) {
+        closePopup()
+        return
+      }
 
       const result = await window.api.file.createProject(value)
 
@@ -1078,6 +1103,11 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                                 return
                               }
 
+                              if (!isElectronApiAvailable()) {
+                                setIsFileCreating(false)
+                                return
+                              }
+
                               const pathToUse = selectedNode?.path ?? terminalPath
                               const typeToUse = selectedNode?.type ?? "folder"
 
@@ -1108,6 +1138,11 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
                               const name = e.currentTarget.value.trim()
                               if (!name) {
+                                setIsFolderCreating(false)
+                                return
+                              }
+
+                              if (!isElectronApiAvailable()) {
                                 setIsFolderCreating(false)
                                 return
                               }

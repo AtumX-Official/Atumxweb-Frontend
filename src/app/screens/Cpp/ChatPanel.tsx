@@ -137,6 +137,9 @@ export default function ChatPanel({
 
   // Stream status updates from the main-process agent into the activity timeline.
   useEffect(() => {
+    // Guard: window.api may be undefined when running outside Electron (e.g., browser dev mode)
+    if (!window.api?.agent?.onOutput) return
+
     window.api.agent.onOutput((d) => {
       if (d?.type !== 'status' && d?.type !== 'tool') return
       const text = (d.text || '').trim()
@@ -146,7 +149,7 @@ export default function ChatPanel({
         return [...prev, { id: ++stepId.current, text, kind: kindOf(text, d.type) }]
       })
     })
-    return () => window.api.agent.removeAllListeners()
+    return () => window.api?.agent?.removeAllListeners?.()
   }, [])
 
   useEffect(() => {
@@ -176,7 +179,16 @@ export default function ChatPanel({
       // model modifies them instead of starting over, and apply the result in place.
       const isEdit = editMode && hasOpenCode
       const editContext = isEdit ? await getEditContext() : undefined
-      const res = await window.api.agent.generateCpp(prompt, editContext)
+      const res = await window.api.agent.generateCpp?.(prompt, editContext)
+      if (!res) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'error', text: 'AI service is not available. Please run this app in Electron or check the agent configuration.' },
+        ])
+        setBusy(false)
+        setSteps([])
+        return
+      }
       const files =
         res?.files?.length ? res.files : res?.code ? [{ path: 'src/main.cpp', content: res.code }] : []
       if (res?.success && files.length) {

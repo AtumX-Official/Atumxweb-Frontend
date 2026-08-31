@@ -84,9 +84,9 @@ export default function HomePage() {
             />
             <ModeCard
               mode={mode}
+              linkto="cpp"
               image="cpp"
               text="C++"
-              onClick={() => setShowUnderDev(true)} 
             />
           </div>
         );
