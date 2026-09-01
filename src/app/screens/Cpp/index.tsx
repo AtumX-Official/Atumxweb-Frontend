@@ -5,14 +5,17 @@ import type { CppScaffoldHandle } from './CppScaffold'
 import Editor,{ useMonaco }  from '@monaco-editor/react'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from "../../../../store/index"
-import { setKit } from '../../../../store/kitslice'
 import { setPath } from '../../../../store/projectSlice'
 import { handleCppSave } from './CppHelper/cpphelper'
+<<<<<<< Updated upstream
 import { browserWorkspace } from './browserWorkspace'
 
 // Compilation and AI project tooling require a server-side service in the web app.
 // Browser editing and serial monitoring use the Web APIs below instead.
 const isElectronApiAvailable = (): boolean => false
+=======
+import serialService from '../../services/Serialservice'
+>>>>>>> Stashed changes
 
 
 interface Tab {
@@ -55,10 +58,8 @@ export default function CppPage() {
     setSerialData((previous) => previous + data)
   }, [])
   const [isChangeHappens, setIsChangeHappens] = useState(false)
-  const [availablePorts, setAvailablePorts] = useState<string[]>([])
   const [ports, setPorts] = useState<string[]>([])
   const dispatch = useDispatch()
-  const [boardName, setBoardName] = useState("");
 
   const projectPath = useSelector((state: RootState) => state.project.projectPath);
 
@@ -129,6 +130,19 @@ export default function CppPage() {
   const themeMode = useSelector((state: any) => state.theme.mode)
 
 
+<<<<<<< Updated upstream
+=======
+  useEffect(() => {
+    // Serial monitor data via Web Serial (SerialService). This keeps working in
+    // a pure browser; mode switching is handled by BoardModeManager/SwitchToMode.
+    const handleSerialData = (data: string) => {
+      console.log('Received data from serial:', data);
+      setSerialData(prev => prev + data + '\n'); // append new line
+    };
+    const removeListener = serialService.addDataListener(handleSerialData);
+    return () => removeListener();
+  },[])
+>>>>>>> Stashed changes
   // --- Existing Logic Updated for Tabs ---
   const monaco = useMonaco();
 
@@ -171,128 +185,17 @@ export default function CppPage() {
   }, [incomingFilePath]);
 
 
-  const listAvailablePorts = async (): Promise<string> => {
-    try {
-      console.log("Calling listPorts…");
-
-      if (!isElectronApiAvailable()) {
-        console.error("Electron API not available - not running in Electron environment");
-        return "";
-      }
-
-      const result = await window.api.mpRemote.listPorts();
-
-      console.log("listPorts raw result:", result);
-
-      if (!result || !Array.isArray(result.ports)) {
-        console.error("result.ports is missing or not an array");
-        return "";
-      }
-
-      if (!result.success) {
-        console.error("Error listing ports:", result.error);
-        appendOutput(`> Error listing ports: ${result.error}\n`, 'err');
-        return "";
-      }
-
-      let mode = "";
-      let boardPort = "";
-
-      const pythonIndex = result.ports.findIndex(
-        (line) =>
-          line.includes("303a:817a") ||
-          line.includes("2e8a:0005")
-      );
-
-      const blocklyIndex = result.ports.findIndex(
-        (line) =>
-          line.includes("303a:1001") ||
-          line.includes("2e8a:000a")
-      );
-
-      if (pythonIndex !== -1) {
-        mode = "Python Mode";
-
-        const pythonLine = result.ports[pythonIndex];
-        const parts = pythonLine.split(" ");
-
-        boardPort = parts[0] || "";
-        const detectedName = parts[1] || "";
-
-        if (detectedName.includes("CAYO")) {
-          dispatch(setKit("cayo"));
-          setBoardName("Cayo");
-        } else if (detectedName.includes("SUBO")) {
-          dispatch(setKit("subo"));
-          setBoardName("Subo");
-        } else if (detectedName.startsWith("E4650")) {
-          dispatch(setKit("snowflake"));
-          setBoardName("Snowflake");
-        }
-      } else if (blocklyIndex !== -1) {
-        mode = "Blockly Mode";
-
-        const blocklyLine = result.ports[blocklyIndex];
-        const parts = blocklyLine.split(" ");
-
-        boardPort = parts[0] || "";
-        const detectedName = parts[1] || "";
-
-        setBoardName(detectedName);
-        console.log("Detected Blockly board:", detectedName);
-      }
-
-      const comPorts = result.ports.map((line) => line.split(" ")[0]);
-
-      const orderedPorts =
-        boardPort !== ""
-          ? [boardPort, ...comPorts.filter((p) => p !== boardPort)]
-          : comPorts;
-
-      setAvailablePorts(orderedPorts);
-      setPorts(orderedPorts);
-
-      if (mode === "Python Mode") {
-        appendOutput(
-          `\n> Board Detected: ${boardName}\n> Port: ${boardPort}\n> Mode: ${mode}\n`,
-          'out'
-        );
-      }
-
-      return boardPort;
-    } catch (err) {
-      console.error("listPorts threw:", err);
-      return "";
-    }
-  };
-
   useEffect(() => {
     const init = async () => {
       try {
-        if (!isElectronApiAvailable()) {
-          console.warn('Electron API not available - skipping serial init');
-          return;
-        }
-
-        const latestPort = await listAvailablePorts();
-
-        if (latestPort) {
-          await window.api.serial.open(latestPort, { baudRate: 115200 });
-
-          console.log('Serial opened');
-
-          await new Promise(resolve => setTimeout(resolve, 300));
-          await window.api.serial.write(JSON.stringify({ msg: 'cswitch' }) + '\n');
-
-          console.log('Sent switch command');
-
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-
-        //await window.api.serial.close();
-
+        // Board mode entry for the C++ page. The route-driven BoardModeManager
+        // already does this once when /cpp is entered; switchToMode() here is an
+        // idempotent safety net for deep links / fast refresh — it detects the
+        // board and sends a command ONLY when a real transition is needed, so it
+        // never fires a second 'cswitch'.
+        await serialService.switchToMode("Cpp Mode");
       } catch (err) {
-        console.error(err);
+        console.error("[Cpp] Failed to enter C++ mode:", err);
       }
     };
 
@@ -767,26 +670,22 @@ export default function CppPage() {
         }
       }
 
-      // Switch the board into C++ mode BEFORE building (mirrors the console agent). The
-      // board reboots into the C++ partition during the build, so the freshly-flashed
-      // program actually runs — without this it boots the default loader and looks for
-      // /lfs/prog.bin, so your code never executes.
+      // Board mode is owned by the mode-entry logic (BoardModeManager + the
+      // page's init effect). Run therefore just verifies the board is still on
+      // the C++ runtime — switchToMode() no-ops unless the board has genuinely
+      // reverted to Python, so the normal Build → Flash → Run path sends NO mode
+      // command.
       try {
-        const cswitchPort = await listAvailablePorts();
-        if (cswitchPort) {
-          try { await window.api.serial.close(); } catch { /* may not be open */ }
-          await window.api.serial.open(cswitchPort, { baudRate: 115200 });
-          await new Promise(r => setTimeout(r, 300));
-          await window.api.serial.write(JSON.stringify({ msg: 'cswitch' }) + '\n');
-          await new Promise(r => setTimeout(r, 300));
-        }
+        await serialService.switchToMode("Cpp Mode");
       } catch (e) {
-        console.log("cswitch before build failed (ignored):", e);
+        console.log("ensure C++ mode before build failed (ignored):", e);
       }
 
-      // 1. Close serial before flashing
-      await window.api.serial.close();
-      console.log("Serial closed for compile/flash");
+      // 1. Release the Web Serial connection before flashing so the upload
+      //    tooling can take over the port. Best-effort: the port may already
+      //    be closed or may have re-enumerated after a mode switch.
+      try { await serialService.disconnect(); } catch { /* may not be open */ }
+      console.log("Serial disconnected before compile/flash");
 
       // 2. Start build & flash
       window.api.cpp.compile(selectedFilePath);
@@ -835,28 +734,21 @@ export default function CppPage() {
   
         buffer = ""; // reset buffer
   
-        const port = await listAvailablePorts();
-  
-        if (port) {
-          try {
-            // ✅ FIXED
-            try {
-              await window.api.serial.close();
-            } catch (e) {
-              console.log("Close failed (ignored):", e);
-            }
-        
-            await new Promise(r => setTimeout(r, 1000));
-        
-            await window.api.serial.open(port, { baudRate: 115200 });
-        
-            await new Promise(r => setTimeout(r, 1500));
-        
-            console.log("Serial reopened after upload");
-        
-          } catch (err) {
-            console.error("Reopen failed:", err);
-          }
+        try {
+          // Board restarted after upload - release the old Web Serial session
+          // and re-establish the C++ runtime connection via the centralized
+          // service (no-op when the board is already on the C++ runtime).
+          await serialService.disconnect();
+          // The board booted straight into the freshly flashed C++ runtime;
+          // record it so the runtime history stays truthful (the USB
+          // re-enumeration during flashing invalidated it) and repeated Runs
+          // never fire a redundant 'cswitch'.
+          serialService.markRuntimeMode("Cpp");
+          await new Promise(r => setTimeout(r, 1500));
+          await serialService.switchToMode("Cpp Mode");
+          console.log("Serial reopened after upload");
+        } catch (err) {
+          console.error("Reopen failed:", err);
         }
       }
     });

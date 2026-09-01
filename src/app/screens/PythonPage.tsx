@@ -258,28 +258,12 @@ const handleOpenBoardFile = (file: string) => {
       updateActiveTabData,
       appendOutput,
     });
-  
+
     if (!canExit) return;
-  
-    try {
-      const board = await serialService.detectBoardMode();
 
-      if (board?.mode === 'Python Mode') {
-        console.log('[Board] Switching Python → Blockly');
-        await serialService.ensureBlocklyMode();
-      } else if (board?.mode === 'Blockly Mode') {
-        console.log('[Board] Already in Blockly Mode');
-      } else {
-        console.log('[Board] No board detected - returning home anyway');
-      }
-    } catch (err) {
-      console.warn('[Board switch] Blockly switch failed:', err);
-      appendOutput(
-        `> Could not switch board to Blockly mode: ${err instanceof Error ? err.message : String(err)}\n`,
-        'err'
-      );
-    }
-
+    // Board mode is restored by the route-driven BoardModeManager when it sees
+    // "/" — leaving Python automatically brings the board back to Blockly (the
+    // default runtime), so no board command is sent here.
     router.replace('/');
   };
 

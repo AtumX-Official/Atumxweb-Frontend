@@ -30,7 +30,11 @@ import { Tooltip } from '../../components/Tooltip'
 import Header from '../../components//Header'
 import FileExplorer from './Sidebar/FileExplorer'
 import { CopyToast } from '../../components/supporting/Popups'
+<<<<<<< Updated upstream
 import { getboardPort } from '../../screens/CommonHelper/ListPorts'
+=======
+import PopUp from './popup';
+>>>>>>> Stashed changes
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../../store'
 import { setPath } from "../../../../store/projectSlice";
@@ -44,8 +48,17 @@ import Backicon from "../../assets/icons/common/Backicon"
 import BackgroundImg from "../../assets/Background.svg?url"
 import SerialMonitor from './Sidebar/SerialMonitor'
 import {PressBootResetPopup} from '../../components/supporting/Popups'
+<<<<<<< Updated upstream
 import { browserWorkspace } from './browserWorkspace'
 import { browserSerial } from './browserSerial'
+=======
+import serialService from '../../services/Serialservice'
+
+// Helper to check if running in Electron context with API available
+const isElectronApiAvailable = (): boolean => {
+  return typeof window !== 'undefined' && window.api != null
+}
+>>>>>>> Stashed changes
 
 interface Project {
   created: string
@@ -615,13 +628,53 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     setTimeout(() => setShowCopiedToast(false), 1200);
   };
 
+  const connectAuthorizedCppBoard = async (port?: SerialPort) => {
+    try {
+      if (port) {
+        await serialService.connectPort(port);
+      } else {
+        const board = await serialService.detectBoardMode();
+
+        if (!board?.port) {
+          console.warn("No board found to connect for C++ mode");
+          return;
+        }
+
+        await serialService.connectPort(board.port);
+      }
+
+      // Put the board on the C++ runtime (no-op when it already is — the mode
+      // is owned by SerialService.switchToMode, so we never send 'cswitch'
+      // twice).
+      await serialService.switchToMode("Cpp Mode");
+      console.log("[Cpp] Board connected, C++ runtime ensured");
+    } catch (error) {
+      console.warn("Could not connect the board for C++ mode:", error);
+    }
+  };
+
   useEffect(() => {
     const handleSerial = async () => {
       try {
         if (showSerialTerminal) {
+<<<<<<< Updated upstream
           await browserSerial.connect(onSerialData)
         } else {
           await browserSerial.disconnect()
+=======
+          const board = await serialService.detectBoardMode();
+
+          if (board?.port) {
+            await serialService.connectPort(board.port);
+            // Keep the board on the C++ runtime so the serial monitor talks to
+            // the right firmware (no-op when it already is).
+            await serialService.switchToMode("Cpp Mode");
+          } else {
+            console.error("No board port found");
+          }
+        } else {
+          await serialService.disconnect();
+>>>>>>> Stashed changes
         }
       } catch (err) {
         console.error("Serial error:", err);
@@ -630,16 +683,76 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
     handleSerial();
 
-    // Optional cleanup (recommended)
     return () => {
+<<<<<<< Updated upstream
       void browserSerial.disconnect()
     }
   }, [showSerialTerminal, onSerialData]);
+=======
+      void serialService.disconnect();
+    };
+  }, [showSerialTerminal]);
+>>>>>>> Stashed changes
+
+  useEffect(() => {
+    // Mid-session plug-in: quietly ensure the freshly-connected board is on the
+    // C++ runtime. switchToMode() no-ops when nothing needs to change.
+    if (typeof navigator === 'undefined' || !('serial' in navigator)) {
+      return;
+    }
+
+    const serial = navigator.serial as unknown as EventTarget
+
+    const handleConnect = () => {
+      void serialService.switchToMode("Cpp Mode").catch((error) => {
+        console.warn('[Cpp] Could not prepare board for C++ mode:', error)
+      })
+    }
+
+    serial.addEventListener('connect', handleConnect)
+
+    return () => serial.removeEventListener('connect', handleConnect)
+  }, [])
 
   useEffect(() => {
     dispatch(setPath(terminalPath))
   }, [terminalPath])
   const [showToast, setShowToast] = useState(false);
+  const [serialDropdownOpen, setSerialDropdownOpen] = useState(false)
+  const [serialPorts, setSerialPorts] = useState<SerialPort[]>([])
+  const [selectedSerialPort, setSelectedSerialPort] = useState<SerialPort | null>(null)
+
+  const refreshSerialPorts = async () => {
+    try {
+      const ports = await serialService.getAuthorizedPorts();
+      setSerialPorts(ports);
+    } catch (error) {
+      console.error('Failed to get serial ports:', error);
+      setSerialPorts([]);
+    }
+  };
+
+  const handleAddSerialDevice = async () => {
+    try {
+      const port = await serialService.requestPort();
+
+      if (!port) {
+        return;
+      }
+
+      setSelectedSerialPort(port);
+      await connectAuthorizedCppBoard(port);
+      await refreshSerialPorts();
+      setSerialDropdownOpen(false); 
+      console.log('Serial device connected');
+    } catch (error) {
+      console.error('Serial connection failed:', error);
+    }
+  };
+
+  useEffect(() => {
+    refreshSerialPorts();
+  }, []);
 
   const [editedName, setEditedName] = useState(projectName)
   useEffect(() => {
@@ -835,27 +948,73 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                 </div>
               </div>
 
-              <div className="flex items-end gap-2">
-              <div className="flex items-center bg-black rounded border-2 border-black hover:border-[#F6EC24] transition-all duration-200">
-                  <select
-                    name="ports"
-                    className="bg-black text-white focus:outline-none min-w-[120px] h-12 rounded-l px-2 cursor-pointer"
-                  >
-                    {ports.map((port, idx) => (
-                      <option key={idx} value={port}>
-                        {port}
-                      </option>
-                    ))}
-                  </select>
-
+              <div className="flex items-end gap-2 relative">
+                <div className="relative">
                   <button
-                    className="h-12 w-12 flex items-center justify-center text-white border-l-2 border-black hover:text-[#F6EC24] transition-all duration-200"
-                    onClick={() => {
-                      handlePortRefreshWithPromise({setPorts})
+                    onClick={async () => {
+                      setSerialDropdownOpen((prev) => !prev);
+                      await refreshSerialPorts();
                     }}
+                    className="w-[175px] h-12 bg-black text-white rounded-lg border-2 border-black hover:border-white flex items-center justify-between px-3 transition-all"
                   >
-                    <IoReloadOutline className="w-6 h-6" />
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <span className="text-purple-400">🔌</span>
+                      <span className="text-xs font-bold truncate">
+                        {selectedSerialPort ? serialService.getPortName(selectedSerialPort, 0) : 'Select Serial Port'}
+                      </span>
+                    </div>
+                    <span>{serialDropdownOpen ? '▲' : '▼'}</span>
                   </button>
+
+                  {serialDropdownOpen && (
+                    <div className="absolute right-0 top-14 w-[300px] bg-[#0b0b0b] text-white rounded-xl shadow-2xl border border-[#333] z-[9999] overflow-hidden">
+                      <button
+                        onClick={async () => {
+                          await refreshSerialPorts();
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-purple-400 hover:bg-[#222] border-b border-[#333]"
+                      >
+                        <IoReloadOutline className="w-5 h-5" />
+                        <span className="font-semibold">Refresh</span>
+                      </button>
+
+                      {serialPorts.length > 0 ? (
+                        serialPorts.map((port, index) => {
+                          const name = serialService.getPortName(port, index);
+
+                          return (
+                            <button
+                              key={`${name}-${index}`}
+                              onClick={async () => {
+                                try {
+                                  setSelectedSerialPort(port);
+                                  await connectAuthorizedCppBoard(port);
+                                  setSerialDropdownOpen(false);
+                                  console.log('Connected:', name);
+                                } catch (error) {
+                                  console.error('Failed to connect:', error);
+                                }
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#222] border-b border-[#333]"
+                            >
+                              <span className="text-purple-400">🔌</span>
+                              <span className="text-sm">{name}</span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="px-4 py-4 text-gray-400 text-sm">No authorized devices</div>
+                      )}
+
+                      <button
+                        onClick={handleAddSerialDevice}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-purple-400 hover:bg-[#222] border-t border-[#333]"
+                      >
+                        <span className="text-xl">＋</span>
+                        <span className="font-semibold">Add Serial Device</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
                 {/* Remaining Icons (USB, Star, Settings) */}
                 {[Settings].map((Icon, i) => (

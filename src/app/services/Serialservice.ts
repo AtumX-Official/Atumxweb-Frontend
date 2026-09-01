@@ -1,3 +1,13 @@
+/**
+ * Logical board runtime. Blockly and C++ are DISTINCT states even though both
+ * share the native USB ids (303a:1001 / 2e8a:000a); "Unknown" means the web
+ * app has no trustworthy transition history for the board.
+ */
+export type BoardRuntimeMode = "Blockly" | "Python" | "Cpp" | "Unknown";
+
+/** Navigation-level target accepted by switchToMode(). */
+export type BoardModeTarget = "Blockly Mode" | "Python Mode" | "Cpp Mode";
+
 class SerialService {
   private port: SerialPort | null = null;
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
@@ -11,8 +21,48 @@ class SerialService {
   private boardDisconnected = false;
   private boardConnected = false;
 
+  // ------------------------------------------------------------------
+  // APPLICATION-LEVEL BOARD RUNTIME MODE
+  // ------------------------------------------------------------------
+  // The logical runtime state (Blockly / Python / Cpp) is tracked SEPARATELY
+  // from the USB VID/PID. The native USB ID (303a:1001 / 2e8a:000a) is shared
+  // by BOTH the Blockly and the C++ runtime, so it can never tell which
+  // logical state the board is in — only this app's transition history can.
+  // The marker is persisted in sessionStorage so it survives SPA route changes
+  // and a same-tab refresh; a brand-new tab starts "Unknown" and the state is
+  // re-established by an enforced transition — never by blind assumption.
+  private currentRuntimeMode: BoardRuntimeMode = "Unknown";
+
+  private static readonly RUNTIME_MODE_KEY = "atumx.boardRuntimeMode";
+
   constructor() {
+    this.currentRuntimeMode = this.loadRuntimeMode();
     this.setupSerialEvents();
+  }
+
+  private loadRuntimeMode(): "Blockly" | "Python" | "Cpp" | "Unknown" {
+    if (typeof window === "undefined") return "Unknown";
+    try {
+      const raw = window.sessionStorage.getItem(SerialService.RUNTIME_MODE_KEY);
+      if (raw === "Blockly" || raw === "Python" || raw === "Cpp") return raw;
+    } catch {
+      /* ignore storage errors */
+    }
+    return "Unknown";
+  }
+
+  private persistRuntimeMode(mode: "Blockly" | "Python" | "Cpp" | "Unknown") {
+    this.currentRuntimeMode = mode;
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(SerialService.RUNTIME_MODE_KEY, mode);
+    } catch {
+      /* ignore storage errors */
+    }
+  }
+
+  getCurrentRuntimeMode(): "Blockly" | "Python" | "Cpp" | "Unknown" {
+    return this.currentRuntimeMode;
   }
 
   private setupSerialEvents() {
@@ -32,6 +82,15 @@ class SerialService {
 
       if (event.port === this.port) {
         this.boardDisconnected = true;
+      }
+
+      // A physical detach invalidates the logical runtime history: when the
+      // board is re-plugged it boots into its DEFAULT (Blockly) runtime, so a
+      // stale "Cpp"/"Python" marker would make later transitions skip a
+      // required command. Mode transitions reboot the board on purpose, so
+      // they are exempt — they persist the fresh state when they complete.
+      if (!this.transitionInFlight) {
+        this.persistRuntimeMode("Unknown");
       }
     });
 
@@ -138,6 +197,12 @@ class SerialService {
     return board ?? null;
   }
 
+  /**
+   * PHYSICAL USB probe only. mode "Blockly Mode" means "native runtime"
+   * (Blockly OR C++ — both share 303a:1001 / 2e8a:000a) and must never be
+   * read as proof of the logical Blockly state; use resolveLogicalRuntime()
+   * / switchToMode() for logical decisions.
+   */
   async detectBoardMode(): Promise<{
     port: SerialPort;
     board: string;
@@ -178,6 +243,93 @@ class SerialService {
     }
 
     return null;
+  }
+
+  /**
+   * Logical runtime of the connected board.
+   *
+   *  - Python USB id                     → "Python"   (physical fact)
+   *  - Native USB id + history "Cpp"     → "Cpp"      (this app switched it there)
+   *  - Native USB id + history "Blockly" → "Blockly"
+   *  - Native USB id + anything else     → "Unknown"  (new tab / refresh with
+   *      lost history / board re-plugged). The web app has NO firmware query
+   *      command to discover the logical Blockly-vs-C++ state, so it stays
+   *      unknown instead of being blindly assumed.
+   */
+  private async resolveLogicalRuntime(): Promise<
+    | { hasBoard: false }
+    | {
+        hasBoard: true;
+        port: SerialPort;
+        runtime: BoardRuntimeMode;
+      }
+  > {
+    const board = await this.detectBoardMode();
+
+    if (!board?.port) {
+      return { hasBoard: false };
+    }
+
+    if (board.mode === "Python Mode") {
+      // Physical fact — keep the tracked history in sync.
+      if (this.currentRuntimeMode !== "Python") {
+        this.persistRuntimeMode("Python");
+      }
+      return { hasBoard: true, port: board.port, runtime: "Python" };
+    }
+
+    // Native runtime: only the transition history splits Blockly vs C++.
+    if (
+      this.currentRuntimeMode === "Blockly" ||
+      this.currentRuntimeMode === "Cpp"
+    ) {
+      return {
+        hasBoard: true,
+        port: board.port,
+        runtime: this.currentRuntimeMode,
+      };
+    }
+
+    return { hasBoard: true, port: board.port, runtime: "Unknown" };
+  }
+
+  /**
+   * Settle wait after a native-runtime command (cswitch / bswitch). Those
+   * commands may reboot the board WITHOUT changing the USB id, so polling for
+   * a "new" id can never observe progress. Instead: if the board re-enumerates
+   * (disappears), wait for it to come back on the native id; if it never
+   * disappears within the grace window, the firmware applied the mode change
+   * in place and we continue with the existing port.
+   */
+  private async waitForNativeRuntimeSettle(
+    originalPort: SerialPort,
+    rebootGraceMs = 3000,
+    reconnectTimeoutMs = 15000
+  ): Promise<SerialPort> {
+    const deadline = Date.now() + rebootGraceMs;
+
+    while (Date.now() < deadline) {
+      const ports = await this.getAuthorizedPorts();
+
+      if (!ports.includes(originalPort)) {
+        console.log(
+          "[Board] Board rebooting after mode command — waiting for re-enumeration..."
+        );
+
+        return await this.waitForBoardReconnect(
+          "Blockly Mode",
+          reconnectTimeoutMs
+        );
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    console.log(
+      "[Board] No USB re-enumeration after mode command — firmware applied it without a reboot."
+    );
+
+    return originalPort;
   }
 
   private async waitForBoardReconnect(
@@ -235,92 +387,204 @@ class SerialService {
     );
   }
 
-  async enterPythonMode(): Promise<void> {
-    const board = await this.detectBoardMode();
+  // ------------------------------------------------------------------
+  // MODE TRANSITIONS (single source of truth)
+  // ------------------------------------------------------------------
+  //
+  // LOGICAL runtime vs PHYSICAL USB id:
+  //   Blockly (default) ┐ native USB ids  303a:1001 / 2e8a:000a (SHARED)
+  //   C++               ┘
+  //   Python            → python USB ids  303a:817a / 2e8a:0005
+  //
+  // The USB id can only separate "native" from "python" — it can NEVER tell
+  // Blockly from C++. The logical state lives in currentRuntimeMode and is
+  // changed ONLY by transitions performed here (or by markRuntimeMode()).
+  //
+  // Firmware commands (from the project/firmware protocol — none invented):
+  //   native → C++      {"msg":"cswitch"}\n
+  //   native → Python   {"msg":"switch"}\n
+  //   C++    → Blockly  {"msg":"bswitch"}\n
+  //   Python → Blockly  "import Subo\r\nSubo.bswitch()\r\n"
+  //
+  // Every transition: resolve logical runtime → no-op when satisfied →
+  // connect → send exactly ONE command (C++→Python goes via Blockly, the only
+  // path the firmware supports) → wait for reboot/re-enumerate → reconnect →
+  // persist the new logical runtime.
 
-    if (!board?.port) {
+  /**
+   * Serializes mode transitions so two concurrent calls (e.g. page mount +
+   * route manager both asking for the same target) can never race each other.
+   */
+  private transitionChain: Promise<boolean> = Promise.resolve(true);
+
+  /** True while a firmware transition (which reboots the board) is running. */
+  private transitionInFlight = false;
+
+  async switchToMode(target: BoardModeTarget): Promise<boolean> {
+    let commandSent = false;
+
+    const run = async (): Promise<boolean> => {
+      this.transitionInFlight = true;
+
+      try {
+        const current = await this.resolveLogicalRuntime();
+
+        if (!current.hasBoard) {
+          console.warn(
+            `[Board] Board not detected - no mode transition performed (target: ${target})`
+          );
+          return false;
+        }
+
+        const { port, runtime } = current;
+
+        // Already satisfied → send NOTHING. ("Unknown" never satisfies: the
+        // logical state is unverified, so a real transition is always run.)
+        if (runtime !== "Unknown") {
+          const satisfied =
+            (target === "Blockly Mode" && runtime === "Blockly") ||
+            (target === "Cpp Mode" && runtime === "Cpp") ||
+            (target === "Python Mode" && runtime === "Python");
+
+          if (satisfied) {
+            console.log(`[Board] Already in ${target} — no command sent`);
+            await this.connectPort(port);
+            return true;
+          }
+        }
+
+        // ---------------- Python runtime ----------------
+        if (runtime === "Python") {
+          await this.connectPort(port);
+
+          if (target === "Cpp Mode") {
+            console.log("[Board] Switching Python → C++ (cswitch)");
+            commandSent = true;
+            await this.send(`${JSON.stringify({ msg: "cswitch" })}\n`);
+          } else {
+            // target === "Blockly Mode"
+            console.log("[Board] Switching Python → Blockly (Subo.bswitch)");
+            commandSent = true;
+            await this.send("import Subo\r\nSubo.bswitch()\r\n");
+          }
+
+          const newPort = await this.waitForBoardReconnect(
+            "Blockly Mode",
+            15000
+          );
+          this.port = null;
+          await this.connectPort(newPort);
+
+          this.persistRuntimeMode(target === "Cpp Mode" ? "Cpp" : "Blockly");
+          console.log(`[Board] Transition to ${target} complete`);
+          return true;
+        }
+
+        // -------- Native runtime (Blockly / Cpp / Unknown) --------
+        await this.connectPort(port);
+
+        if (target === "Python Mode") {
+          if (runtime === "Cpp") {
+            // No direct C++ → Python command: leave C++ first (bswitch).
+            console.log("[Board] Leaving C++ runtime first (bswitch)");
+            commandSent = true;
+            await this.send(`${JSON.stringify({ msg: "bswitch" })}\n`);
+
+            const settled = await this.waitForNativeRuntimeSettle(port);
+            if (settled !== port) {
+              this.port = null;
+            }
+            await this.connectPort(settled);
+          }
+
+          console.log("[Board] Switching native runtime → Python (switch)");
+          commandSent = true;
+          await this.send(`${JSON.stringify({ msg: "switch" })}\n`);
+
+          const newPort = await this.waitForBoardReconnect("Python Mode", 15000);
+          this.port = null;
+          await this.connectPort(newPort);
+
+          this.persistRuntimeMode("Python");
+          console.log("[Board] Transition to Python Mode complete");
+          return true;
+        }
+
+        // Target C++ or Blockly from the native runtime.
+        if (target === "Cpp Mode") {
+          console.log("[Board] Switching to C++ runtime (cswitch)");
+          commandSent = true;
+          await this.send(`${JSON.stringify({ msg: "cswitch" })}\n`);
+        } else {
+          // Blockly target: from "Cpp" this is the required C++ → Blockly
+          // restore; from "Unknown" it ENFORCES the default instead of
+          // blindly assuming the board is already in Blockly.
+          console.log(
+            runtime === "Cpp"
+              ? "[Board] Restoring default runtime: C++ → Blockly (bswitch)"
+              : "[Board] Logical state unverified — enforcing default Blockly runtime (bswitch)"
+          );
+          commandSent = true;
+          await this.send(`${JSON.stringify({ msg: "bswitch" })}\n`);
+        }
+
+        const settled = await this.waitForNativeRuntimeSettle(port);
+        if (settled !== port) {
+          this.port = null;
+        }
+        await this.connectPort(settled);
+
+        this.persistRuntimeMode(target === "Cpp Mode" ? "Cpp" : "Blockly");
+        console.log(`[Board] Transition to ${target} complete`);
+        return true;
+      } finally {
+        this.transitionInFlight = false;
+      }
+    };
+
+    // Chain onto any in-flight transition so transitions always happen in order.
+    const result = this.transitionChain.then(run);
+
+    this.transitionChain = result.then(
+      () => true,
+      (error) => {
+        console.warn("[Board] Mode transition failed:", error);
+
+        // A command already went out, so the board state is genuinely
+        // uncertain — drop the cached runtime instead of trusting it.
+        if (commandSent) {
+          this.persistRuntimeMode("Unknown");
+        }
+
+        return true;
+      }
+    );
+
+    return result;
+  }
+
+  async enterPythonMode(): Promise<void> {
+    const ok = await this.switchToMode("Python Mode");
+
+    if (!ok) {
       throw new Error("Board not detected");
     }
+  }
 
-    if (board.mode === "Python Mode") {
-      console.log("[Board] Already in Python Mode");
+  async enterCppMode(): Promise<void> {
+    const ok = await this.switchToMode("Cpp Mode");
 
-      await this.connectPort(board.port);
-
-      return;
+    if (!ok) {
+      throw new Error("Board not detected");
     }
-
-    console.log(
-      "[Board] Switching Blockly → Python"
-    );
-
-    await this.connectPort(board.port);
-
-    console.log(
-      "[Board] Sending Blockly → Python command..."
-    );
-
-    await this.send(
-      `${JSON.stringify({ msg: "switch" })}\n`
-    );
-
-    const newPort =
-      await this.waitForBoardReconnect("Python Mode");
-
-    this.port = null;
-
-    await this.connectPort(newPort);
-
-    console.log(
-      "[Board] Successfully switched Blockly → Python"
-    );
   }
 
   async exitPythonMode(): Promise<void> {
-    const board = await this.detectBoardMode();
+    const ok = await this.switchToMode("Blockly Mode");
 
-    if (!board?.port) {
+    if (!ok) {
       throw new Error("Board not detected");
     }
-
-    if (board.mode === "Blockly Mode") {
-      console.log("[Board] Already in Blockly Mode");
-      return;
-    }
-
-    console.log("[Board] Switching Python → Blockly");
-
-    await this.connectPort(board.port);
-
-    console.log(
-      "[Board] Sending Python → Blockly command..."
-    );
-
-    await this.send(
-      "import Subo\r\nSubo.bswitch()\r\n"
-    );
-
-    console.log(
-      "[Board] Command sent. Waiting for board reboot..."
-    );
-
-    const updatedPort =
-      await this.waitForBoardReconnect(
-        "Blockly Mode",
-        15000
-      );
-
-    console.log(
-      "[Board] Blockly board reconnected"
-    );
-
-    this.port = null;
-
-    await this.connectPort(updatedPort);
-
-    console.log(
-      "[Board] Python → Blockly complete"
-    );
   }
 
   /**
@@ -328,43 +592,34 @@ class SerialService {
    * valid for UI navigation, so it is reported without throwing.
    */
   async ensurePythonMode(): Promise<boolean> {
-    const board = await this.detectBoardMode();
-
-    if (!board) {
-      console.warn("[Board] Board not detected - allowing UI navigation");
-      return false;
-    }
-
-    if (board.mode === "Python Mode") {
-      console.log("[Board] Already in Python Mode");
-      return true;
-    }
-
-    console.log("[Board] Switching Blockly to Python");
-    await this.enterPythonMode();
-    return true;
+    return this.switchToMode("Python Mode");
   }
 
   /**
-   * Ensures a detected board is ready for the Blockly editor. A missing board
-   * is valid for UI navigation, so it is reported without throwing.
+   * Ensures a detected board is ready for the Blockly/C++ runtime (default).
+   * A missing board is valid for UI navigation, so it is reported without
+   * throwing.
    */
   async ensureBlocklyMode(): Promise<boolean> {
-    const board = await this.detectBoardMode();
+    return this.switchToMode("Blockly Mode");
+  }
 
-    if (!board) {
-      console.warn("[Board] Board not detected - allowing UI navigation");
-      return false;
-    }
+  /**
+   * Ensures a detected board is ready for the C++ editor. A missing board is
+   * valid for UI navigation, so it is reported without throwing.
+   */
+  async ensureCppMode(): Promise<boolean> {
+    return this.switchToMode("Cpp Mode");
+  }
 
-    if (board.mode === "Blockly Mode") {
-      console.log("[Board] Already in Blockly Mode");
-      return true;
-    }
-
-    console.log("[Board] Switching Python to Blockly");
-    await this.exitPythonMode();
-    return true;
+  /**
+   * Record a runtime change that this service did not drive itself — e.g.
+   * after a C++ build/flash, when the board boots straight into the freshly
+   * flashed C++ runtime and the USB re-enumeration has invalidated the old
+   * tracked state.
+   */
+  markRuntimeMode(mode: "Blockly" | "Python" | "Cpp") {
+    this.persistRuntimeMode(mode);
   }
 
   // --------------------------------------------------

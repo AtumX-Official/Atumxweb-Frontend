@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useState } from 'react'
 import { useRouter } from "next/navigation";
 import { useAppSelector } from '../../../store/hooks'
-import serialService from '../services/Serialservice'
 
 
 
@@ -32,49 +31,11 @@ export default function ModeCard({ onClick, mode, image, text, linkto }: ModeCar
   }.svg`;
 
 
-  const handleClick = async () => {
-    if (mode === 'code' && image === 'python') {
-      window.localStorage.setItem("modecard", "python");
-
-      try {
-        const board = await serialService.detectBoardMode();
-
-        if (board?.mode === "Python Mode") {
-          console.log("[Board] Already in Python Mode");
-        } else if (board?.mode === "Blockly Mode") {
-          console.log("[Board] Switching Blockly → Python");
-          await serialService.ensurePythonMode();
-        } else {
-          console.log("[Board] No board detected - opening Python anyway");
-        }
-      } catch (error) {
-        console.warn('[ModeCard] Python switch failed:', error);
-      }
-    }
-
-    if (mode === 'code' && image === 'blocks') {
-      window.localStorage.setItem("modecard", "blocks");
-    }
-
-    if (mode === 'code' && image === 'cpp') {
-      window.localStorage.setItem("modecard", "cpp");
-    }
-
-    if (mode === 'code' && linkto === 'blocks') {
-      try {
-        const board = await serialService.detectBoardMode();
-
-        if (board?.mode === "Blockly Mode") {
-          console.log("[Board] Already in Blockly Mode");
-        } else if (board?.mode === "Python Mode") {
-          console.log("[Board] Switching Python → Blockly");
-          await serialService.ensureBlocklyMode();
-        } else {
-          console.log("[Board] No board detected - opening Blocks anyway");
-        }
-      } catch (error) {
-        console.warn('[ModeCard] Blockly switch failed:', error);
-      }
+  const handleClick = () => {
+    // Record which card was used; actual board mode changes are handled by the
+    // route-driven BoardModeManager (this page only navigates).
+    if (mode === 'code') {
+      window.localStorage.setItem("modecard", image);
     }
 
     if (linkto) {
