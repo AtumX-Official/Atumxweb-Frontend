@@ -806,6 +806,8 @@ export default function CppPage() {
         getEditContext={getEditContext}
         onFixBuild={fixBuildErrors}
         onOpenWorkspaceFile={openWorkspaceFile}
+        activeTabName={activeTab?.name || projectName}
+        onAppendOutput={appendOutput}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* TAB BAR */}
