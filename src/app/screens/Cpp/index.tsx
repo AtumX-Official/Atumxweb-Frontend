@@ -7,15 +7,12 @@ import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from "../../../../store/index"
 import { setPath } from '../../../../store/projectSlice'
 import { handleCppSave } from './CppHelper/cpphelper'
-<<<<<<< Updated upstream
 import { browserWorkspace } from './browserWorkspace'
-
-// Compilation and AI project tooling require a server-side service in the web app.
-// Browser editing and serial monitoring use the Web APIs below instead.
-const isElectronApiAvailable = (): boolean => false
-=======
 import serialService from '../../services/Serialservice'
->>>>>>> Stashed changes
+
+const isElectronApiAvailable = (): boolean => {
+  return typeof window !== 'undefined' && !!(window as any).api
+}
 
 
 interface Tab {
@@ -129,9 +126,6 @@ export default function CppPage() {
   };
   const themeMode = useSelector((state: any) => state.theme.mode)
 
-
-<<<<<<< Updated upstream
-=======
   useEffect(() => {
     // Serial monitor data via Web Serial (SerialService). This keeps working in
     // a pure browser; mode switching is handled by BoardModeManager/SwitchToMode.
@@ -142,7 +136,7 @@ export default function CppPage() {
     const removeListener = serialService.addDataListener(handleSerialData);
     return () => removeListener();
   },[])
->>>>>>> Stashed changes
+
   // --- Existing Logic Updated for Tabs ---
   const monaco = useMonaco();
 

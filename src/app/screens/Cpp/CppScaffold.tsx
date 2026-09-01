@@ -25,16 +25,10 @@ import SettingModal from '../../components/supporting/SettingModal'
 import ArrowIcon from "./icons/ArrowIcon";
 import Swal from "sweetalert2";
 import { IoTerminal } from "react-icons/io5";
-import { handlePortRefreshWithPromise } from '../../screens/CommonHelper/ListPorts'
 import { Tooltip } from '../../components/Tooltip'
 import Header from '../../components//Header'
 import FileExplorer from './Sidebar/FileExplorer'
 import { CopyToast } from '../../components/supporting/Popups'
-<<<<<<< Updated upstream
-import { getboardPort } from '../../screens/CommonHelper/ListPorts'
-=======
-import PopUp from './popup';
->>>>>>> Stashed changes
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../../store'
 import { setPath } from "../../../../store/projectSlice";
@@ -48,17 +42,13 @@ import Backicon from "../../assets/icons/common/Backicon"
 import BackgroundImg from "../../assets/Background.svg?url"
 import SerialMonitor from './Sidebar/SerialMonitor'
 import {PressBootResetPopup} from '../../components/supporting/Popups'
-<<<<<<< Updated upstream
 import { browserWorkspace } from './browserWorkspace'
-import { browserSerial } from './browserSerial'
-=======
 import serialService from '../../services/Serialservice'
 
 // Helper to check if running in Electron context with API available
 const isElectronApiAvailable = (): boolean => {
   return typeof window !== 'undefined' && window.api != null
 }
->>>>>>> Stashed changes
 
 interface Project {
   created: string
@@ -657,11 +647,6 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     const handleSerial = async () => {
       try {
         if (showSerialTerminal) {
-<<<<<<< Updated upstream
-          await browserSerial.connect(onSerialData)
-        } else {
-          await browserSerial.disconnect()
-=======
           const board = await serialService.detectBoardMode();
 
           if (board?.port) {
@@ -674,25 +659,18 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
           }
         } else {
           await serialService.disconnect();
->>>>>>> Stashed changes
         }
       } catch (err) {
         console.error("Serial error:", err);
       }
     };
 
-    handleSerial();
+    void handleSerial();
 
     return () => {
-<<<<<<< Updated upstream
-      void browserSerial.disconnect()
-    }
-  }, [showSerialTerminal, onSerialData]);
-=======
       void serialService.disconnect();
     };
   }, [showSerialTerminal]);
->>>>>>> Stashed changes
 
   useEffect(() => {
     // Mid-session plug-in: quietly ensure the freshly-connected board is on the

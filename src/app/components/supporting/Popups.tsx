@@ -21,7 +21,7 @@ import { FiCheck, FiX } from "react-icons/fi";
 import LArrow from './assets/DArrows.svg'
 import Resetgif from './assets/Reset.gif'
 import { createPortal } from 'react-dom';
-import BR from './assets/BR2.gif'
+import BootResetgif from './assets/Bootreset.gif'
 //import Resetgif from '../../assets/Reset.gif'
 
 export default function ConvertToLanguagePopup({ show, onClose, language }) {
@@ -991,8 +991,8 @@ export const PressBootResetPopup = ({ open, onOk,onClose }: BootResetProps) => {
               {/* GIF */}
 <div className="flex items-center justify-center px-6 pt-0 h-[180px] overflow-hidden">
   <img
-    src={BR}
-    alt="Reset"
+    src={BootResetgif}
+    alt="Boot and reset buttons"
     className="w-60 lg:w-70 object-contain drop-shadow-lg"
   />
 </div>
