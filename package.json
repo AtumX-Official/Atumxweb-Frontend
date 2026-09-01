@@ -2,7 +2,7 @@
   "name": "atumxweb",
   "version": "0.1.0",
   "private": true,
-  "main": "electron/main.js",
+  "main": "../electron/main.js",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",

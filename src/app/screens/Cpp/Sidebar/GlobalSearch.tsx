@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { RootState } from "../../../../../store";
 import { useSelector } from "react-redux";
@@ -10,7 +10,7 @@ export default function GlobalSearch({
   unsavedChanges,
   searchInUnsavedEditor,
 }) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const [searchText, setSearchText] = useState("");
   const [replaceText, setReplaceText] = useState("");
@@ -28,7 +28,7 @@ export default function GlobalSearch({
 
     try {
       if (!selectedFilePath) return;
-      const res = await window.api.globalSearch(selectedFilePath, searchText);
+      const res = await window.api.globalReplace(selectedFilePath, searchText);
 
       console.log("Global search results:", selectedFilePath);
 
@@ -223,36 +223,40 @@ export default function GlobalSearch({
                   key={i}
                   className={`cursor-pointer rounded px-2 ${themeMode==="dark"?"hover:bg-[#254246]":"hover:bg-[#D4ECE0]"}`}
                   onClick={() => {
-                    const { filePath, fileName, lineNumber } = r;
+  const { filePath, fileName, lineNumber } = r;
 
-                    if (unsavedChanges) {
-                      const confirmed = window.confirm(
-                        "You have unsaved changes. Continue?"
-                      );
-                      if (!confirmed) return;
-                    }
+  if (unsavedChanges) {
+    const confirmed = window.confirm(
+      "You have unsaved changes. Continue?"
+    );
 
-                    if (filePath !== "__unsaved__") {
-                      sessionStorage.setItem("cpp_searchText", searchText);
-                      sessionStorage.setItem("cpp_searchOpen", "true");
+    if (!confirmed) return;
+  }
 
-                      navigate("/cpp", {
-                        state: { filePath, fileName }
-                      });
-                    }
+  if (filePath !== "__unsaved__") {
+    sessionStorage.setItem("cpp_searchText", searchText);
+    sessionStorage.setItem("cpp_searchOpen", "true");
 
-                    setTimeout(() => {
-                      if (window.monacoEditor && lineNumber) {
-                        window.monacoEditor.revealLineInCenter(lineNumber);
-                        window.monacoEditor.setPosition({
-                          lineNumber,
-                          column: 1
-                        });
-                        window.monacoEditor.focus();
-                        highlightWord(searchText);
-                      }
-                    }, 200);
-                  }}
+    router.push(
+      `/cpp?filePath=${encodeURIComponent(filePath)}&fileName=${encodeURIComponent(fileName)}`
+    );
+
+    setTimeout(() => {
+      if (window.monacoEditor && lineNumber) {
+        window.monacoEditor.revealLineInCenter(lineNumber);
+
+        window.monacoEditor.setPosition({
+          lineNumber,
+          column: 1,
+        });
+
+        window.monacoEditor.focus();
+
+        highlightWord(searchText);
+      }
+    }, 200);
+  }
+}}
                 >
                   <div className="text-xs">
                     Line {r.lineNumber}:{" "}

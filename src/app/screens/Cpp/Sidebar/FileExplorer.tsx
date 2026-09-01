@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import PythonLogo from '../../../assets/icons/python/PythonLogo'
 import { Deletepythonfile, DeletionToast } from "../../../components/supporting/Popups"
 import { SlOptionsVertical } from "react-icons/sl"
@@ -8,6 +7,7 @@ import Folderup from '../../../components/ui/assets/Folderup'
 import Folderdown from '../../../components/ui/assets/Folderdown'
 import File from '../../../components/ui/assets/File'
 import { useSelector } from 'react-redux'
+import { browserWorkspace } from '../browserWorkspace'
 
 // HIDDEN
 const hiddenFolders = [".pio", "boards", "lib"];
@@ -50,6 +50,7 @@ export default function FileExplorer({
   projectName,
   language,
   isExample = false,
+  onOpenFile,
 }) {
   const [showToast, setShowToast] = useState(false);
 
@@ -76,6 +77,7 @@ export default function FileExplorer({
               triggerToast={triggerToast}
               isExample={isExample}
               isInsideOpenFolder={false}
+              onOpenFile={onOpenFile}
             />
           ))}
       </ul>
@@ -96,6 +98,7 @@ function ExplorerNode({
   triggerToast,
   isExample,
   isInsideOpenFolder
+  ,onOpenFile
 }) {
   const [open, setOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -105,13 +108,11 @@ function ExplorerNode({
   const [newName, setNewName] = useState(node.name)
   const themeMode = useSelector((state: any) => state.theme.mode)
 
-  const navigate = useNavigate()
   const isSelected = selectedNode?.path === node.path
   const [showOptions, setShowOptions] = useState(false)
   const [optionsPos, setOptionsPos] = useState(null)
   const portalMenuRef = useRef(null)
   
-  if (shouldHideNode(node)) return null;
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (portalMenuRef.current && !portalMenuRef.current.contains(e.target)) {
@@ -128,6 +129,7 @@ function ExplorerNode({
       document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [showOptions])
+  if (shouldHideNode(node)) return null;
   const isMainCpp = node.type === "file" && node.name === "main.cpp"
 
 const menuItems = [
@@ -166,20 +168,14 @@ const menuItems = [
   // CONFIRM DELETE
   const handleConfirmDelete = async () => {
     try {
-      let res;
-
       if (node.type === "file") {
-        res = await window.api.file.delete(node.path)
+        await browserWorkspace.remove(node.path)
       } else {
-        res = await window.api.file.deleteDir(node.path)
+        await browserWorkspace.remove(node.path, true)
       }
 
-      if (res.success) {
-        triggerToast()
-        refresh()
-      } else {
-        alert(res.error)
-      }
+      triggerToast()
+      refresh()
     } catch (err) {
       console.error(err)
     }
@@ -200,16 +196,8 @@ const menuItems = [
     }
 
     try {
-      const res = await window.api.file.rename({
-        oldPath: node.path,
-        newName
-      })
-
-      if (res.success) {
-        refresh()
-      } else {
-        alert(res.error)
-      }
+      await browserWorkspace.rename(node.path, newName)
+      refresh()
     } catch (err) {
       console.error(err)
     }
@@ -245,9 +233,7 @@ const menuItems = [
             if (node.type === "folder") {
               setOpen(o => !o)
             } else {
-              navigate(`/${language}`, {
-                state: { filePath: node.path, fileName: node.name }
-              })
+              void onOpenFile?.(node.path, node.name)
             }
           }}
           className={`
@@ -341,6 +327,7 @@ const menuItems = [
                   triggerToast={triggerToast}
                   isExample={isExample}
                   isInsideOpenFolder={true}
+                  onOpenFile={onOpenFile}
                 />
               ))}
           </ul>

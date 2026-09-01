@@ -1,4 +1,5 @@
 import { showConfirmModal,showSavePopup } from '../../CommonHelper/Popupfuntionalities';
+import { browserWorkspace } from '../browserWorkspace'
 export const handleCppSave = async ({
   mode = "save",
     activeTab,
@@ -31,19 +32,15 @@ export const handleCppSave = async ({
       pathToSave = activeTab.path;
     }
   
-    const result = await window.api.file.save(
-      pathToSave,
-      activeTab.code,
-      "cpp",
-      currentName
-    );
-  
-    if (result.success) {
-      appendOutput(`> File saved to: ${result.path}\n`, "out");
+  try {
+    const path = pathToSave
+      ? await browserWorkspace.writeFile(pathToSave, activeTab.code)
+      : await browserWorkspace.saveAs(`${currentName || 'main'}.cpp`, activeTab.code)
+    appendOutput(`> File saved to: ${path}\n`, "out");
   
       updateActiveTabData({
-        path: result.path,
-        name: result.fileName.replace(/\.cpp$/i, ""),
+        path: pathToSave || '',
+        name: currentName,
         originalCode: activeTab.code,
         isUnsaved: false
       });
@@ -52,14 +49,12 @@ export const handleCppSave = async ({
         showSavePopup();
       }
   
-      return true;
-    }
-  
-    // Optional: don't show error on cancel
-    if (result.error === "Save cancelled") {
+    return true;
+  } catch (error) {
+    if ((error as DOMException).name === 'AbortError') {
       return false;
     }
-  
-    appendOutput(`> Error saving file: ${result.error}\n`, "err");
+    appendOutput(`> Error saving file: ${error instanceof Error ? error.message : String(error)}\n`, "err");
     return false;
+  }
   };

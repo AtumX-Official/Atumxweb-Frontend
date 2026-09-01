@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-import { useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import CppScaffold from './CppScaffold'
 import type { CppScaffoldHandle } from './CppScaffold'
 import Editor,{ useMonaco }  from '@monaco-editor/react'
@@ -8,11 +8,12 @@ import type { RootState } from "../../../../store/index"
 import { setKit } from '../../../../store/kitslice'
 import { setPath } from '../../../../store/projectSlice'
 import { handleCppSave } from './CppHelper/cpphelper'
+import { browserWorkspace } from './browserWorkspace'
 
-// Helper to check if running in Electron context with API available
-const isElectronApiAvailable = (): boolean => {
-  return typeof window !== 'undefined' && window.api != null
-}
+// Compilation and AI project tooling require a server-side service in the web app.
+// Browser editing and serial monitoring use the Web APIs below instead.
+const isElectronApiAvailable = (): boolean => false
+
 
 interface Tab {
   id: string;
@@ -50,6 +51,9 @@ export default function CppPage() {
   const [output, setOutput] = useState<TerminalLine[]>([]);
   const executionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [serialData, setSerialData] = useState("");
+  const handleSerialData = useCallback((data: string) => {
+    setSerialData((previous) => previous + data)
+  }, [])
   const [isChangeHappens, setIsChangeHappens] = useState(false)
   const [availablePorts, setAvailablePorts] = useState<string[]>([])
   const [ports, setPorts] = useState<string[]>([])
@@ -125,17 +129,6 @@ export default function CppPage() {
   const themeMode = useSelector((state: any) => state.theme.mode)
 
 
-  useEffect(() => {
-    if (!isElectronApiAvailable() || !window.api?.serial) {
-      console.warn('Serial API not available - running in browser or preload not loaded');
-      return;
-    }
-    const handleSerialData = (data: string) => {
-      console.log('Received data from serial:', data);
-      setSerialData(prev => prev + data + '\n'); // append new line
-    };
-    window.api.serial.onData(handleSerialData);
-  },[])
   // --- Existing Logic Updated for Tabs ---
   const monaco = useMonaco();
 
@@ -343,29 +336,25 @@ export default function CppPage() {
   }
 
   const handleImport = async () => {
-    if (!isElectronApiAvailable()) return;
-    importingRef.current = true;
-  
-    const result = await window.api.file.open('cpp');
-    if (!result.success) return;
-  
-    const newId = Date.now().toString();
-  
-    setTabs([
-      {
-        id: newId,
-        name: result.fileName,
-        code: result.data,
-        path: result.path,
-        isUnsaved: false,
-        originalCode: result.data,
-      },
-    ]);
-  
-    setActiveTabId(newId);
-  };
+    // The Folder button owns the browser's directory-picker flow. Keyboard import
+    // intentionally gives the same result rather than attempting to read arbitrary paths.
+    appendOutput('> Use Open Project to choose a folder in your browser.\n', 'out')
+  }
+
+  const openWorkspaceFile = async (path: string, name: string) => {
+    try {
+      const code = await browserWorkspace.readFile(path)
+      const existing = tabs.find((tab) => tab.path === path)
+      if (existing) { setActiveTabId(existing.id); return }
+      const id = `${Date.now()}-${path}`
+      setTabs((prev) => [...prev, { id, name, code, path, isUnsaved: false, originalCode: code }])
+      setActiveTabId(id)
+    } catch (error) {
+      appendOutput(`> Could not open ${name}: ${error instanceof Error ? error.message : String(error)}\n`, 'err')
+    }
+  }
   const handleNewFileCreation = () => {
-    createNewTab('project ' + (tabs.length + 1), '', '');
+    createNewTab('untitled', '', '');
     appendOutput(`> New project created`, 'out');
   }
 
@@ -917,6 +906,7 @@ export default function CppPage() {
         onRun={handleRunUsingMpRemote}
         output={output}
         serialData={serialData}
+        onSerialData={handleSerialData}
         onClear={() => {
           setSerialData("");
           setOutput([]);
@@ -929,6 +919,7 @@ export default function CppPage() {
         hasOpenCode={!!activeTab?.code?.trim()}
         getEditContext={getEditContext}
         onFixBuild={fixBuildErrors}
+        onOpenWorkspaceFile={openWorkspaceFile}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* TAB BAR */}
@@ -953,6 +944,13 @@ export default function CppPage() {
                 </button>
               </div>
             ))}
+            <button
+              onClick={() => createNewTab()}
+              aria-label="New untitled tab"
+              className="h-8 px-3 mb-1 flex items-center justify-center rounded-md bg-white text-black font-bold hover:bg-gray-100 transition-all"
+            >
+              +
+            </button>
           </div>
 
           <div className={`flex-grow relative relative z-[20] ${themeMode === "dark" ? "bg-[#000000]" : "bg-white"}`}>

@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { useRouter } from 'next/navigation'
 import '../../assets/css/scrollbar.css'
@@ -28,7 +30,6 @@ import { Tooltip } from '../../components/Tooltip'
 import Header from '../../components//Header'
 import FileExplorer from './Sidebar/FileExplorer'
 import { CopyToast } from '../../components/supporting/Popups'
-import PopUp from './popup';
 import { getboardPort } from '../../screens/CommonHelper/ListPorts'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../../store'
@@ -43,11 +44,8 @@ import Backicon from "../../assets/icons/common/Backicon"
 import BackgroundImg from "../../assets/Background.svg?url"
 import SerialMonitor from './Sidebar/SerialMonitor'
 import {PressBootResetPopup} from '../../components/supporting/Popups'
-
-// Helper to check if running in Electron context with API available
-const isElectronApiAvailable = (): boolean => {
-  return typeof window !== 'undefined' && window.api != null
-}
+import { browserWorkspace } from './browserWorkspace'
+import { browserSerial } from './browserSerial'
 
 interface Project {
   created: string
@@ -81,6 +79,7 @@ interface CppScaffoldProps {
   onImport: () => void
   onNewFile: () => void
   serialData: string
+  onSerialData: (data: string) => void
   onClear: () => void
   selectedkit: string
   chatOpen: boolean
@@ -98,6 +97,7 @@ interface CppScaffoldProps {
   getEditContext: () => Promise<string | undefined>
   onFixBuild: () => Promise<{ ok: boolean; error?: string }>
   onOpenProject?: () => void
+  onOpenWorkspaceFile?: (path: string, name: string) => Promise<void>
 }
 
 const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function CppScaffold({
@@ -114,6 +114,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   onImport,
   onNewFile,
   serialData,
+  onSerialData,
   onClear,
   selectedkit,
   chatOpen,
@@ -123,7 +124,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   hasOpenCode,
   getEditContext,
   onFixBuild,
-  onOpenProject
+  onOpenProject,
+  onOpenWorkspaceFile
 }, ref) {
   const router = useRouter()
   const dispatch = useDispatch()
@@ -144,13 +146,13 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
   const [examples, setExamples] = useState<Example[]>([])
   const [leftPanel, setLeftPanel] = useState<null | 'folder' | 'library' | 'example' | 'search' | 'filesearch'>(() => {
-    return window.localStorage.getItem('cpp_leftPanel') as 'folder' | 'library' | 'search' | 'filesearch' | 'example' | null
+    return typeof window === 'undefined' ? null : window.localStorage.getItem('cpp_leftPanel') as 'folder' | 'library' | 'search' | 'filesearch' | 'example' | null
   })
   const [showTerminal, setShowTerminal] = useState(() => {
-    return window.localStorage.getItem('cpp_showTerminal') === 'true'
+    return typeof window !== 'undefined' && window.localStorage.getItem('cpp_showTerminal') === 'true'
   })
   const [showSerialTerminal, setShowSerialTerminal] = useState(() => {
-    return window.localStorage.getItem('cpp_showSerialTerminal') === 'true'
+    return typeof window !== 'undefined' && window.localStorage.getItem('cpp_showSerialTerminal') === 'true'
   })
   const [terminalHeight, setTerminalHeight] = useState(300)
   const isDragging = useRef(false)
@@ -196,7 +198,6 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     );
   };
   const themeMode = useSelector((state: any) => state.theme.mode)
-  const [showPopUp, setShowPopUp] = useState(false)
   const [open, setOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const bgColor = themeMode === 'dark' ? 'bg-[#000000]' : 'bg-[#D6D6D6]'
@@ -210,15 +211,16 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       ? `${clickbg} ${bgtext} ml-2 mr-2 mt-1 mb-1 font-bold`
       : `hover:${hoverbg} ${bgtext} ml-2 mr-2 mt-1 mb-1 font-bold`
     }`;
-  const popupResolver = useRef<(() => void) | null>(null)
-  //const canCreateFiles = isImported || projectLoaded;
-  const onNewProject = async () => {
-    setShowPopUp(true)
+  // Match the Python editor: a new project starts immediately as an in-memory
+  // untitled tab. The user can save it to a browser-selected folder when ready.
+  const onNewProject = () => {
     setIsImported(true)
-    onOpenProject?.(); 
-    await new Promise<void>((resolve) => {
-      popupResolver.current = resolve
-    })
+    setProjectName('untitled')
+    setRootFolder('untitled')
+    setTerminalPath('')
+    setFileTree([])
+    onOpenProject?.()
+    onNewFile()
   }
 
   const handleImport = async () => {
@@ -229,51 +231,22 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     if (picked) setIsImported(true)
   }
 
-  const handleNewProject = async () => {
-    await onNewProject()
-    // After the popup closes, refresh and only mark imported if a real
-    // project tree came back. Avoids flipping state on cancel/close.
-    if (!isElectronApiAvailable()) return
-    const res = await window.api.file.fetchDirs('cpp')
-    if (res.success && res.data && res.rootPath) {
-      setFileTree(res.data)
-      setTerminalPath(res.rootPath)
-      setProjectName(res.folderName)
-      setRootFolder(res.folderName)
-      setIsImported(true)
-    }
-  }
-
-  const closePopup = () => {
-    setShowPopUp(false)
-
-    if (popupResolver.current) {
-      popupResolver.current()
-      popupResolver.current = null
-    }
-  }
-
   const onOpenFolder = async (): Promise<boolean> => {
-    if (!isElectronApiAvailable()) return false
-    const res = await window.api.file.openFolderDialog('cpp');
-  
-    if (!res.success) {
-      if (res.error) console.error('Error opening folder:', res.error);
-      return false;
+    try {
+      const res = await browserWorkspace.openProject()
+      onOpenProject?.()
+      setLeftPanel('folder')
+      window.localStorage.setItem('cpp_leftPanel', 'folder')
+      setFileTree(res.tree)
+      setTerminalPath(res.rootName)
+      setProjectName(res.rootName)
+      setRootFolder(res.rootName)
+      router.push('/cpp')
+      return true
+    } catch (error) {
+      if ((error as DOMException).name !== 'AbortError') console.error('Could not open project:', error)
+      return false
     }
-  
-    onOpenProject?.();
-  
-    // Open folder panel automatically
-    setLeftPanel('folder');
-    window.localStorage.setItem('cpp_leftPanel', 'folder');
-  
-    setTerminalPath(res.data);
-    refresh();
-  
-    router.push("/cpp");
-  
-    return true;
   };
 
   const handleGlobalSearch = async () => {
@@ -288,18 +261,9 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       ? searchInUnsavedEditor(searchText)
       : [];
 
-    if (!isElectronApiAvailable()) {
-      setSearchResults(unsavedResults)
-      return
-    }
-
-    const res = await window.api.globalReplace(folderPath, "old", "new");
-
-    if (res?.success) {
-      setSearchResults([...unsavedResults, ...res.data])
-    } else {
-      setSearchResults(unsavedResults)
-    }
+    if (!browserWorkspace.hasProject()) return setSearchResults(unsavedResults)
+    try { setSearchResults([...unsavedResults, ...(await browserWorkspace.search(searchText))]) }
+    catch (error) { console.error('Project search failed:', error); setSearchResults(unsavedResults) }
   }
 
   function renderHighlightedLine(
@@ -450,14 +414,11 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   }
 
   const refresh = async () => {
-    if (!isElectronApiAvailable()) return
-    const res = await window.api.file.fetchDirs('cpp')
-    if (res.success) {
-      setFileTree(res.data)
-      setTerminalPath(res.rootPath)
-      setProjectName(res.folderName)
-      setRootFolder(res.folderName)
-    }
+    const res = await browserWorkspace.refresh()
+    setFileTree(res.tree)
+    setTerminalPath(res.rootName)
+    setProjectName(res.rootName)
+    setRootFolder(res.rootName)
   }
 
   // Let the Cpp page drive the Folder view after AI generation: open the panel, mark a
@@ -619,8 +580,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
   useEffect(() => {
     const fetchAllProjects = async () => {
-      if (!isElectronApiAvailable()) return
-      const result = await window.api.file.fetchProject('cpp')
+      setProjects([])
+      return
       if (result.success && result.data && typeof result.data === 'object') {
         setProjects(result.data)
       } else {
@@ -633,8 +594,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   // Fetch example files
   useEffect(() => {
     const fetchExamples = async () => {
-      if (!isElectronApiAvailable()) return
-      const result = await window.api.file.fetchExamples('cpp')
+      setExamples([])
+      return
       if (result.success && result.data && typeof result.data === 'object') {
         setExamples(result.data)
       } else {
@@ -657,20 +618,10 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   useEffect(() => {
     const handleSerial = async () => {
       try {
-        if (!window.api?.serial) {
-          console.warn("Serial API not available");
-          return;
-        }
         if (showSerialTerminal) {
-          const board = await getboardPort();
-
-          if (board?.boardPort) {
-            await window.api.serial.open(board.boardPort, { baudRate: 115200 });
-          } else {
-            console.error("No board port found");
-          }
+          await browserSerial.connect(onSerialData)
         } else {
-          await window.api.serial.close();
+          await browserSerial.disconnect()
         }
       } catch (err) {
         console.error("Serial error:", err);
@@ -681,11 +632,9 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
     // Optional cleanup (recommended)
     return () => {
-      if (window.api?.serial) {
-        window.api.serial.close();
-      }
+      void browserSerial.disconnect()
     }
-  }, [showSerialTerminal]);
+  }, [showSerialTerminal, onSerialData]);
 
   useEffect(() => {
     dispatch(setPath(terminalPath))
@@ -722,20 +671,14 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     if (e.key === "Enter") {
       const trimmed = editedName.trim()
       if (!trimmed) return
-      if (!isElectronApiAvailable()) return
       try {
-        const res = await window.api.file.rename({
-          oldPath: terminalPath,
-          newName: trimmed
-        })
-        if (res.success) {
+        const newPath = await browserWorkspace.rename(terminalPath, trimmed)
+        if (newPath) {
           setProjectName(trimmed)
-          setTerminalPath(res.newPath)
+          setTerminalPath(trimmed)
           refresh()
           setShowToast(true)
           setTimeout(() => setShowToast(false), 2000);
-        } else {
-          console.error(res.error)
         }
       } catch (err) {
         console.error("Rename failed:", err)
@@ -755,7 +698,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   
       window.localStorage.clear();
   
-      navigate('/', { state: { showResetAlert: true } });
+      router.push('/')
     } catch (error) {
       console.error('Failed to switch OTA mode:', error);
   
@@ -814,48 +757,6 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                   <EditIcon className="w-12 h-12 bg-[#F6EC24] p-2 cursor-pointer hover:scale-105 rounded hover:border-[3px] border-black transition-transform duration-200" />
                   <Tooltip text='New Project' />
                 </div>
-                <PopUp
-  showPopUp={showPopUp}
-  closePopUp={() => closePopup()}
->
-  <input
-    autoFocus
-    placeholder="Enter project name"
-    className={`text-xs px-2 py-1 rounded w-full h-[35px] focus:border-black focus:outline-none focus:ring-0
-      ${
-        themeMode === "dark"
-          ? "bg-neutral-secondary-medium text-white"
-          : "bg-white text-black"
-      }
-    `}
-    onBlur={() => closePopup()}
-    onKeyDown={async (e) => {
-      if (e.key !== "Enter") return
-
-      const value = e.currentTarget.value
-
-      setProjectName(value)
-
-      if (!isElectronApiAvailable()) {
-        closePopup()
-        return
-      }
-
-      const result = await window.api.file.createProject(value)
-
-      if (result.success) {
-        setTerminalPath(result.data)
-        setRootFolder(value)
-        setIsImported(true)
-
-        refresh()
-      }
-
-      closePopup()
-    }}
-  />
-</PopUp>
-
                 <div className="group relative hover:scale-110 transition-transform duration-200" onClick={handleImport}>
                   <DownloadIcon className="w-12 h-12 bg-[#F6EC24] p-2 cursor-pointer hover:scale-105 rounded hover:border-[3px] border-black transition-transform duration-200" />
                   <Tooltip text='Open Project' />
@@ -1103,21 +1004,10 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                                 return
                               }
 
-                              if (!isElectronApiAvailable()) {
-                                setIsFileCreating(false)
-                                return
-                              }
-
                               const pathToUse = selectedNode?.path ?? terminalPath
                               const typeToUse = selectedNode?.type ?? "folder"
-
-                              await window.api.file.createCodeFile({
-                                target: pathToUse ? "selection" : "root",
-                                selectionPath: pathToUse,
-                                selectionType: typeToUse,
-                                name,
-                                language: "cpp"
-                              })
+                              const parent = typeToUse === 'file' ? pathToUse.split('/').slice(0, -1).join('/') : pathToUse
+                              await browserWorkspace.createFile(parent, name)
 
                               setIsFileCreating(false)
                               refresh()
@@ -1142,22 +1032,10 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                                 return
                               }
 
-                              if (!isElectronApiAvailable()) {
-                                setIsFolderCreating(false)
-                                return
-                              }
-
                               const pathToUse = selectedNode?.path ?? terminalPath
                               const typeToUse = selectedNode?.type ?? "folder"
-                              console.log(pathToUse, typeToUse)
-
-                              await window.api.file.createCodeDir({
-                                target: pathToUse ? "selection" : "root",
-                                selectionPath: pathToUse,
-                                selectionType: typeToUse,
-                                name: name,
-                                language: "cpp"
-                              })
+                              const parent = typeToUse === 'file' ? pathToUse.split('/').slice(0, -1).join('/') : pathToUse
+                              await browserWorkspace.createFolder(parent, name)
 
                               setIsFolderCreating(false)
                               refresh()
@@ -1173,6 +1051,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                         refresh={refresh}
                         projectName={projectName}
                         language={'cpp'}
+                        onOpenFile={onOpenWorkspaceFile}
                       />}
 
                     </div>
@@ -1222,9 +1101,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                                         if (!confirmed) return;
                                       }
 
-                                      navigate('/cpp', {
-                                        state: { filePath: example.filepath, fileName: example.filename }
-                                      })
+                                      void onOpenWorkspaceFile?.(example.filepath, example.filename)
                                     }}
                                   >
                                     <li
