@@ -2,7 +2,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { RootState } from "../../../../../store";
 import { useSelector } from "react-redux";
-import Swal from "sweetalert2";
 export default function GlobalSearch({
   searchBoxRef,
   highlightWord,
@@ -13,9 +12,7 @@ export default function GlobalSearch({
   const router = useRouter();
 
   const [searchText, setSearchText] = useState("");
-  const [replaceText, setReplaceText] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isReplacing, setIsReplacing] = useState(false);
   const selectedFilePath = useSelector((state: RootState) => state.project.projectPath);
   const [hasSearched, setHasSearched] = useState(false);
   const themeMode = useSelector((state: any) => state.theme.mode)
@@ -28,7 +25,7 @@ export default function GlobalSearch({
 
     try {
       if (!selectedFilePath) return;
-      const res = await window.api.globalReplace(selectedFilePath, searchText);
+      const res = await window.api.globalSearch(selectedFilePath, searchText);
 
       console.log("Global search results:", selectedFilePath);
 
@@ -48,86 +45,7 @@ export default function GlobalSearch({
   };
 
 
-  const handleReplaceAll = async () => {
-    if (!searchText.trim()) return;
-    if (!selectedFilePath) return;
   
-    const result = await Swal.fire({
-      title: "Confirm Replace",
-      text: `Replace all "${searchText}" with "${replaceText}"?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#00979C",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, replace",
-      cancelButtonText: "Cancel",
-      background: document.documentElement.classList.contains("dark")
-        ? "#1f1f1f"
-        : "#ffffff",
-      color: document.documentElement.classList.contains("dark")
-        ? "#ffffff"
-        : "#000000",
-    });
-  
-    if (!result.isConfirmed) return;
-  
-    setIsReplacing(true);
-  
-    try {
-      const res = await window.api.globalReplace(
-        selectedFilePath,
-        searchText,
-        replaceText
-      );
-  
-      if (res?.success) {
-        await Swal.fire({
-          title: "Success",
-          text: `Replaced ${res.totalReplacements} occurrences`,
-          icon: "success",
-          confirmButtonColor: "#00979C",
-          background: document.documentElement.classList.contains("dark")
-            ? "#1f1f1f"
-            : "#ffffff",
-          color: document.documentElement.classList.contains("dark")
-            ? "#ffffff"
-            : "#000000",
-        });
-  
-        handleGlobalSearch(); // refresh
-      } else {
-        await Swal.fire({
-          title: "Replace Failed",
-          text: "Could not complete replace operation.",
-          icon: "error",
-          confirmButtonColor: "#00979C",
-          background: document.documentElement.classList.contains("dark")
-            ? "#1f1f1f"
-            : "#ffffff",
-          color: document.documentElement.classList.contains("dark")
-            ? "#ffffff"
-            : "#000000",
-        });
-      }
-    } catch (err) {
-      console.error(err);
-  
-      await Swal.fire({
-        title: "Error",
-        text: "An error occurred during replace.",
-        icon: "error",
-        confirmButtonColor: "#00979C",
-        background: document.documentElement.classList.contains("dark")
-          ? "#1f1f1f"
-          : "#ffffff",
-        color: document.documentElement.classList.contains("dark")
-          ? "#ffffff"
-          : "#000000",
-      });
-    }
-  
-    setIsReplacing(false);
-  };
 
 
   const groupedResults = searchResults.reduce((acc: any, r: any) => {
@@ -176,22 +94,7 @@ export default function GlobalSearch({
         </div>
 
         {/* REPLACE */}
-        <div className="flex gap-1 items-center">
-          <input
-            className={`text-xs px-2 py-1 border rounded w-full ${themeMode === "dark" ? "border-white text-white" : "text-black"}`}
-            placeholder="Replace with..."
-            value={replaceText}
-            onChange={(e) => setReplaceText(e.target.value)}
-          />
-
-          <button
-            onClick={handleReplaceAll}
-            disabled={!searchText.trim()||isReplacing}
-            className={` text-black text-xs px-3 py-1 rounded disabled:opacity-50 ${themeMode === "dark" ? "bg-[#006DD1] text-white" : "bg-[#2195FF]"}`}
-          >
-            {isReplacing ? "Replacing..." : "Replace All"}
-          </button>
-        </div>
+        
       </div>
 
       {/* RESULTS */}

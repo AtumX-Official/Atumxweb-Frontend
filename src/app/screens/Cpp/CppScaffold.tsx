@@ -42,13 +42,13 @@ import LibraryBrowser from './Sidebar/Library/LibraryBrowser'
 import Terminal from './Sidebar/Terminal'
 import GlobalSearch from './Sidebar/GlobalSearch'
 import FileSearch from './Sidebar/FileSearch'
-import Libraryicon from '../../components/ui/assets/Libraryicon'
 import { DeletionToast } from "../../components/supporting/Popups"
 import Backicon from "../../assets/icons/common/Backicon"
 import BackgroundImg from "../../assets/Background.svg?url"
 import SerialMonitor from './Sidebar/SerialMonitor'
 import {PressBootResetPopup} from '../../components/supporting/Popups'
 <<<<<<< Updated upstream
+import {PressBootResetPopup, Savetokitpop} from '../../components/supporting/Popups'
 import { browserWorkspace } from './browserWorkspace'
 import { browserSerial } from './browserSerial'
 =======
@@ -59,6 +59,9 @@ const isElectronApiAvailable = (): boolean => {
   return typeof window !== 'undefined' && window.api != null
 }
 >>>>>>> Stashed changes
+import Savedtokit from '../../assets/icons/common/Savetokit'
+import { SaveToKitPopup } from '../Elements/SavetokitPopup'
+
 
 interface Project {
   created: string
@@ -109,6 +112,8 @@ interface CppScaffoldProps {
   hasOpenCode: boolean
   getEditContext: () => Promise<string | undefined>
   onFixBuild: () => Promise<{ ok: boolean; error?: string }>
+  activeTabName?: string
+  onAppendOutput?: (text: string, type?: 'out' | 'err') => void
   onOpenProject?: () => void
   onOpenWorkspaceFile?: (path: string, name: string) => Promise<void>
 }
@@ -138,7 +143,9 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   getEditContext,
   onFixBuild,
   onOpenProject,
-  onOpenWorkspaceFile
+  onOpenWorkspaceFile,
+  activeTabName,
+  onAppendOutput
 }, ref) {
   const router = useRouter()
   const dispatch = useDispatch()
@@ -218,6 +225,9 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   const hoverbg = themeMode === 'dark' ? 'bg-[#3A3A3A]' : 'bg-[#F0F0F0]'
   const clickbg = themeMode === 'dark' ? 'bg-[#29CB09]' : 'bg-[#2EED08]'
   const [showResetandBootpopup, setShowResetandBootpopup] = useState(false)
+  // Save to Kit — mirrors the Python editor's modal + success toast flow.
+  const [showSaveToKitPopup, setShowSaveToKitPopup] = useState(false)
+  const [showSavetokitpop, setShowSavetokitpop] = useState(false)
   const menuItemClass = (item: string) =>
     `flex items-center px-2 py-1 rounded-md cursor-pointer transition-colors
      ${activeItem === item
@@ -234,6 +244,16 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     setFileTree([])
     onOpenProject?.()
     onNewFile()
+  }
+
+  // Save to Kit handler — reuses the Python editor's exact browser flow:
+  // report the (currently browser-unsupported) operation to the terminal and
+  // show the green "SAVED TO KIT" success toast.
+  const handleSaveToKit = (filename: string) => {
+    console.log('File name front : ', filename)
+    onAppendOutput?.(`> Save to kit is not available in the browser yet: ${filename}\n`, 'err')
+    setShowSavetokitpop(true)
+    setTimeout(() => setShowSavetokitpop(false), 2500)
   }
 
   const handleImport = async () => {
@@ -880,10 +900,10 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                   <Tooltip text='Save' />
                 </div>
 
-                {/* <div className="group relative hover:scale-110 transition-transform duration-200">
-                  <SavetokitIcon className="w-12 h-12 bg-[#F6EC24] p-2 cursor-pointer hover:scale-105 rounded hover:border-[3px] border-black transition-transform duration-200" />
+                <div className="group relative hover:scale-110 transition-transform duration-200" onClick={() => setShowSaveToKitPopup(true)}>
+                  <Savedtokit className="w-12 h-12 bg-[#F6EC24] p-2 cursor-pointer hover:scale-105 rounded hover:border-[3px] border-black transition-transform duration-200" />
                   <Tooltip text='Save to Kit' />
-                </div> */}
+                </div>
 
                 <div className="group relative hover:scale-110 transition-transform duration-200">
                   <BookIcon className="w-12 h-12 bg-[#F6EC24] p-2 cursor-pointer hover:scale-105 rounded hover:border-[3px] border-black transition-transform duration-200" />
@@ -1115,23 +1135,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                         </div>
 
                       ) : leftPanel === 'library'
-                        ? (
-
-                          <div className="flex items-center justify-between w-full">
-
-                            <div className="flex items-center gap-2">
-                              <Libraryicon className="w-5 h-5" />
-                              <span>Library</span>
-                            </div>
-
-                            <button
-                              onClick={() => setLibrarySearchOpen(true)}
-                              className={`p-1 rounded hover:bg-gray-200  ${themeMode === "dark" ? "bg-[#f1f1f1]" : ""}`}
-                            >
-                              <SearchIcon className="w-4 h-4" />
-                            </button>
-
-                          </div>)
+                        ? null
 
                         : leftPanel === 'search'
                           ? 'Global Search'
@@ -1408,6 +1412,18 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   onOk={handleBootResetConfirmed}
   onClose={() => setShowResetandBootpopup(false)}
 />
+        <SaveToKitPopup
+          open={showSaveToKitPopup}
+          projectName={activeTabName || projectName}
+          onClose={() => setShowSaveToKitPopup(false)}
+          onConfirm={(name) => {
+            setShowSaveToKitPopup(false)
+            handleSaveToKit(name)
+          }}
+        />
+        {showSavetokitpop && (
+          <Savetokitpop type="save" />
+        )}
 {isSwitchingOta && (
   <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
     <div
