@@ -1,5 +1,11 @@
+interface TooltipProps {
+  text: string;
+  marginTop?: string;
+  py?: string;
+  positionClasses?: string;
+}
 
-export const Tooltip = ({ text, marginTop = "mt-0",py="py-[3px]", positionClasses = "top-[100%] left-1/2 -translate-x-1/2" }) => (
+export const Tooltip = ({ text, marginTop = "mt-0",py="py-[3px]", positionClasses = "top-[100%] left-1/2 -translate-x-1/2" } : TooltipProps) => (
   <span
     className={`
       absolute ${positionClasses} ${marginTop} ${py}

@@ -8,7 +8,7 @@ import { useAppSelector } from '../../../store/hooks'
 
 interface ModeCardProps {
   onClick?: () => void
-  mode: 'code' | 'ai box' | 'games' | null
+  mode: 'code' | 'ai box' | 'games' 
   image: string
   text: string
   linkto?: string
@@ -108,9 +108,9 @@ export default function ModeCard({ onClick, mode, image, text, linkto }: ModeCar
     }
   }
 
-  // const selectedBorder =
-  //   borderColor[themeMode]?.[mode || 'default'] || borderColor[themeMode].default
-  // const selectedBackground = backgroundColor[themeMode]?.[mode]
+  const selectedBorder =
+    borderColor[themeMode]?.[mode || 'default'] || borderColor[themeMode].default
+  const selectedBackground = backgroundColor[themeMode]?.[mode]
 
   useEffect(() => {
     detectBoardMode().then((info) => {
@@ -159,7 +159,7 @@ export default function ModeCard({ onClick, mode, image, text, linkto }: ModeCar
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex flex-col justify-between items-center px-8 py-10 border-8  rounded-xl hover:bg-black text-black dark:text-white hover:text-white transition-colors duration-300 cursor-pointer min-h-75 min-w-60`}
+      className={`flex flex-col justify-between items-center px-8 py-10 border-8 ${selectedBackground} rounded-xl hover:bg-black text-black dark:text-white hover:text-white transition-colors duration-300 cursor-pointer min-h-75 min-w-60 ${selectedBorder}`}
     >
       <div className="grow flex items-center justify-center">
         <img

@@ -1,6 +1,9 @@
+import type {SVGProps} from "react";
 import { useSelector } from "react-redux"
 
-export default function BookmarkIcon({ className }) {
+type BookmarkIconProps = SVGProps<SVGSVGElement>;
+
+export default function BookmarkIcon({ className, ...rest } : BookmarkIconProps) {
   const themeMode = useSelector((state: any) => state.theme.mode)
   const color = themeMode === 'dark' ? '#1B2B2D' : 'black'
   return (

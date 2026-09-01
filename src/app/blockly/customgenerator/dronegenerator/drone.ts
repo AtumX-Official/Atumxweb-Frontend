@@ -120,7 +120,7 @@ customGenerator.forBlock['drone360ServoS'] = function(block: Blockly.Block){
  return JSON.stringify(jsonOutput);
 }
 
-customGenerator.forBlock["droneled"] = function(block) {
+customGenerator.forBlock["droneled"] = function(block: Blockly.Block) {
    const pin =  block.getFieldValue('pin');
   const state = block.getFieldValue('value'); // ON / OFF
   const jsonOutput = {

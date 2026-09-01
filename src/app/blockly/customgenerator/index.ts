@@ -20,12 +20,12 @@ customGenerator.statementToCode = function (block: Blockly.Block, inputName: str
    const firstChild = block.getInputTargetBlock(inputName);
    if (!firstChild) return [];
     const result: any[] = [];
-   let current = firstChild;
+   let current: Blockly.Block | null = firstChild;
     while (current) {
       const blockType = current.type;
       // --- Function Call Expansion Logic ---
       if (blockType === 'function_call') {
-        const funcName = current.getFieldValue('function_name');
+        const funcName = current.getFieldValue('function_name')
         const funcBody = customGenerator.__functionRegistry?.[funcName];
          if (Array.isArray(funcBody)) {
            // Deep clone and push the function body commands
@@ -72,7 +72,7 @@ customGenerator.statementToCode = function (block: Blockly.Block, inputName: str
 customGenerator.statementToCodeNested = function (block: Blockly.Block, inputName: string): Record<string, any> {
     const commands = customGenerator.statementToCode(block, inputName);
     const result: Record<string, any> = {};
-    commands.forEach((cmd, index) => {
+    commands.forEach((cmd: any, index: number) => {
         result[index.toString()] = cmd;
     });
     return result;
@@ -81,11 +81,11 @@ customGenerator.statementToCodeNested = function (block: Blockly.Block, inputNam
 
 
 // Prevent default scrub behavior
-customGenerator.scrub_ = function (block, code, thisOnly) {
+customGenerator.scrub_ = function (block: Blockly.Block, code: string, thisOnly?: boolean) {
    return code
 }
 customGenerator.__errors = [];
-customGenerator.reportError = function (error) {
+customGenerator.reportError = function (error: unknown) {
   this.__errors.push(error);
 };
 // Main workspace-to-code
@@ -162,7 +162,7 @@ function addToIndexedObject(
         }, 'DUMMY_INPUT_NAME'); 
 
         // Add the expanded entries to the target object
-        codeEntries.forEach((entry) => {
+        codeEntries.forEach((entry: any) => {
             target[index.toString()] = entry;
             index++;
         });
@@ -174,11 +174,12 @@ function addToIndexedObject(
 }
 
 // Handle toolbox refresh after function rename
-Blockly.Extensions.register('defer_function_name_update', function () {
+Blockly.Extensions.register('defer_function_name_update', function (this: Blockly.Block) {
+  const block = this
   this.getField('function_name')?.setValidator(function (newValue) {
     setTimeout(() => {
-      const ws = this.sourceBlock_.workspace
-      if (ws) ws.refreshToolboxSelection_()
+      const ws = block.workspace
+      if (ws) (ws as any).refreshToolboxSelection_()
     }, 0)
     return newValue
   })
@@ -186,7 +187,7 @@ Blockly.Extensions.register('defer_function_name_update', function () {
 
 // Ensure extension gets mixed into declaration blocks
 Blockly.Blocks['function_declaration']?.init?.call({
-  jsonInit(config) {
+  jsonInit(config: any) {
     this.jsonInit(config)
     this.mixin({
       extensions: ['defer_function_name_update']

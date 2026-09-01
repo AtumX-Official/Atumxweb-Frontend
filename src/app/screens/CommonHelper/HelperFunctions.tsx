@@ -5,6 +5,8 @@ import { restoreVariableBlocksToToolbox } from "../../blockly/trixblocks/variabl
 import { registerPlaceholderAIBlocks } from "../../blockly/suboblocks/ai";
 type SaveMode = "save" | "saveAs";
 
+import type { RunStatus } from "../Blocks/hooks/useBlocklyActions"; 
+
 interface SaveParams {
   workspaceRef: React.MutableRefObject<Blockly.WorkspaceSvg | null>;
   fileHandle: FileSystemFileHandle | null;
@@ -54,6 +56,7 @@ interface NewFileParams {
   originalSnapshotRef: React.MutableRefObject<string | null>;
   savedWorkspaceStates: React.MutableRefObject<Record<string, any>>;
   setCode: (code: string) => void;
+  filePath: string;
   fileHandle: FileSystemFileHandle | null;
   setFileHandle: React.Dispatch<React.SetStateAction<FileSystemFileHandle | null>>;
   setProjectName: (name: string) => void;
@@ -107,7 +110,6 @@ export const handleSave = async ({
 
       let handle = fileHandle;
 
-      // Save As or first save
       if (!handle || savemode !== "save") {
         handle = await (window as any).showSaveFilePicker({
           suggestedName: `${projectName || "Untitled"}.blocks`,
@@ -122,6 +124,11 @@ export const handleSave = async ({
         });
 
         setFileHandle(handle);
+      }
+
+      if (!handle) {
+        setOutput("> Error saving file: no file selected");
+        return;
       }
 
       const writable = await handle.createWritable();
@@ -323,7 +330,7 @@ export const handleImport = async ({
     setOutput(`> File imported from ${handle.name}`);
 
     // No absolute path available in browsers
-    setFileHandle(handle.name);
+    setFileHandle(handle);
 
     const baseName = handle.name.replace(/\.[^/.]+$/, "");
     setProjectName(baseName);
@@ -408,12 +415,12 @@ export const handleNewFileCreation = async ({
   }
  // modifiedToolboxes.current['VARIABLE'] = `<xml id="toolbox">${Variables.VARIABLE_GENERIC}</xml>`;
   setCode("");
-  setFileHandle("");
+  setFileHandle(null);
   setProjectName("untitled");
   setShowKits(true)
   setOutput("> New Blocks project created");
   const emptySnapshot = JSON.stringify(
-    Blockly.serialization.workspaces.save(workspaceRef.current),
+    Blockly.serialization.workspaces.save(workspaceRef.current!),
     null,
     2
   );
@@ -493,7 +500,6 @@ export const handleExitApp = async ({
     workspaceJson.selectedCategory = selectedCategory;
 
     const jsonText = JSON.stringify(workspaceJson, null, 2);
-
     let handle = fileHandle;
 
     // First save → ask user where to save
@@ -511,6 +517,11 @@ export const handleExitApp = async ({
       });
 
       setFileHandle(handle);
+    }
+
+    if (!handle) {
+      setOutput("> Error saving file: no file selected");
+      return;
     }
 
     // Write to the selected file

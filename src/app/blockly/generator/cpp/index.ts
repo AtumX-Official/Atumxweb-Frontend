@@ -4,7 +4,7 @@ import * as Blockly from 'blockly/core';
 // Generator Definition
 // ------------------------------
 
-export const cppGenerator = new Blockly.Generator('CPP');
+export const cppGenerator : any = new Blockly.Generator('CPP');
 cppGenerator.forBlock = {};
 
 // Precedence constants
@@ -23,7 +23,7 @@ cppGenerator.ORDER_CONDITIONAL = 11;
 cppGenerator.ORDER_NONE = 99;
 
 // Convert block to code
-cppGenerator.blockToCode = function (block) {
+cppGenerator.blockToCode = function (block: Blockly.Block | null) {
   if (!block) return '';
   const fn = this.forBlock?.[block.type];
   if (typeof fn !== 'function') {
@@ -34,7 +34,7 @@ cppGenerator.blockToCode = function (block) {
 };
 
 // Handle statement inputs
-cppGenerator.statementToCode = function (block, name) {
+cppGenerator.statementToCode = function (block: Blockly.Block | null, name: string) {
   const target = block?.getInputTargetBlock(name);
   if (!target) return '';
   const code = this.blockToCode(target);
@@ -43,7 +43,7 @@ cppGenerator.statementToCode = function (block, name) {
 };
 
 // Handle value inputs (conditions)
-cppGenerator.valueToCode = function (block, name, outerOrder) {
+cppGenerator.valueToCode = function (block: Blockly.Block | null, name: string, outerOrder: number) {
   const targetBlock = block?.getInputTargetBlock(name);
   if (!targetBlock) return '';
   let code = this.blockToCode(targetBlock);
@@ -59,14 +59,14 @@ cppGenerator.valueToCode = function (block, name, outerOrder) {
 };
 
 // Append next connected blocks
-cppGenerator.scrub_ = function (block, code) {
+cppGenerator.scrub_ = function (block: Blockly.Block, code: string) {
   const nextBlock = block.getNextBlock();
   const nextCode = nextBlock ? this.blockToCode(nextBlock) : '';
   return code + (Array.isArray(nextCode) ? nextCode[0] : nextCode);
 };
 
 // Main workspace to code logic
-cppGenerator.workspaceToCode = function (workspace) {
+cppGenerator.workspaceToCode = function (workspace: Blockly.Workspace) {
   const topBlocks = workspace.getTopBlocks(true);
 
   const setupLoopBlock = topBlocks.find(block => block.type === 'setup_loop');
@@ -114,7 +114,7 @@ Blockly.Blocks['setup_loop'] = {
   }
 };
 
-cppGenerator.forBlock['setup_loop'] = function (block) {
+cppGenerator.forBlock['setup_loop'] = function (block: Blockly.Block) {
   const setupCode = this.statementToCode(block, 'SETUP');
   const loopCode = this.statementToCode(block, 'LOOP');
   const trailingCode = this.scrub_(block, '');

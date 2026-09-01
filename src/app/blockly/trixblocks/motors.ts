@@ -194,7 +194,7 @@ Blockly.Blocks['cayosetupMotor'] = {
         },
       
         /** ✅ RESTORE MUTATION STATE (CALLED ON IMPORT) */
-        loadExtraState: function (state) {
+        loadExtraState: function (state : {dir? : string}) : void {
           if (state?.dir) {
             this.setFieldValue(state.dir, 'dir');
             this.updateSpeedVisibility_(state.dir);
@@ -202,7 +202,7 @@ Blockly.Blocks['cayosetupMotor'] = {
         },
       
         /** ✅ SINGLE SOURCE OF SHAPE CHANGE */
-        updateSpeedVisibility_: function (dir) {
+        updateSpeedVisibility_: function (dir : string) : void {
           const speedInput = this.getInput('SPEED_INPUT');
           const speedField = this.getField('speed');
           if (!speedInput || !speedField) return;
@@ -316,7 +316,7 @@ Blockly.Blocks['cayosetupMotor'] = {
           },
         
           /** RESTORE STATE */
-          loadExtraState: function (state) {
+          loadExtraState: function (state : {dir? : string}) : void {
             if (state?.dir) {
               this.setFieldValue(state.dir, "dir");
         
@@ -327,7 +327,7 @@ Blockly.Blocks['cayosetupMotor'] = {
           },
         
           /** SHOW/HIDE SPEED INPUT */
-          updateSpeedVisibility_: function (dir) {
+          updateSpeedVisibility_: function (dir : string) : void {
             const speedInput = this.getInput("SPEED_INPUT");
         
             if (!speedInput) return;
@@ -371,10 +371,14 @@ Blockly.Blocks['cayosetupMotor'] = {
     this.setNextStatement(true, null);
     this.setTooltip("Write PWM values to motor channels");
     },
-    onchange: function (event) {
+    onchange: function (event : Blockly.Events.Abstract) {
     if (!event || event.type !== Blockly.Events.BLOCK_CHANGE) return;
-    if (event.blockId !== this.id) return;
-    const enforcePair = (a, b) => {
+    if ((event as Blockly.Events.BlockChange).blockId !== this.id) return;
+
+    const changeEvent = event as Blockly.Events.BlockChange;
+    if (changeEvent.blockId !== this.id) return;
+
+    const enforcePair = (a : string, b : string) => {
      const fieldA = this.getField(a);
      const fieldB = this.getField(b);
     
@@ -384,11 +388,11 @@ Blockly.Blocks['cayosetupMotor'] = {
      const valB = Number(fieldB.getValue()) || 0;
     
      // If A > 0 → B = 0
-     if (event.name === a && valA > 0 && valB !== 0) {
+     if (changeEvent.name === a && valA > 0 && valB !== 0) {
      fieldB.setValue("0");
      }
      // If B > 0 → A = 0
-     if (event.name === b && valB > 0 && valA !== 0) {
+     if (changeEvent.name === b && valB > 0 && valA !== 0) {
      fieldA.setValue("0");
      }
     };
@@ -464,7 +468,7 @@ Blockly.Blocks['cayosetupMotor'] = {
         };
       },
     
-      loadExtraState: function (state) {
+      loadExtraState: function (state : {dir? : string}) : void {
         if (state?.dir) {
           this.setFieldValue(state.dir, 'dir');
       
@@ -475,7 +479,7 @@ Blockly.Blocks['cayosetupMotor'] = {
         }
       },
     
-      updateSpeedVisibility_: function (dir) {
+      updateSpeedVisibility_: function (dir : string) : void {
         const speedInput = this.getInput('SPEED_INPUT');
         if (!speedInput) return;
     

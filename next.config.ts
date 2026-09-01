@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: [
+    "bath-culpable-paper.ngrok-free.dev",
+  ],
+
   webpack(config) {
     // Find the default asset rule
     const fileLoaderRule = config.module.rules.find(

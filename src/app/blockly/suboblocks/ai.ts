@@ -1,7 +1,7 @@
 import * as Blockly from 'blockly/core'
 import customGenerator from '../customgenerator'
 
-interface ModelBundleRaw {
+export interface ModelBundleRaw {
   version: number
   classNames: string[]
   modelTopology: object
@@ -26,7 +26,7 @@ declare global {
 // ── Field: file picker that loads a model into window.__aiModels ─────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-class FieldModelLoader extends (Blockly.Field as any) {
+class FieldModelLoader extends Blockly.Field<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static fromJson(_options: any): FieldModelLoader {
     return new FieldModelLoader()

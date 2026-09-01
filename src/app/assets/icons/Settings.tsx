@@ -1,5 +1,9 @@
+import type { SVGProps } from "react";
 
-export default function Settings({ className }) {
+type SettingsIconProps = SVGProps<SVGSVGElement>;
+
+
+export default function Settings({ className,...rest} : SettingsIconProps) {
   return (
     <svg
       className={className}

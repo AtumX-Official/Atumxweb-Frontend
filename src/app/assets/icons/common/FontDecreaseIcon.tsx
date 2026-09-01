@@ -1,5 +1,8 @@
+import type { SVGProps } from "react";
 
-export default function FontDecreaseIcon({ className }) {
+type FontDecreaseIconProps = SVGProps<SVGSVGElement>;
+
+export default function FontDecreaseIcon({ className, ...rest } : FontDecreaseIconProps) {
   return (
     <svg
       className={className}

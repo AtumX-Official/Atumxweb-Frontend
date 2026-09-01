@@ -1,6 +1,10 @@
-import { useSelector } from "react-redux"
+import { useSelector } from "react-redux";
+import type { SVGProps } from "react";
 
-export default function SearchIcon({ className }) {
+type SearchIconProps = SVGProps<SVGSVGElement>;
+
+
+export default function SearchIcon({ className, ...rest } : SearchIconProps) {
     const themeMode = useSelector((state: any) => state.theme.mode)
     const color = themeMode === 'dark' ? '#1B2B2D' : 'black'
     return (

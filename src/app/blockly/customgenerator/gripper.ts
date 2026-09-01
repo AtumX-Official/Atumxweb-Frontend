@@ -16,7 +16,7 @@ customGenerator.forBlock['move_arm'] = function (block: Blockly.Block) {
         return JSON.stringify(jsonOutput);
 }
 
-customGenerator.forBlock["move_gripper"] = function(block){
+customGenerator.forBlock["move_gripper"] = function(block : Blockly.Block){
     const value = block.getFieldValue('l')
     const jsonOutput = {
         botcmd: {

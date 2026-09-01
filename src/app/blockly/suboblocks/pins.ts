@@ -89,7 +89,7 @@ Blockly.Blocks['cayoanalog_read'] = {
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setTooltip('Write an analog value to a pin');
-      this.setOnChange(function () {
+      this.setOnChange( () => {
         integervalidatior(this, 'value');
       });
     }

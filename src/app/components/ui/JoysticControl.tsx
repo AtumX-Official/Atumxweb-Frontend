@@ -5,8 +5,8 @@ interface JoysticControllerProps{
       className?: string;
   }
   export default function JoysticControl({action,setAction,className} : JoysticControllerProps){
-      let mouseHoldTimeout
-      const handleMouseDown = (direction) => {
+      let mouseHoldTimeout: ReturnType<typeof setTimeout> | undefined
+      const handleMouseDown = (direction : string) : void => {
           clearTimeout(mouseHoldTimeout)
           setAction(direction)
           mouseHoldTimeout = setTimeout(() => setAction(direction), 100)
@@ -16,8 +16,8 @@ interface JoysticControllerProps{
           setAction('stop')
         }
         
-        const handleKeyDown = (event) => {
-          const keyMapping = {
+        const handleKeyDown = (event : KeyboardEvent) : void => {
+          const keyMapping : Record<string,string> = {
             ArrowLeft: 'left',
             ArrowRight: 'right',
             ArrowUp: 'forward',
@@ -29,7 +29,7 @@ interface JoysticControllerProps{
             setAction(dir);
           }
         };
-        const handleKeyUp = (event) => {
+        const handleKeyUp = (event : KeyboardEvent) : void => {
           const keyMapping = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
           if (keyMapping.includes(event.key)) {
             setPressedDirection(null); // This makes the icon pop back on key release
@@ -45,13 +45,13 @@ interface JoysticControllerProps{
             window.removeEventListener('keyup', handleKeyUp)
           }
         }, [])
-        const [pressedDirection, setPressedDirection] = useState(null);
-        const handlePressStart = (direction) => {
+        const [pressedDirection, setPressedDirection] = useState<string | null>(null);
+        const handlePressStart = (direction : string) : void => {
           setPressedDirection(direction); // Tracks EXACTLY which one is active
           handleMouseDown(direction);
         };
         
-        const handlePressEnd = () => {
+        const handlePressEnd = () : void => {
           setPressedDirection(null); // Clears animation
           handleMouseUp();
         };

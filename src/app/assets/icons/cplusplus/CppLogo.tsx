@@ -1,4 +1,8 @@
-export default function CppLogo({ className }) {
+import type { SVGProps } from "react";
+
+type CppLogoProps = SVGProps<SVGSVGElement>;
+
+export default function CppLogo({ className, ...rest } : CppLogoProps) {
   return (
     <svg
       className={className}

@@ -1,8 +1,29 @@
+import * as Blockly from 'blockly/core';
 import customGenerator from ".";
 import {ColorGridField} from '../Helper/helperclass.js'
 
-customGenerator.forBlock["led_control"] = function(block) {
-  function hexToRgb(hex) {
+type RGB = {
+r: number;
+g: number;
+b: number;
+};
+
+type VariableValue = {
+var: string;
+};
+
+type LedValue = number | string | VariableValue | null;
+
+type LedCell = {
+R: number;
+G: number;
+B: number;
+};
+
+type LedOutput = [number, number, number, number];
+
+customGenerator.forBlock["led_control"] = function(block: Blockly.Block) {
+  function hexToRgb(hex : string): RGB {
     hex = hex.replace(/^#/, '');
     if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
     const bigint = parseInt(hex, 16);
@@ -71,15 +92,15 @@ customGenerator.forBlock["led_control"] = function(block) {
   // Return the stringified JSON
   return JSON.stringify(jsonOutput, null, 2);
 };
-customGenerator.forBlock['math_number'] = function(block, generator) {
+customGenerator.forBlock['math_number'] = function(block : Blockly.Block) {
   const code = block.getFieldValue('NUM'); // still string from field
   return [code.toString(),0]; // ✅ first element must be string
 };
-customGenerator.forBlock["all_led_control"] = function(block){
-    function hexToRgb(hex:any) {
+customGenerator.forBlock["all_led_control"] = function(block : Blockly.Block){
+    function hexToRgb(hex:string) {
         hex = hex.replace(/^#/, '');
         if (hex.length === 3) {
-          hex = hex.split('').map(x => x + x).join('');
+          hex = hex.split('').map((x:string) => x + x).join('');
         }
         const bigint = parseInt(hex, 16);
         const r = (bigint >> 16) & 255;
@@ -101,12 +122,12 @@ customGenerator.forBlock["all_led_control"] = function(block){
 }
 
 //not working
-customGenerator.forBlock["testled_control"] = function (block) {
+customGenerator.forBlock["testled_control"] = function (block : Blockly.Block) {
   const field = block.getField("value") as ColorGridField | null;
   if (!field) return JSON.stringify({ WLEDMat: { leds: [] } });
 
   const grid = field.getValue();
-  const leds: any[] = [];
+  const leds: LedOutput[] = [];
 
   const numRows = grid.length;
   for (let row = 0; row < numRows; row++) {
@@ -127,7 +148,7 @@ customGenerator.forBlock["testled_control"] = function (block) {
   return JSON.stringify(output);
 };
 
-customGenerator.forBlock["clear_all_led"] = function (block){
+customGenerator.forBlock["clear_all_led"] = function (block : Blockly.Block){
   const jsonOutput = {
     "aled": {
           "R": 0,
@@ -138,16 +159,7 @@ customGenerator.forBlock["clear_all_led"] = function (block){
   return JSON.stringify(jsonOutput)
 }
 
-
-
-
-
-
-
-
-
-  
-customGenerator.forBlock["led_sequence"] = function(block){
+customGenerator.forBlock["led_sequence"] = function(block : Blockly.Block){
     const id = block.getFieldValue('value')
     const jsonOutput = {
         pled: {
@@ -158,8 +170,7 @@ customGenerator.forBlock["led_sequence"] = function(block){
 }  
 
 
-
-customGenerator.forBlock["buzzer"] = function(block){
+customGenerator.forBlock["buzzer"] = function(block : Blockly.Block){
     const freq = block.getFieldValue('frequency') ; 
     const dur = block.getFieldValue('duration') ; // Default to '10' if not provided
     const jsonOutput = {
@@ -171,7 +182,7 @@ customGenerator.forBlock["buzzer"] = function(block){
     return JSON.stringify(jsonOutput, null, 2); 
 } 
 
-customGenerator.forBlock["buzzer_preset"] = function(block){
+customGenerator.forBlock["buzzer_preset"] = function(block: Blockly.Block){
     const id = block.getFieldValue('value');  
     const jsonOutput = {
       buzs: {
@@ -183,7 +194,7 @@ customGenerator.forBlock["buzzer_preset"] = function(block){
 }
 
 
-customGenerator.forBlock["delay"] = function(block){
+customGenerator.forBlock["delay"] = function(block: Blockly.Block){
     const ms = block.getFieldValue('ms') ; 
     const jsonOutput = {
         delay : {
@@ -194,8 +205,8 @@ customGenerator.forBlock["delay"] = function(block){
 }
 
 
-customGenerator.forBlock["play_note"] = function(block){
-  const NOTE_MAP = {
+customGenerator.forBlock["play_note"] = function(block: Blockly.Block){
+  const NOTE_MAP : Record<string, string> = {
     "Middle C": "261.63"
   };
 
@@ -209,7 +220,7 @@ customGenerator.forBlock["play_note"] = function(block){
   }, null, 2);
 }
 
-customGenerator.forBlock['Button'] = function(block){
+customGenerator.forBlock['Button'] = function(block: Blockly.Block){
   const button = block.getFieldValue('button')
   const value = block.getFieldValue('value')
   const jsonOutput = {

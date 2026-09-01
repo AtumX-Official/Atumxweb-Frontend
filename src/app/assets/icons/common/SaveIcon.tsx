@@ -1,6 +1,10 @@
 import { useSelector } from "react-redux"
+import type { SVGProps } from "react";
 
-export default function SaveIcon({ className }) {
+type SaveIconProps = SVGProps<SVGSVGElement>;
+
+
+export default function SaveIcon({ className,...rest } : SaveIconProps) {
   const themeMode = useSelector((state: any) => state.theme.mode)
   const color = themeMode === 'dark' ? '#1B2B2D' : 'black'
   return (

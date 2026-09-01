@@ -42,7 +42,7 @@ Blockly.Blocks['US1'] = {
       this.setNextStatement(true, null);
       this.setTooltip('Write angle to selected servo');
       this.setInputsInline(true);
-      this.setOnChange(function () {
+      this.setOnChange( () =>  {
         integervalidatior(this, 'ANGLE');
       });
     }

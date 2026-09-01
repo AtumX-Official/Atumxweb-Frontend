@@ -37,7 +37,7 @@ interface LeftSidebarPanelProps {
   searchResults: any[]
   groupedResults: Record<string, any>
 
-  searchBoxRef: React.RefObject<HTMLDivElement>
+  searchBoxRef: React.RefObject<HTMLDivElement | null>;
 
   handleGlobalSearch: (customPath?: string) => void
   clearSearch: () => void

@@ -1,7 +1,13 @@
 import { ChevronDown } from 'lucide-react'
 import React, { useState } from 'react'
 
-export default function Accordion({ title, defaultOpen = false, children }) {
+interface AccordianProps {
+  title : React.ReactNode;
+  defaultOpen? : boolean;
+  children : React.ReactNode
+}
+
+export default function Accordion({ title, defaultOpen = false, children } : AccordianProps) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="rounded-xl bg-gray-50 dark:bg-neutral-700 shadow">

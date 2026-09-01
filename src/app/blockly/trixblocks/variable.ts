@@ -5,6 +5,23 @@ import Swal from 'sweetalert2'; // Assuming you're using sweetalert2
 import { useState } from 'react';
 import DeleteVarImg from '../../components/supporting/assets/Deletevar.png';
 import VariableImg from '../../components/supporting/assets/Variable.png'
+
+type CustomContextMenuOptions = Array<Blockly.ContextMenuRegistry.LegacyContextMenuOption | Blockly.ContextMenuRegistry.ContextMenuOption
+>;
+
+declare module 'blockly/core' {
+  interface Block {
+    customContextMenu?: (options: CustomContextMenuOptions) => void;
+  }
+}
+
+interface RestoreVariableBlocksToToolboxParams {
+  workspace: Blockly.WorkspaceSvg | null;
+  modifiedToolboxes: React.MutableRefObject<Record<string, string>>;
+  toolboxXmlRef: React.MutableRefObject<string>;
+  setToolboxXml: (xml: string) => void;
+}
+
 let variable = {
 "message0": 'Set %1 to %2',
 "args0": [
@@ -202,7 +219,7 @@ Blockly.Blocks['get_variable'] = {
     this.setDeletable(true);
     // Right click menu
     //this.contextMenu = false;
-    this.customContextMenu = (options) => {
+    this.customContextMenu = (options : CustomContextMenuOptions) : void => {
 
       // Remove all default Blockly menu items
       options.length = 0;
@@ -322,7 +339,7 @@ Blockly.Blocks['get_variable'] = {
 Blockly.Blocks['variable'] = {
   init: function () {
    this.jsonInit(variable);
-   this.customContextMenu = (options) => {
+   this.customContextMenu = (options : CustomContextMenuOptions) : void => {
 
     // Remove all default Blockly menu items
     options.length = 0;
@@ -359,7 +376,7 @@ Blockly.Blocks['variable'] = {
     popup.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
 
     const img = document.createElement('img');
-    img.src = DeleteVarImg;
+    img.src = DeleteVarImg.src;
     img.style.width = '100px';
     img.style.height = '100px';
     img.style.margin = '0 auto 15px auto';
@@ -438,7 +455,10 @@ Blockly.Blocks['variable'] = {
   }
   };
 }
-export function addBlock(toolboxXml, blockType, fieldName, fieldValue) {
+export function addBlock(  toolboxXml: string,
+  blockType: string,
+  fieldName: string,
+  fieldValue: string) : string {
 toolboxXml = ensureValidToolboxXml(toolboxXml);
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
@@ -476,7 +496,10 @@ root.appendChild(newBlock);
 return serializer.serializeToString(xmlDoc);
 }
 
-export function removeBlock(toolboxXml, blockType, fieldName, fieldValue) {
+export function removeBlock(  toolboxXml: string,
+  blockType: string,
+  fieldName: string,
+  fieldValue: string) : string {
 toolboxXml = ensureValidToolboxXml(toolboxXml);
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
@@ -509,7 +532,7 @@ export const restoreVariableBlocksToToolbox = ({
   modifiedToolboxes,
   toolboxXmlRef,
   setToolboxXml
-}) => {
+} : RestoreVariableBlocksToToolboxParams) : void => {
 
   if (!workspace) return;
 
