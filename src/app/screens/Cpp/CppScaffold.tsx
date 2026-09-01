@@ -40,17 +40,12 @@ import { DeletionToast } from "../../components/supporting/Popups"
 import Backicon from "../../assets/icons/common/Backicon"
 import BackgroundImg from "../../assets/Background.svg?url"
 import SerialMonitor from './Sidebar/SerialMonitor'
-import {PressBootResetPopup} from '../../components/supporting/Popups'
-<<<<<<< Updated upstream
-import {PressBootResetPopup, Savetokitpop} from '../../components/supporting/Popups'
+import {
+  PressBootResetPopup,
+  Savetokitpop,
+} from '../../components/supporting/Popups'
 import { browserWorkspace } from './browserWorkspace'
 import serialService from '../../services/Serialservice'
-
-// Helper to check if running in Electron context with API available
-const isElectronApiAvailable = (): boolean => {
-  return typeof window !== 'undefined' && window.api != null
-}
->>>>>>> Stashed changes
 import Savedtokit from '../../assets/icons/common/Savetokit'
 import { SaveToKitPopup } from '../Elements/SavetokitPopup'
 
@@ -545,7 +540,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === '`') {
         e.preventDefault()
-        toggleTerminal()
+        toggleTerminal('terminal')
       }
       if (e.ctrlKey && e.key.toLowerCase() === 'e') {
         e.preventDefault()
@@ -604,28 +599,21 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   }, [showSettings])
 
   useEffect(() => {
+    // Browser build: the project list lives in browserWorkspace / FileExplorer,
+    // so there is nothing to fetch here (the old Electron window.api.file.fetchAll
+    // call was removed with it). Keep the list cleared.
     const fetchAllProjects = async () => {
       setProjects([])
-      return
-      if (result.success && result.data && typeof result.data === 'object') {
-        setProjects(result.data)
-      } else {
-        console.error('❌ Error fetching all projects:', result.error)
-      }
     }
     fetchAllProjects()
   }, [onSave, onImport, onNewFile])
 
   // Fetch example files
   useEffect(() => {
+    // Browser build: examples are opened via browserWorkspace (see the left
+    // panel's example list) — nothing to fetch from a native API here.
     const fetchExamples = async () => {
       setExamples([])
-      return
-      if (result.success && result.data && typeof result.data === 'object') {
-        setExamples(result.data)
-      } else {
-        console.error('Error fetching example files:', result.error)
-      }
     }
     fetchExamples()
   }, [])
@@ -780,7 +768,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       window.localStorage.setItem('cpp_showTerminal', 'false');
     }
   }, [serialData]);
-  const handleKeyDown = async (e) => {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       const trimmed = editedName.trim()
       if (!trimmed) return
@@ -1201,15 +1189,11 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                   )
                     : leftPanel === 'search' ? (
                       <GlobalSearch
-                        searchText={searchText}
-                        setSearchText={setSearchText}
-                        searchResults={searchResults}
-                        clearSearch={clearSearch}
                         renderHighlightedLine={renderHighlightedLine}
                         unsavedChanges={unsavedChanges}
                         highlightWord={highlightWord}
                         searchBoxRef={searchBoxRef}
-                        handleGlobalSearch={handleGlobalSearch}
+                        searchInUnsavedEditor={searchInUnsavedEditor}
                       />
                     )
                       : leftPanel === "filesearch" ? (
@@ -1325,7 +1309,6 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                     handleCopy={handleCopy}
                     terminalPath={terminalPath}
                     output={output}
-                    serialData={serialData}
                     activeTab = {activeTab}
                     setActiveTab = {setActiveTab}
                   />
