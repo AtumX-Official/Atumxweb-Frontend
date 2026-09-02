@@ -9,6 +9,7 @@ import { setPath } from '../../../../store/projectSlice'
 import { handleCppSave } from './CppHelper/cpphelper'
 import { browserWorkspace } from './browserWorkspace'
 import serialService from '../../services/Serialservice'
+import { agentService } from '../../services/agentService'
 
 const isElectronApiAvailable = (): boolean => {
   return typeof window !== 'undefined' && !!(window as any).api
@@ -407,10 +408,11 @@ export default function CppPage() {
   // disk so in-editor edits are respected.
   const getEditContext = async (): Promise<string | undefined> => {
     const root = projectRootOfTab(activeTab?.path)
-    if (!root || !isElectronApiAvailable()) return undefined
+    if (!root) return undefined
     let files: { path: string; content: string }[] = []
     try {
-      files = (await window.api.agent.readProjectFiles(root)) || []
+      const result = await agentService.readProjectFiles(root)
+      files = result.files || []
     } catch {
       files = []
     }
@@ -488,12 +490,13 @@ export default function CppPage() {
       // Edit mode: the user is modifying the program they have open → write straight back
       // into that project, no new project. Additive edits apply silently; but if the edit
       // looks DESTRUCTIVE (drops a function / big shrink) we confirm first (option 3).
-      if (opts?.editInPlace && isElectronApiAvailable()) {
+      if (opts?.editInPlace) {
         const r = projectRootOfTab(activeTab?.path)
         if (await isPlatformioProject(r)) {
           let current: { path: string; content: string }[] = []
           try {
-            current = (await window.api.agent.readProjectFiles(r)) || []
+            const result = await agentService.readProjectFiles(r)
+            current = result.files || []
           } catch {
             current = []
           }
@@ -546,18 +549,16 @@ export default function CppPage() {
 
       // Make it buildable: add any non-bundled libraries #included anywhere in the program
       // (scanned across both files on disk) to platformio.ini lib_deps.
-      if (isElectronApiAvailable()) {
-        try {
-          const libRes = await window.api.agent.ensureLibraries(root, libDeps)
-          if (libRes?.added?.length) {
-            appendOutput(`> Added libraries to platformio.ini: ${libRes.added.join(', ')}\n> They download automatically on the first Run.\n`, 'out')
-          }
-          if (libRes?.unresolved?.length) {
-            appendOutput(`> Heads up: these includes may need a library that wasn't auto-added — ${libRes.unresolved.join(', ')}. If the build fails, add it from the Library panel.\n`, 'err')
-          }
-        } catch (e) {
-          appendOutput(`> Could not update project libraries: ${e instanceof Error ? e.message : String(e)}\n`, 'err')
+      try {
+        const libRes = await agentService.ensureLibraries(root, libDeps)
+        if (libRes?.added?.length) {
+          appendOutput(`> Added libraries to platformio.ini: ${libRes.added.join(', ')}\n> They download automatically on the first Run.\n`, 'out')
         }
+        if (libRes?.unresolved?.length) {
+          appendOutput(`> Heads up: these includes may need a library that wasn't auto-added — ${libRes.unresolved.join(', ')}. If the build fails, add it from the Library panel.\n`, 'err')
+        }
+      } catch (e) {
+        appendOutput(`> Could not update project libraries: ${e instanceof Error ? e.message : String(e)}\n`, 'err')
       }
 
       // Show main.cpp (the logic file) in a tab; config.h is on disk + in Folder View.
@@ -575,9 +576,9 @@ export default function CppPage() {
       // #5 — opt-in "Verify before flashing": compile the project and let the AI auto-fix
       // build errors. The fixed files are written to disk; refresh any open tabs.
       let compiled: boolean | undefined
-      if (opts?.verify && isElectronApiAvailable()) {
+      if (opts?.verify) {
         try {
-          const v = await window.api.agent.compileAndFix(root, opts.prompt || '')
+          const v = await agentService.compileAndFix(root, opts.prompt || '')
           compiled = v?.compiled
           if (v?.files?.length) refreshOpenTabs(root, v.files)
           scaffoldRef.current?.refresh() // a fix may have added/renamed module files
@@ -606,9 +607,6 @@ export default function CppPage() {
   // #7 — repair the OPEN project from the last build's errors. The main process reads the
   // project's files, fixes the whole set, and writes them back; we refresh the open tabs.
   const fixBuildErrors = async (): Promise<{ ok: boolean; error?: string }> => {
-    if (!isElectronApiAvailable()) {
-      return { ok: false, error: 'Not running in Electron environment.' }
-    }
     const root = projectRootOfTab(activeTab?.path)
     if (!(await isPlatformioProject(root))) {
       appendOutput(`> No open project to fix. Open or generate a project first.\n`, 'err')
@@ -619,13 +617,13 @@ export default function CppPage() {
     // Save the active tab first so the fix sees the latest code on disk.
     if (activeTab?.path && activeTab.isUnsaved) {
       try {
-        await window.api.file.save(activeTab.path, activeTab.code, 'cpp', activeTab.name)
+        await (window as any).api?.file?.save?.(activeTab.path, activeTab.code, 'cpp', activeTab.name)
       } catch {
         /* ignore */
       }
     }
 
-    const res = (await window.api.agent.fixCpp(root, buildError)) as any
+    const res = (await agentService.fixCpp(root, buildError)) as any
     if (res?.success && res.files?.length) {
       refreshOpenTabs(root, res.files)
       scaffoldRef.current?.refresh() // surface any files the fix added/renamed

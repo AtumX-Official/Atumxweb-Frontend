@@ -168,6 +168,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   // Sidebar resize
   const [sidebarWidth, setSidebarWidth] = useState(260)
   const isResizingSidebar = useRef(false)
+const [isChatOpen, setIsChatOpen] = useState(false);
 
   const settingsRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
@@ -916,14 +917,15 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                   </div>
                 </div>
 
-                {/* AI ASSISTANT */}
-                {/* <div
-                  className={`group relative hover:scale-110 transition-transform duration-200 rounded cursor-pointer ${chatOpen ? 'ring-[3px] ring-black' : ''}`}
-                  onClick={onToggleChat}
-                >
-                  <FaRobot className="w-12 h-12 bg-[#F6EC24] p-2 cursor-pointer rounded hover:border-[3px] border-black transition-transform duration-200 text-black" />
-                  <Tooltip text="AI Assistant" />
-                </div> */}
+               <div
+  className="group relative hover:scale-110 transition-transform duration-200 rounded cursor-pointer"
+  onClick={() => setIsChatOpen(true)}
+>
+  <div className="w-12 h-12 bg-[#F6EC24] rounded flex items-center justify-center hover:border-[3px] border-black transition-transform duration-200 text-2xl">
+    🤖
+  </div>
+  <Tooltip text="AI Assistant" />
+</div>
               </div>
 
               <div className="absolute left-[53%] top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
@@ -1303,8 +1305,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
         {children}
       </div>
       <ChatPanel
-        open={chatOpen}
-        onClose={onToggleChat}
+        open={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
         onGenerated={onCodeGenerated}
         buildError={buildError}
         hasOpenCode={hasOpenCode}

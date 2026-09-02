@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { agentService } from '../../services/agentService'
 
 type ChatMessage = {
   role: 'user' | 'assistant' | 'error'
@@ -137,10 +138,8 @@ export default function ChatPanel({
 
   // Stream status updates from the main-process agent into the activity timeline.
   useEffect(() => {
-    // Guard: window.api may be undefined when running outside Electron (e.g., browser dev mode)
-    if (!window.api?.agent?.onOutput) return
-
-    window.api.agent.onOutput((d) => {
+    // Set up listener for agent status updates
+    agentService.onOutput((d) => {
       if (d?.type !== 'status' && d?.type !== 'tool') return
       const text = (d.text || '').trim()
       if (!text) return
@@ -149,7 +148,7 @@ export default function ChatPanel({
         return [...prev, { id: ++stepId.current, text, kind: kindOf(text, d.type) }]
       })
     })
-    return () => window.api?.agent?.removeAllListeners?.()
+    return () => agentService.removeAllListeners()
   }, [])
 
   useEffect(() => {
@@ -179,11 +178,12 @@ export default function ChatPanel({
       // model modifies them instead of starting over, and apply the result in place.
       const isEdit = editMode && hasOpenCode
       const editContext = isEdit ? await getEditContext() : undefined
-      const res = await window.api.agent.generateCpp?.(prompt, editContext)
-      if (!res) {
+      const res = await agentService.generateCpp(prompt, editContext)
+      if (!res || !res.success) {
+        const errorMsg = typeof res?.error === 'string' ? res.error : 'AI service is not available. Please run this app in Electron or check the agent configuration.'
         setMessages((prev) => [
           ...prev,
-          { role: 'error', text: 'AI service is not available. Please run this app in Electron or check the agent configuration.' },
+          { role: 'error', text: errorMsg },
         ])
         setBusy(false)
         setSteps([])
@@ -222,9 +222,7 @@ export default function ChatPanel({
           { role: 'assistant', text: warn + (note ? note + '\n\n' : '') + tail },
         ])
       } else {
-        const errorMsg = typeof res?.error === 'string' ? res.error : 
-          res?.error?.message ? String(res.error.message) : 
-          JSON.stringify(res?.error) || 'Generation failed.'
+        const errorMsg = typeof res?.error === 'string' ? res.error : JSON.stringify(res?.error) || 'Generation failed.'
         setMessages((prev) => [...prev, { role: 'error', text: errorMsg }])
       }
     } catch (err) {
@@ -255,9 +253,7 @@ export default function ChatPanel({
           { role: 'assistant', text: '✓ Applied a fix to your project. Click Run to try again.' },
         ])
       } else {
-        const errorMsg = typeof r?.error === 'string' ? r.error : 
-          r?.error?.message ? String(r.error.message) : 
-          JSON.stringify(r?.error) || 'Could not fix it.'
+        const errorMsg = typeof r?.error === 'string' ? r.error : JSON.stringify(r?.error) || 'Could not fix it.'
         setMessages((prev) => [...prev, { role: 'error', text: errorMsg }])
       }
     } catch (err) {
