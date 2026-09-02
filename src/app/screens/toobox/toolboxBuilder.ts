@@ -65,7 +65,7 @@ export const buildToolboxXml = (
 
     const categoryBlocks = CATEGORY_MAP[label];
     if (categoryBlocks) {
-      const blockKey = kit[label as keyof typeof kit] || 'DEFAULT';
+      const blockKey = (kit[label as keyof typeof kit] as string | undefined) || 'DEFAULT';
       requestedContent = categoryBlocks[blockKey] || categoryBlocks.DEFAULT || '';
     }
   }

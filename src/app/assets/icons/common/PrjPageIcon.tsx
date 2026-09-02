@@ -1,4 +1,8 @@
-export default function PrjPageIcon() {
+import type { SVGProps } from "react";
+
+type PrjPageIconProps = SVGProps<SVGSVGElement>;
+
+export default function PrjPageIcon({className, ...rest} : PrjPageIconProps) {
     return (
         <svg width="71" height="71" viewBox="0 0 71 71" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path fillRule="evenodd" clipRule="evenodd" d="M16.2039 54.7273C17.1734 55.6971 17.1734 57.2687 16.2039 58.2384L11.2383 63.2039C10.2688 64.1737 8.69679 64.1737 7.72717 63.2039C6.75761 62.2342 6.75761 60.6626 7.72717 59.6928L12.6927 54.7273C13.6623 53.7576 15.2343 53.7576 16.2039 54.7273Z" fill="#F6268B" />

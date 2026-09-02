@@ -21,8 +21,8 @@ interface SaveParams {
   sendSerialMessage: (msg: string) => void;
   selectedKit: string;
   importedSnapshotRef: any;
-  projectName: (name: string) => void;
-  selectedCategory: string;
+  projectName: string;
+  selectedCategory: string | null;
   savemode: string;
 }
 
@@ -44,8 +44,8 @@ interface ImportFileParams {
   setSelectedIcon: any,
   dispatch: any,
   importedSnapshotRef: any,
-  projectName: (name: string) => void;
-  selectedCategory: string;
+  projectName: string | null;
+  selectedCategory: string | null;
   modifiedToolboxes: React.MutableRefObject<Record<string, string>>,
   toolboxXmlRef: React.MutableRefObject<string>,
   setToolboxXml: (xml: string) => void,
@@ -56,7 +56,7 @@ interface NewFileParams {
   originalSnapshotRef: React.MutableRefObject<string | null>;
   savedWorkspaceStates: React.MutableRefObject<Record<string, any>>;
   setCode: (code: string) => void;
-  filePath: string;
+  filePath?: string;
   fileHandle: FileSystemFileHandle | null;
   setFileHandle: React.Dispatch<React.SetStateAction<FileSystemFileHandle | null>>;
   setProjectName: (name: string) => void;
@@ -68,10 +68,10 @@ interface NewFileParams {
   code: string;
   sendSerialMessage: (msg: string) => void;
   selectedKit: string;
-  setrunStatus: (status: string) => void;
+  setrunStatus: React.Dispatch<React.SetStateAction<RunStatus>>;
   importedSnapshotRef: any;
   setShowKits: (state: boolean) => void;
-  projectName: (name: string) => void;
+  projectName: string;
 }
 export const handleSave = async ({
   workspaceRef,

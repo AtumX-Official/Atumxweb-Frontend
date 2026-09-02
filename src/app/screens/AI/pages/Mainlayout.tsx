@@ -1,13 +1,11 @@
 import { useState, useRef } from "react";
-import UploadCard from "./Campage";
 import { ClassCard } from "./Classcard";
 import TestCard from "./Testcard";
-import { Plus } from "lucide-react";
 
 export default function MainLayout() {
   const [classes, setClasses] = useState([1, 2]);
   const [isCameraOn, setIsCameraOn] = useState(false);
-  const videoRef = useRef(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const addClass = () => {
     if (classes.length < 5) {

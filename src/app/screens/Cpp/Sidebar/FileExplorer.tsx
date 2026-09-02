@@ -9,6 +9,48 @@ import Folderdown from '../../../components/ui/assets/Folderdown'
 import File from '../../../components/ui/assets/File'
 import { useSelector } from 'react-redux'
 
+interface FileNode {
+  name: string
+  path: string
+  type: "file" | "folder"
+  children?: FileNode[]
+}
+
+interface SelectedNode {
+  path: string
+  type: "file" | "folder"
+}
+
+interface FileExplorerProps {
+  data: FileNode[]
+  selectedNode: SelectedNode | null
+  setSelectedNode: React.Dispatch<React.SetStateAction<SelectedNode | null>>
+  refresh: () => void | Promise<void>
+  projectName: string
+  language: string
+  isExample?: boolean
+}
+
+
+interface MenuItem {
+  label: string
+  danger?: boolean
+  action: (e?: React.MouseEvent) => void
+}
+
+interface ExplorerNodeProps {
+  node: FileNode
+  selectedNode: SelectedNode | null
+  setSelectedNode: React.Dispatch<React.SetStateAction<SelectedNode | null>>
+  refresh: () => void | Promise<void>
+  projectName: string
+  toggleStyle: boolean
+  language: string
+  triggerToast: () => void
+  isExample: boolean
+  isInsideOpenFolder: boolean
+}
+
 // HIDDEN
 const hiddenFolders = [".pio", "boards", "lib"];
 const hiddenFiles = ["TrixL.csv", "platformio.ini","installed-libraries.json"];
@@ -18,24 +60,24 @@ const nonRenamableFiles = ["main.cpp"];
 const nonRenamableFolders = ["src", "include"];
 const nonDeletableFolders = ["src", "include"];
 
-const shouldHideNode = (node) => {
+const shouldHideNode = (node: FileNode): boolean => {
   if (node.type === "folder") return hiddenFolders.includes(node.name);
   if (node.type === "file") return hiddenFiles.includes(node.name);
   return false;
 };
 
-const isRenamable = (node) => {
+const isRenamable = (node: FileNode): boolean => {
   if (node.type === "file") return !nonRenamableFiles.includes(node.name);
   if (node.type === "folder") return !nonRenamableFolders.includes(node.name);
   return false;
 };
 
-const isDeletable = (node) => {
+const isDeletable = (node: FileNode): boolean => {
   if (node.type === "folder") return !nonDeletableFolders.includes(node.name);
   return true;
 };
 
-const sortNodes = (nodes) => {
+const sortNodes = (nodes : FileNode[]): FileNode[] => {
   return [...nodes].sort((a, b) => {
     if (a.type === b.type) return a.name.localeCompare(b.name);
     return a.type === "folder" ? -1 : 1;
@@ -50,7 +92,7 @@ export default function FileExplorer({
   projectName,
   language,
   isExample = false,
-}) {
+} : FileExplorerProps) {
   const [showToast, setShowToast] = useState(false);
 
   const triggerToast = () => {
@@ -62,8 +104,8 @@ export default function FileExplorer({
     <div>
       <ul className="pl-4 mt-1 flex flex-col gap-1">
         {sortNodes(data)
-          .filter(node => !shouldHideNode(node))
-          .map(node => (
+          .filter((node: FileNode) => !shouldHideNode(node))
+          .map((node: FileNode) => (
             <ExplorerNode
               key={node.path}
               node={node}
@@ -96,7 +138,7 @@ function ExplorerNode({
   triggerToast,
   isExample,
   isInsideOpenFolder
-}) {
+} : ExplorerNodeProps) {
   const [open, setOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [fileToDelete, setFileToDelete] = useState("")
@@ -108,13 +150,13 @@ function ExplorerNode({
   const navigate = useNavigate()
   const isSelected = selectedNode?.path === node.path
   const [showOptions, setShowOptions] = useState(false)
-  const [optionsPos, setOptionsPos] = useState(null)
-  const portalMenuRef = useRef(null)
+  const [optionsPos, setOptionsPos] = useState<{ x: number; y: number } | null>(null)
+  const portalMenuRef = useRef<HTMLDivElement | null>(null)
   
   if (shouldHideNode(node)) return null;
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (portalMenuRef.current && !portalMenuRef.current.contains(e.target)) {
+    const handleClickOutside = (e : MouseEvent) => {
+      if (portalMenuRef.current && !portalMenuRef.current.contains(e.target as Node)) {
         setShowOptions(false)
         setOptionsPos(null)
       }
@@ -150,13 +192,13 @@ const menuItems = [
         {
           label: "Delete",
           danger: true,
-          action: (e) => handleDeleteClick(e)
+          action: (e : React.MouseEvent) => handleDeleteClick(e)
         }
       ]
     : [])
 ]
   // DELETE CLICK
-  const handleDeleteClick = (e) => {
+  const handleDeleteClick = (e : React.MouseEvent) => {
     e.stopPropagation()
     setFileToDelete(node.name)
     setIsModalOpen(true)

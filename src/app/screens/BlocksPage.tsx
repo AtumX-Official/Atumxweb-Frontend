@@ -75,16 +75,16 @@ const BlocksPage: React.FC = () => {
   const [showPopup, setShowPopup] = useState(false)
   const [showUnderDev, setShowUnderDev] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState('')
-  const [animalMode, setAnimalMode] = useState<'Gripper' | 'Walker' | 'Crawler'>()
+  const [animalMode, setAnimalMode] = useState<'Gripper' | 'Walker' | 'Crawler'>('Gripper')
   const [pdfPosition, setPdfPosition] = useState({ x: 0, y: 0 })
 
-  const kitsButtonRef = useRef<HTMLDivElement>(null)
+  const kitsButtonRef = useRef<HTMLButtonElement>(null)
   const bgColor = themeMode === 'dark' ? '#4D4D4D' : 'white'
   const bgyellow = themeMode === 'dark' ? "bg-[#FFDE21]" : "bg-[#EAC90F]"
   const modifiedToolboxes = useRef<Record<string, string>>({});
   const toolboxXmlRef = useRef<string>("");
   const [toolboxXml, setToolboxXml] = useState<string>('')
-  const shouldShowModal = pathname.state?.showModal;
+  const shouldShowModal = (typeof window !== 'undefined' ? (window.history?.state as { showModal?: boolean } | null)?.showModal : false);
   // ── Workspace & actions ──────────────────────────────────────────────────
 
   const workspace = useBlocklyWorkspace({
@@ -226,56 +226,53 @@ const BlocksPage: React.FC = () => {
     fileHandle,
     projectName,
     selectedKit,
-    selectedCategory,
+    selectedCategory ,
     sendSerialMessage,
   }
 // In BlocksPage — add this effect
 
 useEffect(() => {
-  if (!workspace.workspaceRef.current) return;
+  const currentWs = workspace.workspaceRef.current;
+  if (!currentWs) return;
 
   // RESTORE
   const saved = sessionStorage.getItem("blocklyWorkspace");
 
   if (saved) {
-    const state = JSON.parse(saved);
-
-    Blockly.serialization.workspaces.load(
-      state,
-      workspace.workspaceRef.current
-    );
+    try {
+      const state = JSON.parse(saved);
+      Blockly.serialization.workspaces.load(
+        state,
+        currentWs
+      );
+    } catch {
+      /* ignore invalid JSON */
+    }
   }
 
   // SAVE ON CHANGE
   const listener = () => {
-    const data =
-      Blockly.serialization.workspaces.save(
-        workspace.workspaceRef.current
-      );
-
+    const ws = workspace.workspaceRef.current;
+    if (!ws) return;
+    const data = Blockly.serialization.workspaces.save(ws);
     sessionStorage.setItem(
       "blocklyWorkspace",
       JSON.stringify(data)
     );
   };
 
-  workspace.workspaceRef.current.addChangeListener(listener);
+  currentWs.addChangeListener(listener);
 
   return () => {
     // SAVE BEFORE DESTROY
-    const currentWorkspace = workspace.workspaceRef.current;
-
-if (currentWorkspace) {
-  const data =
-    Blockly.serialization.workspaces.save(
-      currentWorkspace
-    );
-
-  sessionStorage.setItem(
-    "blocklyWorkspace",
-    JSON.stringify(data)
-  );
-}
+    const ws = workspace.workspaceRef.current;
+    if (ws) {
+      const data = Blockly.serialization.workspaces.save(ws);
+      sessionStorage.setItem(
+        "blocklyWorkspace",
+        JSON.stringify(data)
+      );
+    }
   };
 }, [workspace.workspaceRef]);
   // ── Render ───────────────────────────────────────────────────────────────
@@ -308,7 +305,7 @@ if (currentWorkspace) {
                   runstatus={actions.runstatus}
                   animalMode={animalMode}
                   setAnimalMode={setAnimalMode}
-                  selectedCategory={selectedCategory}
+                  selectedCategory={selectedCategory ?? ''}
                   handleSave={(savemode) =>
                     handleSave({
                       ...fileHelperBase,
@@ -351,12 +348,13 @@ if (currentWorkspace) {
                     handleExitApp({
                       workspaceRef: workspace.workspaceRef,
                       fileHandle,
+                      setFileHandle,
                       unsavedChanges,
                       selectedKit,
                       setOutput,
                       router,
                       projectName,
-                      selectedCategory,
+                      selectedCategory: selectedCategory ?? "",
                     });
                   }}
                 />

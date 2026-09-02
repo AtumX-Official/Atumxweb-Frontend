@@ -1,4 +1,9 @@
-export default function TickIcon({className}) {
+import type {SVGProps} from "react";
+
+type TickIconProps = SVGProps<SVGSVGElement>;
+
+
+export default function TickIcon({className, ...rest} : TickIconProps) {
   return (
     <svg
       className={`${className}`}

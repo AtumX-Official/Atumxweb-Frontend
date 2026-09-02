@@ -3,7 +3,12 @@ import LibraryCard from "./LibraryCard";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../../store";
 
-export default function LibraryBrowser({ showSearch, setShowSearch }) {
+interface LibraryBrowserProps {
+  showSearch: boolean
+  setShowSearch: React.Dispatch<React.SetStateAction<boolean>>
+}
+
+export default function LibraryBrowser({ showSearch, setShowSearch } : LibraryBrowserProps) {
   const [query, setQuery] = useState("");
   const [libraries, setLibraries] = useState<any[]>([]);
   const [page, setPage] = useState(1);
@@ -21,14 +26,14 @@ export default function LibraryBrowser({ showSearch, setShowSearch }) {
     if (!selectedFilePath) return;
 
     window.api.cpp.getInstalledLibraries(selectedFilePath).then((res) => {
-      if (res.success) setInstalledLibs(res.libraries);
+      if (res.success && res.libraries) setInstalledLibs(res.libraries);
     });
   }, [selectedFilePath]);
 
   const refreshInstalled = async () => {
     if (!selectedFilePath) return;
     const res = await window.api.cpp.getInstalledLibraries(selectedFilePath);
-    if (res.success) setInstalledLibs(res.libraries);
+    if (res.success && res.libraries) setInstalledLibs(res.libraries);
   };
 
   const search = async (q: string, pageNum: number, append = false) => {
@@ -37,9 +42,10 @@ export default function LibraryBrowser({ showSearch, setShowSearch }) {
 
     const res = await window.api.cpp.searchLibraries(q, pageNum);
 
-    if (res.success) {
-      setLibraries((prev) => (append ? [...prev, ...res.results] : res.results));
-      setHasMore(res.hasMore);
+    if (res.success && res.results) {
+      const results = res.results;   // ✅ narrowed to `any[]`, captured in a const
+      setLibraries((prev) => (append ? [...prev, ...results] : results));
+      setHasMore(res.hasMore ?? false);   // ✅ also handle hasMore possibly undefined
     }
 
     setLoading(false);

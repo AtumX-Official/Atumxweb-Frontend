@@ -3,13 +3,22 @@ import { useState } from "react";
 import type { RootState } from "../../../../../store";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
+
+interface GlobalSearchProps {
+  searchBoxRef: React.RefObject<HTMLDivElement | null>
+  highlightWord: (word: string) => void
+  renderHighlightedLine: (text: string, start: number, length: number) => React.ReactNode
+  unsavedChanges: boolean
+  searchInUnsavedEditor: (query: string) => any[]
+}
+
 export default function GlobalSearch({
   searchBoxRef,
   highlightWord,
   renderHighlightedLine,
   unsavedChanges,
   searchInUnsavedEditor,
-}) {
+} : GlobalSearchProps) {
   const navigate = useNavigate();
 
   const [searchText, setSearchText] = useState("");

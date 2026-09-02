@@ -281,7 +281,7 @@ function ExplorerNode({
     const result = await window.api.file.addfile(node.path)
     
     // If api creates with default name, rename to user's typed name
-    if (result.success) {
+    if (result.success && result.path) {
       // rename the created file to the user typed name
       const ext = language === 'cpp' ? '.cpp' : '.py'
       const finalName = trimmed.endsWith(ext) ? trimmed : `${trimmed}${ext}`

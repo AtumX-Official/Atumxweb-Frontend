@@ -8,15 +8,55 @@ import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import gameHelper from './gameHelper'
+import type { StaticImageData } from 'next/image'
+
+import flappybird from '../../assets/games/images/flappybird.png'
+import bubbleshooter from '../../assets/games/images/bubbleshooter.png'
+import car_game from '../../assets/games/images/car_game.png'
+import dino_game from '../../assets/games/images/dino_game.png'
+import snakegame from '../../assets/games/images/snakegame.png'
+import shooting_game from '../../assets/games/images/shooting_game.png'
+import brick_breaker from '../../assets/games/images/brick_breaker.png'
+
+interface CardProps {
+  children: React.ReactNode
+  className?: string
+  onClick?: () => void
+}
+
+interface CardImageProps {
+  src: string
+  alt: string
+}
+
+interface CardContentProps {
+  children: React.ReactNode
+  className?: string
+}
+
+interface CardTitleProps {
+  children: React.ReactNode
+}
+
+interface ProgressProps {
+  value: number
+}
+
+const images: Record<string, StaticImageData> = {
+  'flappybird.png': flappybird,
+  'bubbleshooter.png': bubbleshooter,
+  'car_game.png': car_game,
+  'dino_game.png': dino_game,
+  'snakegame.png': snakegame,
+  'shooting_game.png': shooting_game,
+  'brick_breaker.png': brick_breaker,
+}
 
 // Relative glob (not '/src/...') — absolute glob patterns fail to resolve in
 // the rollup production build on Windows.
-const images = import.meta.glob('../../assets/games/images/*.png', {
-  eager: true,
-  import: 'default'
-})
 
-function Card({ children, className = '', onClick }) {
+
+function Card({ children, className = '', onClick } : CardProps ) {
   return (
     <motion.div
       whileHover={{ scale: 1.03 }}
@@ -29,13 +69,12 @@ function Card({ children, className = '', onClick }) {
   )
 }
 
-function CardImage({ src, alt }) {
-  const key = `../../assets/games/images/${src}`
-  const image = images[key] ?? null
+function CardImage({ src, alt }: CardImageProps) {
+  const image = images[src] ?? null   // ✅ simplified — src is already e.g. "flappybird.png"
   return (
     <div className="w-full h-32 bg-gray-100 flex items-center justify-center">
       {image ? (
-        <img src={image} alt={alt} className="w-full h-32 object-cover" />
+        <img src={image.src} alt={alt} className="w-full h-32 object-cover" />
       ) : (
         <div className="text-sm text-gray-500">No image</div>
       )}
@@ -43,15 +82,15 @@ function CardImage({ src, alt }) {
   )
 }
 
-function CardContent({ children, className = '' }) {
+function CardContent({ children, className = '' } : CardContentProps) {
   return <div className={`p-4 text-center ${className}`}>{children}</div>
 }
 
-function CardTitle({ children }) {
+function CardTitle({ children } : CardTitleProps) {
   return <h3 className="text-lg font-semibold">{children}</h3>
 }
 
-function Progress({ value }) {
+function Progress({ value } : ProgressProps) {
   return (
     <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
       <div
@@ -93,14 +132,23 @@ const simGames = [
   { id: 'gesture_rush', name: 'Gesture Rush', emoji: '🖐', file: 'gesture-rush.html' },
 ]
 
-export default function GameLibrary() {
-  const [uploadingGame, setUploadingGame] = useState(null)
-  const [progress, setProgress] = useState(0)
-  const [runningGame, setRunningGame] = useState(null)
-  const [webGame, setWebGame] = useState<{ id: string; name: string; file: string } | null>(null)
-  const uploadIntervalRef = useRef(null)
+interface Game {
+  id: string
+  name: string
+  image: string
+  code: string
+}
 
-  const uploadGame = async (game) => {
+
+
+export default function GameLibrary() {
+  const [uploadingGame, setUploadingGame] = useState<Game | null>(null)
+  const [progress, setProgress] = useState(0)
+  const [runningGame, setRunningGame] = useState<Game | null>(null)
+  const [webGame, setWebGame] = useState<{ id: string; name: string; file: string } | null>(null)
+  const uploadIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const uploadGame = async (game : Game) => {
     setUploadingGame(game)
     setProgress(0)
     setRunningGame(null)
@@ -117,7 +165,7 @@ export default function GameLibrary() {
     uploadIntervalRef.current = setInterval(() => {
       setProgress((p) => {
         if (p >= 100) {
-          clearInterval(uploadIntervalRef.current)
+          clearInterval(uploadIntervalRef.current ?? undefined)
           uploadIntervalRef.current = null
           setRunningGame(game)
           setUploadingGame(null)
@@ -143,7 +191,7 @@ export default function GameLibrary() {
 
   // ── Simulation game: fullscreen iframe ──────────────────────────────────────
   if (webGame) {
-    const src = `${import.meta.env.BASE_URL}games/${webGame.file}`
+    const src = `/games/${webGame.file}`
     return (
       <div className="w-screen h-screen flex flex-col bg-black">
         <div className="flex items-center gap-3 px-4 py-2 bg-gray-900 shrink-0">
@@ -175,9 +223,9 @@ export default function GameLibrary() {
           className="bg-white w-[92%] max-w-md rounded-2xl shadow-2xl p-6 flex flex-col items-center gap-4"
         >
           <div className="w-40 h-40 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-            {images[`../../assets/games/images/${focusedGame.image}`] ? (
+            {images[focusedGame.image] ? (
               <img
-                src={images[`../../assets/games/images/${focusedGame.image}`]}
+                src={images[focusedGame.image].src}
                 alt={focusedGame.name}
                 className="w-full h-full object-cover"
               />

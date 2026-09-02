@@ -55,7 +55,7 @@ export default function LibraryCard({ data, isInstalled = false, onInstall }: Li
       setLoadingVersions(true);
       try {
         const res = await window.api.cpp.getLibraryVersions(data.name);
-        if (res?.success) setVersions(res.versions);
+        if (res?.success && res.versions) setVersions(res.versions);
       } catch {}
       finally { setLoadingVersions(false); }
     }

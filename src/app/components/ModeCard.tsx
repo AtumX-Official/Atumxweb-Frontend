@@ -149,7 +149,7 @@ export default function ModeCard({ onClick, mode, image, text, linkto }: ModeCar
   
     if (linkto) {
     router.push(
-`${linkto}${linkto === "blockly" ? "?showModal=true" : ""}`);
+      `${linkto}${linkto === "blockly" ? "?showModal=true" : ""}`);
     }
       onClick?.()
   }
@@ -163,7 +163,7 @@ export default function ModeCard({ onClick, mode, image, text, linkto }: ModeCar
     >
       <div className="grow flex items-center justify-center">
         <img
-          className={`object-contain transition-all duration-300 ${hovered ? 'w-36 h-36' : 'w-32 h-28'}`}
+          className="w-32 h-32 object-contain"
           src={imageSrc}
           alt={`${mode} icon`}
         />

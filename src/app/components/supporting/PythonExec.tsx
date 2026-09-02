@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
 
 interface PythonResponse {
-  type: 'stdout' | 'stderr' | 'exit';
+  type?: 'stdout' | 'stderr' | 'exit';
   data?: string;
   code?: number;
+  success : boolean;
+  output? : string;
+  error? : string
 }
 
 export default function PythonExec() {

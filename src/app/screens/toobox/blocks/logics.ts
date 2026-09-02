@@ -1,4 +1,4 @@
-export const Logic = {
+export const Logic : Record<string, string> = {
     SNOWFLAKE: `
       <block type="custom_if"></block>
         <block type="custom_else"></block>

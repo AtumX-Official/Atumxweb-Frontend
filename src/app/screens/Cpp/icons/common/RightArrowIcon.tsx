@@ -1,4 +1,9 @@
-export default function RightArrowIcon({ className }) {
+import type {SVGProps} from "react";
+
+type RightArrowIconProps = SVGProps<SVGSVGElement>;
+
+
+export default function RightArrowIcon({ className, ...rest } : RightArrowIconProps) {
   return (
     <svg
       className={className}

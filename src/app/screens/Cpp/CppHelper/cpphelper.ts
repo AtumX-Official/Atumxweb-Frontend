@@ -1,11 +1,29 @@
 import { showConfirmModal,showSavePopup } from '../../CommonHelper/Popupfuntionalities';
+
+interface CppTabData {
+  path?: string
+  name: string
+  code: string
+  originalCode?: string
+  isUnsaved?: boolean
+}
+
+interface HandleCppSaveArgs {
+  mode?: 'save' | 'saveAs' | 'autosave'
+  activeTab: CppTabData
+  updateActiveTabData: (data: Partial<CppTabData>) => void
+  appendOutput: (msg: string, type?: 'out' | 'err') => void
+  showPopup?: boolean
+}
+
+
 export const handleCppSave = async ({
   mode = "save",
     activeTab,
     updateActiveTabData,
     appendOutput,
     showPopup = true,
-  }) => {
+  }: HandleCppSaveArgs): Promise<boolean> => {
     const normalizeName = (name: string) =>
       name.replace(/\.cpp$/i, "").trim();
   
@@ -38,7 +56,7 @@ export const handleCppSave = async ({
       currentName
     );
   
-    if (result.success) {
+    if (result.success && result.path && result.fileName) {
       appendOutput(`> File saved to: ${result.path}\n`, "out");
   
       updateActiveTabData({

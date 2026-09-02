@@ -326,15 +326,16 @@ export default function CppPage() {
     if (!result.success) return;
   
     const newId = Date.now().toString();
+    
   
     setTabs([
       {
         id: newId,
-        name: result.fileName,
-        code: result.data,
-        path: result.path,
+        name: result.fileName ?? '',
+        code: result.data ?? '',
+        path: result.path ?? '',
         isUnsaved: false,
-        originalCode: result.data,
+        originalCode: result.data ?? '',
       },
     ]);
   
@@ -598,7 +599,14 @@ export default function CppPage() {
       if (!root) {
         // Is a real project open? (the one the active tab belongs to, else the redux path)
         let openRoot = projectRootOfTab(activeTab?.path)
-        if (!(await isPlatformioProject(openRoot))) openRoot = selectedFilePath
+        
+        if (!(await isPlatformioProject(openRoot))) {
+          if (!selectedFilePath) {
+            return;
+          }
+
+          openRoot = selectedFilePath;
+        }
         const projectOpen = await isPlatformioProject(openRoot)
 
         if (projectOpen) {

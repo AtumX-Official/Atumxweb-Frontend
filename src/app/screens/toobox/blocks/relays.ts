@@ -1,4 +1,4 @@
-export const Relays = {
+export const Relays : Record<string, string> = {
     GENERIC: `
       <block type="setrelay"></block>
       <block type="RelayOn"></block>

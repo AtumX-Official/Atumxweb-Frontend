@@ -1,10 +1,11 @@
+"use client"
+
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import PoseTracker, { type Landmark, type PoseTrackerHandle } from './components/PoseTracker'
 import AIToolbar from './components/AIToolbar'
 import ProjectPopup from './components/ProjectPopup'
 import { usePoseClassifier, type GestureClass, type Prediction } from './hooks/usePoseClassifier'
-import { useSampleRecorder } from './hooks/useSampleRecorder'
+import { useSampleRecorder, type SampleRecorder } from './hooks/useSampleRecorder'
 import RecordingSettings from './components/RecordingSettings'
 import RecordingControls from './components/RecordingControls'
 import CaptureMenu from './components/CaptureMenu'
@@ -16,6 +17,20 @@ import { POSE_FEATURE_DIM } from './utils/normalizeLandmarks'
 import { useRouter } from 'next/navigation'
 
 const DEFAULT_CLASS_COLORS = ['#36D3FF', '#F6268B', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171', '#fbbf24']
+
+interface FileOpenResult {
+  success: boolean
+  data: string
+  fileName: string
+}
+
+interface LatestRef {
+  classifier: ReturnType<typeof usePoseClassifier>
+  setPrediction: React.Dispatch<React.SetStateAction<Prediction | null>>
+  addImage: (classId: string, imageUrl: string) => void
+  isTesting: boolean
+  recorder: SampleRecorder
+}
 
 export default function PoseApp() {
   const router = useRouter()
@@ -49,7 +64,7 @@ export default function PoseApp() {
   const livePoseRef = useRef<Landmark[]>([])
 
   const [projectName, setProjectName] = useState('')
-  const [projectDesc, setProjectDesc] = useState('')
+  const [, setProjectDesc] = useState('')
   const [showProjectPopup, setShowProjectPopup] = useState(false)
   // Cosmetic lag-shadow trail (visual only — never affects detection/training)
   const [effectsOn, setEffectsOn] = useState(false)
@@ -80,13 +95,7 @@ export default function PoseApp() {
 
   const classIdCounter = useRef(0)
   const poseTrackerRef = useRef<PoseTrackerHandle>(null)
-  const latestRef = useRef<{
-    classifier: ReturnType<typeof usePoseClassifier>
-    setPrediction: React.Dispatch<React.SetStateAction<Prediction | null>>
-    addImage: (classId: string, imageUrl: string) => void
-    isTesting: boolean
-    recorder: typeof recorder
-  } | null>(null)
+  const latestRef = useRef<LatestRef | null>(null)
 
   // Selected Class details
   const selectedClass = classes.find((c) => c.id === selectedClassId) ?? null
@@ -175,7 +184,7 @@ export default function PoseApp() {
 
     // Shared recorder decides when a sample is due (hold / timed / countdown).
     const { capture, classId } = rec.tick(performance.now())
-    if (capture) {
+    if (capture && classId) {
       clf.addSample(classId, vector)
       const snap = poseTrackerRef.current?.snapshot() ?? ''
       if (snap) addImg(classId, snap)
@@ -238,7 +247,7 @@ export default function PoseApp() {
 
   const handleOpenProject = async () => {
     try {
-      const res = await (window as any).api.file.open('poseClassifier')
+      const res = (await window.api?.file?.open?.('poseClassifier')) as FileOpenResult | undefined
       if (!res || !res.success) return
       const bundle = JSON.parse(res.data)
       const restoredClasses = await classifier.loadModel(bundle)
@@ -404,7 +413,7 @@ export default function PoseApp() {
                       className="hidden"
                       onChange={(e) => {
                         if (!e.target.files) return
-                        for (let f of Array.from(e.target.files)) {
+                        for (const f of Array.from(e.target.files)) {
                           // Standard detect placeholder vector for upload
                           const dummyVector = new Float32Array(POSE_FEATURE_DIM)
                           classifier.addSample(cls.id, dummyVector)

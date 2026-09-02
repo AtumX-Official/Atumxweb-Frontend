@@ -23,7 +23,7 @@ interface SidebarProps {
   handleIconClick: (label: string) => void;
   setBlocklyVisible: (visible: boolean) => void;
   themeMode: string;
-  istoolboxVisible: (visible: boolean) => void;
+  istoolboxVisible: boolean;
   setShowaddBlock: React.Dispatch<React.SetStateAction<boolean>>;
 }
 

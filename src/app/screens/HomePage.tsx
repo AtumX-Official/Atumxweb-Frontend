@@ -93,14 +93,14 @@ export default function HomePage() {
 
       case "ai box":
         return (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto justify-center">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto justify-center">
             {/* Will this bloacks component come here ? */}
-            {/* <ModeCard
+            <ModeCard
               mode={mode}
               linkto="Mainlayout"
               image="blocks"
               text="BLOCKS"
-            /> */}
+            />
             <ModeCard
               mode={mode}
               linkto="ai"

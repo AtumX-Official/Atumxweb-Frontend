@@ -1,6 +1,7 @@
 interface BasicProps extends React.SVGProps<SVGSVGElement> {
     isSelected?: boolean;
     className?: string;
+    themeMode? : string
   }  
 export default function Basic({ isSelected,className, }: BasicProps) {
 return(

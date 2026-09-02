@@ -72,7 +72,7 @@ interface CppScaffoldProps {
   onRun: () => void
   output: any
   onSave: (mode: "save" | "saveAs") => void | Promise<boolean>
-  onImport: () => void
+  onImport?: () => void
   onNewFile: () => void
   serialData: string
   onClear: () => void
@@ -80,7 +80,8 @@ interface CppScaffoldProps {
   chatOpen: boolean
   onToggleChat: () => void
   ports: Array<string>
-  setPorts: ()=> void
+  setPorts: React.Dispatch<React.SetStateAction<string[]>>
+  onOpenProject: () => void
   onCodeGenerated: (
     files: { path: string; content: string }[],
     suggestedName?: string,
@@ -91,6 +92,13 @@ interface CppScaffoldProps {
   hasOpenCode: boolean
   getEditContext: () => Promise<string | undefined>
   onFixBuild: () => Promise<{ ok: boolean; error?: string }>
+}
+
+interface MonacoFindMatch {
+  range: {
+    startLineNumber: number
+    startColumn: number
+  }
 }
 
 const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function CppScaffold({
@@ -174,7 +182,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       true
     );
 
-    return matches.map(m => {
+    return matches.map((m : MonacoFindMatch) => {
       const lineContent = model.getLineContent(m.range.startLineNumber);
 
       return {
@@ -227,7 +235,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     // After the popup closes, refresh and only mark imported if a real
     // project tree came back. Avoids flipping state on cancel/close.
     const res = await window.api.file.fetchDirs('cpp')
-    if (res.success && res.data && res.rootPath) {
+    if (res.success && res.data && res.rootPath && res.folderName) {
       setFileTree(res.data)
       setTerminalPath(res.rootPath)
       setProjectName(res.folderName)
@@ -285,7 +293,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       ? searchInUnsavedEditor(searchText)
       : [];
 
-    if (res?.success) {
+    if (res?.success && res.data) {
       setSearchResults([...unsavedResults, ...res.data])
     } else {
       setSearchResults(unsavedResults)
@@ -411,7 +419,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
     const matches = model.findMatches(word, true, false, false, null, true);
 
-    const decorations = matches.map(match => ({
+    const decorations = matches.map((match : MonacoFindMatch) => ({
       range: match.range,
       options: { inlineClassName: "myHighlight" }
     }));
@@ -441,7 +449,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
   const refresh = async () => {
     const res = await window.api.file.fetchDirs('cpp')
-    if (res.success) {
+    if (res.success && res.rootPath && res.folderName) {
       setFileTree(res.data)
       setTerminalPath(res.rootPath)
       setProjectName(res.folderName)
@@ -548,7 +556,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === '`') {
         e.preventDefault()
-        toggleTerminal()
+        toggleTerminal('terminal')
       }
       if (e.ctrlKey && e.key.toLowerCase() === 'e') {
         e.preventDefault()
@@ -564,7 +572,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       }
       if (e.ctrlKey && e.key.toLowerCase() === 'i') {
         e.preventDefault()
-        onImport()
+        if(onImport) onImport()
       }
       if (e.ctrlKey && e.key.toLowerCase() === 'n') {
         e.preventDefault()
@@ -699,7 +707,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       window.localStorage.setItem('cpp_showTerminal', 'false');
     }
   }, [serialData]);
-  const handleKeyDown = async (e) => {
+  const handleKeyDown = async (e : React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       const trimmed = editedName.trim()
       if (!trimmed) return
@@ -708,7 +716,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
           oldPath: terminalPath,
           newName: trimmed
         })
-        if (res.success) {
+        if (res.success && res.newPath) {
           setProjectName(trimmed)
           setTerminalPath(res.newPath)
           refresh()
@@ -818,7 +826,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
 
       const result = await window.api.file.createProject(value)
 
-      if (result.success) {
+      if (result.success && result.data) {
         setTerminalPath(result.data)
         setRootFolder(value)
         setIsImported(true)
@@ -1144,15 +1152,11 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
                   )
                     : leftPanel === 'search' ? (
                       <GlobalSearch
-                        searchText={searchText}
-                        setSearchText={setSearchText}
-                        searchResults={searchResults}
-                        clearSearch={clearSearch}
+                        searchBoxRef={searchBoxRef}
+                        highlightWord={highlightWord}
                         renderHighlightedLine={renderHighlightedLine}
                         unsavedChanges={unsavedChanges}
-                        highlightWord={highlightWord}
-                        searchBoxRef={searchBoxRef}
-                        handleGlobalSearch={handleGlobalSearch}
+                        searchInUnsavedEditor={searchInUnsavedEditor}
                       />
                     )
                       : leftPanel === "filesearch" ? (

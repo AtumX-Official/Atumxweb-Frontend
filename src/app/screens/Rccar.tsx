@@ -7,7 +7,7 @@ import Settings from '../assets/Settings';
 import SpeedController from './../components/ui/SpeedControl'
 import JoystickController from './../components/ui/JoysticControl'
 import { sendWebSocketData,getWebSocket,connectWebSocket ,setConnected,setConnectionMode,setDisconnected,setMode} from '../../../store/websocketSlice'
-import type { RootState } from '../../../store';
+import type { RootState, AppDispatch  } from '../../../store';
 import TopBarCenter from './Elements/Topbar/TopCenter'
 import Models from './Models'
 import Wirelessicon from '../assets/Wirelessicon';
@@ -24,7 +24,7 @@ import SettingModal from '../components/supporting/SettingModal';
 const Rccar = () => {
   const navigate = useNavigate()
   const { isConnected, mode,status } = useSelector((state: RootState) => state.websocketSlice);
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const [showUnderDev, setShowUnderDev] = useState(false)
   const [action, setAction] = useState('')
@@ -36,7 +36,7 @@ const Rccar = () => {
   const hideDropdown = selectedKit === "subo" && selectedCategory === "gaadi"
   const [projectName, setProjectName] = useState('project 1')
   const [showKits, setShowKits] = useState(false)
-  const kitsButtonRef = useRef<HTMLDivElement>(null);
+  const kitsButtonRef = useRef<HTMLButtonElement>(null);
   const themeMode = useSelector((state: any) => state.theme.mode)
   const bgColor = themeMode === 'dark' ? '#4D4D4D' : 'white'
   const bgyellow = themeMode === 'dark' ? "bg-[#FFDE21]" : "bg-[#EAC90F]"
@@ -80,7 +80,7 @@ const dropdownValues = useMemo(() => {
   
 
 
-  const handleSelectChange = (index, value) => {
+  const handleSelectChange = (index : number, value : string) => {
     // Update the selected value for the corresponding dropdown
     const newSelectedValues = [...selectedValues]
     newSelectedValues[index] = value
@@ -94,7 +94,7 @@ const dropdownValues = useMemo(() => {
   
     // ✅ SPECIAL CASE → SUBO GAADI
     if (isSuboGaadi) {
-      const dirMap = {
+      const dirMap : Record<string, string> = {
         forward: "F",
         backward: "B",
         left: "L",
@@ -129,7 +129,24 @@ const dropdownValues = useMemo(() => {
   
     // ✅ DEFAULT CASE → EXISTING PIN LOGIC
     if (selectedValues.length >= 4) {
-      const jsonOutput = {
+      const jsonOutput: {
+        mode: string
+        program: {
+          setup: Record<number, {
+            pinsetup: {
+              pinumber: string
+              mode: string
+            }
+          }>
+          loop: Record<number, {
+            pinwrite: {
+              pin: string
+              type: string
+              value: number
+            }
+          }>
+        }
+      } = {
         mode: 'Board',
         program: {
           setup: {},
@@ -137,7 +154,7 @@ const dropdownValues = useMemo(() => {
         }
       }
   
-      const zeroMap = {
+      const zeroMap: Record<string, number[]> = {
         forward: [1, 2],
         backward: [0, 3],
         right: [1, 3],
@@ -184,7 +201,25 @@ const dropdownValues = useMemo(() => {
  
   useEffect(() => {
     if (['forward', 'backward', 'left', 'right'].includes(action) && selectedValues.length >= 4) {
-      const jsonOutput = {
+
+      const jsonOutput: {
+        mode: string
+        program: {
+          setup: Record<number, {
+            pinsetup: {
+              pinumber: string
+              mode: string
+            }
+          }>
+          loop: Record<number, {
+            pinwrite: {
+              pin: string
+              type: string
+              value: string
+            }
+          }>
+        }
+      } = {
         mode: 'Board',
         program: {
           setup: {},
@@ -192,8 +227,9 @@ const dropdownValues = useMemo(() => {
         }
       }
 
+
       // Assign pin numbers dynamically from selectedValues
-      const pinMappings = {
+      const pinMappings : Record<string, string[]> = {
         forward: ['HIGH', 'LOW', 'HIGH', 'LOW'],
         backward: ['LOW', 'HIGH', 'LOW', 'HIGH'],
         left: ['LOW', 'HIGH', 'HIGH', 'LOW'],

@@ -1,4 +1,4 @@
-export const Displays = {
+export const Displays : Record<string, string> = {
      SUBO: 
      `
 <block type="cayoLCDsetup"></block>

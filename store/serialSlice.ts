@@ -5,7 +5,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import SerialService from '@/app/services/Serialservice';
 interface SerialState {
   isOpen: boolean;
-  deviceName: string | null;
+  portPath: string | null;
   lastData: string | null;
 }
 
@@ -40,7 +40,7 @@ export const connectSerial = () => async (dispatch: AppDispatch) => {
     await SerialService.connect();
 
     dispatch(setOpen(true));
-    dispatch(setConnected());
+    dispatch(setConnected("Wired"));
 
     console.log("Serial port connected");
   } catch (err) {

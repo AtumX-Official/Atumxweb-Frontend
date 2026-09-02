@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 're
 import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { smoothLandmarks, sizeCanvasBacking, FpsMeter } from '../utils/trackerShared'
 import { normalizePose } from '../utils/normalizeLandmarks'
-import type { Prediction } from '../hooks/useGestureClassifier'
+import type { Prediction } from '../hooks/usePoseClassifier'
 import { LightingMonitor, LIGHTING_MESSAGES, type LightingStatus } from '../utils/lightingCheck'
 
 // const WASM_CDN  = `${import.meta.env.BASE_URL}wasm`
@@ -27,6 +27,8 @@ export interface Landmark {
   z: number
   visibility: number
 }
+
+type FxPt = { x: number; y: number } | null
 
 interface PoseTrackerProps {
   onStats?: (stats: { fps: number; landmarks: Landmark[] }) => void
@@ -130,8 +132,6 @@ const JOINT_FX = '#FFDE21'   // yellow
 const FACE_CONN_FX: [number, number][] = [[0, 2], [2, 7], [0, 5], [5, 8]]
 const FACE_PTS_FX = [0, 2, 5, 7, 8]
 
-type FxPt = { x: number; y: number } | null
-
 /** Resolve the stick-figure geometry (real landmarks + computed neck/pelvis).
  *  Points are null when the underlying landmark(s) aren't confident. */
 function neonRigFx(lm: Landmark[], W: number, H: number): { bones: [FxPt, FxPt][]; joints: FxPt[] } {
@@ -191,7 +191,7 @@ const PoseTracker = forwardRef<PoseTrackerHandle, PoseTrackerProps>(function Pos
   const streamRef = useRef<MediaStream | null>(null)
   const lastSendTimeRef = useRef(0)
   const isProcessingRef = useRef(false)
-  const prevLandmarksRef = useRef<any[] | null>(null)
+  const prevLandmarksRef = useRef<Landmark[] | null>(null)
   const pythonLandmarksRef = useRef<{ landmarks: Landmark[] } | null>(null)
 
   const lightingMonitorRef = useRef<LightingMonitor>(new LightingMonitor())
@@ -297,7 +297,7 @@ const PoseTracker = forwardRef<PoseTrackerHandle, PoseTrackerProps>(function Pos
               throw new Error(res.error || 'Failed to start python pose engine.')
             }
 
-            window.api.pose.onPoseData((dataStr) => {
+            window.api.pose.onPoseData((dataStr: string) => {
               if (cancelled) return
               isProcessingRef.current = false
               if (!dataStr.trim().startsWith('{')) {
@@ -307,7 +307,7 @@ const PoseTracker = forwardRef<PoseTrackerHandle, PoseTrackerProps>(function Pos
               try {
                 const res = JSON.parse(dataStr)
                 if (res.success && res.landmarks) {
-                  const activeLandmarks: Landmark[] = res.landmarks.map((lm: any) => ({
+                  const activeLandmarks: Landmark[] = res.landmarks.map((lm: { x: number; y: number; z?: number; visibility?: number }) => ({
                     x: lm.x,
                     y: lm.y,
                     z: lm.z ?? 0,
@@ -339,7 +339,7 @@ const PoseTracker = forwardRef<PoseTrackerHandle, PoseTrackerProps>(function Pos
               ...(initialFps ? { frameRate: { ideal: initialFps } } : {}),
             },
           })
-        } catch (camErr: any) {
+        } catch (camErr: unknown) {
           console.warn('[PoseTracker] Webcam access blocked or unavailable, creating animated simulation background:', camErr)
           isMockStream = true
 
@@ -388,8 +388,8 @@ const PoseTracker = forwardRef<PoseTrackerHandle, PoseTrackerProps>(function Pos
           }
           drawMockFeed()
 
-          // @ts-ignore
-          stream = mockCamCanvas.captureStream ? mockCamCanvas.captureStream(targetFps) : null
+          const mockCamCanvasTyped = mockCamCanvas as HTMLCanvasElement & { captureStream?: (fps?: number) => MediaStream }
+          stream = mockCamCanvasTyped.captureStream ? mockCamCanvasTyped.captureStream(targetFps) : null
         }
 
         if (cancelled || !stream) {
@@ -417,7 +417,7 @@ const PoseTracker = forwardRef<PoseTrackerHandle, PoseTrackerProps>(function Pos
         function loop(ts: number) {
           if (cancelled) return
           rafRef.current = requestAnimationFrame(loop)
-          if (video.readyState < 2 || video.paused || video.videoWidth === 0) return
+          if (!video || video.readyState < 2 || video.paused || video.videoWidth === 0) return
 
           const fps = fpsMeterRef.current.tick(ts)
           // Surface FPS to the readout chip at ~2 Hz (avoid a per-frame re-render).

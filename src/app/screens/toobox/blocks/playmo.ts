@@ -1,4 +1,4 @@
-export const Playmo = {
+export const Playmo : Record<string, string> = {
     PLAYMO: `
       <block type="Hello"></block>
       <block type="Pushup"></block>

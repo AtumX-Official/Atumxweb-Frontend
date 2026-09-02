@@ -1,7 +1,11 @@
 import { MoreVertical, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export default function UploadControls({ isCameraOn }) {
+interface UploadControlsProps {
+  isCameraOn?: boolean
+}
+
+export default function UploadControls({ isCameraOn }: UploadControlsProps) {
   const [showSettings, setShowSettings] = useState(false);
 
   const [fps, setFps] = useState(24);
@@ -9,11 +13,18 @@ export default function UploadControls({ isCameraOn }) {
   const [holdToRecord, setHoldToRecord] = useState(true);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("cameraSettings"));
-    if (saved) {
-      setFps(saved.fps);
-      setDuration(saved.duration);
-      setHoldToRecord(saved.holdToRecord);
+    const raw = localStorage.getItem("cameraSettings");
+    if (raw) {
+      try {
+        const saved = JSON.parse(raw);
+        if (saved) {
+          if (typeof saved.fps === 'number') setFps(saved.fps);
+          if (typeof saved.duration === 'number') setDuration(saved.duration);
+          if (typeof saved.holdToRecord === 'boolean') setHoldToRecord(saved.holdToRecord);
+        }
+      } catch {
+        /* ignore invalid JSON */
+      }
     }
   }, []);
 
@@ -68,8 +79,9 @@ export default function UploadControls({ isCameraOn }) {
           <div className="flex justify-between items-center mt-2">
             <span>FPS</span>
             <input
+              type="number"
               value={fps}
-              onChange={(e) => setFps(e.target.value)}
+              onChange={(e) => setFps(Number(e.target.value) || 0)}
               className="bg-[#FFDE21] w-12 text-center"
             />
           </div>
@@ -92,8 +104,9 @@ export default function UploadControls({ isCameraOn }) {
             <span>Number of samples</span>
             <div className="flex items-center gap-2">
               <input
+                type="number"
                 value={duration}
-                onChange={(e) => setDuration(e.target.value)}
+                onChange={(e) => setDuration(Number(e.target.value) || 0)}
                 className="bg-[#FFDE21] w-12 text-center"
               />
               <span>seconds</span>

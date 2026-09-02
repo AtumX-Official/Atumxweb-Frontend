@@ -447,7 +447,7 @@ export default function PythonScaffold({
 
   const refresh = async () => {
     const res = await window.api.file.fetchDirs('python')
-    if (res.success) {
+    if (res.success && res.rootPath && res.folderName) {
       setFileTree(res.data)
       setTerminalPath(res.rootPath)
       setRootFolder(res.folderName)
@@ -475,7 +475,7 @@ export default function PythonScaffold({
       ? projects[0].filepath.split("\\").slice(0, -1).join("\\")
       : "";
     const res = await window.api.fileSearch(folderPath, fileSearchText);
-    if (res?.success) {
+    if (res?.success && res.data) {
       setFileResults(res.data);
     } else {
       setFileResults([]);

@@ -1,4 +1,4 @@
-export const gaadi = {
+export const gaadi : Record<string, string> = {
     GAADI: `
       <block type="subumotorset"></block>
       <block type="subumotorrun"></block>

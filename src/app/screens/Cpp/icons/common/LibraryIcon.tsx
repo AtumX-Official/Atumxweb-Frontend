@@ -1,6 +1,9 @@
 import { useSelector } from "react-redux"
+import type {SVGProps} from "react";
 
-export default function LibraryIcon({ className }) {
+type LibraryIconProps = SVGProps<SVGSVGElement>;
+
+export default function LibraryIcon({ className, ...rest } : LibraryIconProps) {
   const themeMode = useSelector((state: any) => state.theme.mode)
   const color = themeMode === 'dark' ? '#000000' : 'black'
 

@@ -1,4 +1,4 @@
-export const Servos = {
+export const Servos : Record<string, string> = {
     GENERIC: `
       <block type="servo_init"></block>
       <block type="servo_individual"></block>

@@ -180,15 +180,19 @@ function HandTrackerRender(
   const streamRef   = useRef<MediaStream | null>(null)
   const lastSendTimeRef = useRef(0)
   const isProcessingRef = useRef(false)
-  const prevLandmarksRef = useRef<Record<number, any[]>>({})
-  const prevWorldLandmarksRef = useRef<Record<number, any[]>>({})
-  const pythonLandmarksRef = useRef<{ hands: HandData[], rawLandmarks?: any } | null>(null)
+  const prevLandmarksRef = useRef<Record<number, NormalizedLandmark[]>>({})
+  const prevWorldLandmarksRef = useRef<Record<number, NormalizedLandmark[]>>({})
+  const pythonLandmarksRef = useRef<{ hands: HandData[]; rawLandmarks?: Float32Array } | null>(null)
   const fpsMeterRef = useRef(new FpsMeter())
   const pythonLandmarksLastTsRef = useRef(0)
   // JS/WASM mode: cache the last detection result and the time of the last
   // detection so we can run inference at targetFps while still rendering at
   // display rate (keeps the heavy work from saturating the main thread).
-  const jsResultRef = useRef<any>(null)
+  const jsResultRef = useRef<{
+    landmarks: NormalizedLandmark[][]
+    worldLandmarks?: NormalizedLandmark[][]
+    handednesses: { score: number; displayName: string }[][]
+  } | null>(null)
   const lastDetectTimeRef = useRef(0)
 
   const lightingMonitorRef = useRef<LightingMonitor>(new LightingMonitor())
@@ -297,7 +301,7 @@ function HandTrackerRender(
               throw new Error(res.error || 'Failed to start python hand engine.')
             }
 
-            window.api.hand.onHandData((dataStr : any) => {
+            window.api.hand.onHandData((dataStr: string) => {
               if (cancelled) return
               isProcessingRef.current = false
               if (!dataStr.trim().startsWith('{')) {
@@ -312,7 +316,7 @@ function HandTrackerRender(
                   const rawHandednesses = res.handednesses ?? []
 
                   pythonLandmarksRef.current = {
-                    hands: rawHands.map((lm: any, idx: number) => ({
+                    hands: rawHands.map((lm: NormalizedLandmark[], idx: number) => ({
                       handedness: rawHandednesses[idx]?.handedness ?? 'Unknown',
                       score:      rawHandednesses[idx]?.score ?? 0,
                       gesture:    detectGesture(lm),
@@ -350,7 +354,7 @@ function HandTrackerRender(
               ...(initialFps ? { frameRate: { ideal: initialFps } } : {}),
             },
           })
-        } catch (camErr: any) {
+        } catch (camErr: unknown) {
           console.warn('[HandTracker] Webcam access blocked or unavailable, creating animated simulation background:', camErr)
           isMockStream = true
 
@@ -399,8 +403,8 @@ function HandTrackerRender(
           }
           drawMockFeed()
 
-          // @ts-ignore
-          stream = mockCamCanvas.captureStream ? mockCamCanvas.captureStream(targetFps) : null
+          const mockCamCanvasTyped = mockCamCanvas as HTMLCanvasElement & { captureStream?: (fps?: number) => MediaStream }
+          stream = mockCamCanvasTyped.captureStream ? mockCamCanvasTyped.captureStream(targetFps) : null
         }
 
         if (cancelled || !stream) {
@@ -428,7 +432,7 @@ function HandTrackerRender(
         function loop(ts: number) {
           if (cancelled) return
           rafRef.current = requestAnimationFrame(loop)
-          if (video && (video.readyState < 2 || video?.paused || video?.videoWidth === 0)) return
+          if (!video || video.readyState < 2 || video.paused || video.videoWidth === 0) return
 
           const fps = fpsMeterRef.current.tick(ts)
           // Surface FPS to the readout chip at ~2 Hz (avoid a per-frame re-render).
@@ -600,34 +604,34 @@ function HandTrackerRender(
           } else if (isMockStream) {
             // 4. Mock simulation mode
             const time = performance.now() / 1000
-            const wrist = { x: 0.5 + Math.sin(time) * 0.05, y: 0.7 + Math.cos(time) * 0.02, z: 0 }
+            const wrist: NormalizedLandmark = { x: 0.5 + Math.sin(time) * 0.05, y: 0.7 + Math.cos(time) * 0.02, z: 0, visibility: 1 }
             const simLms: NormalizedLandmark[] = [
               wrist, // wrist (0)
               // Thumb (1-4)
-              { x: wrist.x - 0.08, y: wrist.y - 0.06, z: 0 },
-              { x: wrist.x - 0.12, y: wrist.y - 0.12, z: 0 },
-              { x: wrist.x - 0.15, y: wrist.y - 0.16, z: 0 },
-              { x: wrist.x - 0.18 + Math.sin(time * 2) * 0.02, y: wrist.y - 0.18, z: 0 },
+              { x: wrist.x - 0.08, y: wrist.y - 0.06, z: 0, visibility: 1 },
+              { x: wrist.x - 0.12, y: wrist.y - 0.12, z: 0, visibility: 1 },
+              { x: wrist.x - 0.15, y: wrist.y - 0.16, z: 0, visibility: 1 },
+              { x: wrist.x - 0.18 + Math.sin(time * 2) * 0.02, y: wrist.y - 0.18, z: 0, visibility: 1 },
               // Index (5-8)
-              { x: wrist.x - 0.04, y: wrist.y - 0.12, z: 0 },
-              { x: wrist.x - 0.05, y: wrist.y - 0.20, z: 0 },
-              { x: wrist.x - 0.06, y: wrist.y - 0.26, z: 0 },
-              { x: wrist.x - 0.07 + Math.cos(time * 3) * 0.02, y: wrist.y - 0.32, z: 0 },
+              { x: wrist.x - 0.04, y: wrist.y - 0.12, z: 0, visibility: 1 },
+              { x: wrist.x - 0.05, y: wrist.y - 0.20, z: 0, visibility: 1 },
+              { x: wrist.x - 0.06, y: wrist.y - 0.26, z: 0, visibility: 1 },
+              { x: wrist.x - 0.07 + Math.cos(time * 3) * 0.02, y: wrist.y - 0.32, z: 0, visibility: 1 },
               // Middle (9-12)
-              { x: wrist.x, y: wrist.y - 0.14, z: 0 },
-              { x: wrist.x, y: wrist.y - 0.23, z: 0 },
-              { x: wrist.x, y: wrist.y - 0.30, z: 0 },
-              { x: wrist.x + Math.sin(time * 3.5) * 0.02, y: wrist.y - 0.36, z: 0 },
+              { x: wrist.x, y: wrist.y - 0.14, z: 0, visibility: 1 },
+              { x: wrist.x, y: wrist.y - 0.23, z: 0, visibility: 1 },
+              { x: wrist.x, y: wrist.y - 0.30, z: 0, visibility: 1 },
+              { x: wrist.x + Math.sin(time * 3.5) * 0.02, y: wrist.y - 0.36, z: 0, visibility: 1 },
               // Ring (13-16)
-              { x: wrist.x + 0.04, y: wrist.y - 0.12, z: 0 },
-              { x: wrist.x + 0.05, y: wrist.y - 0.20, z: 0 },
-              { x: wrist.x + 0.06, y: wrist.y - 0.26, z: 0 },
-              { x: wrist.x + 0.07 + Math.cos(time * 4) * 0.02, y: wrist.y - 0.31, z: 0 },
+              { x: wrist.x + 0.04, y: wrist.y - 0.12, z: 0, visibility: 1 },
+              { x: wrist.x + 0.05, y: wrist.y - 0.20, z: 0, visibility: 1 },
+              { x: wrist.x + 0.06, y: wrist.y - 0.26, z: 0, visibility: 1 },
+              { x: wrist.x + 0.07 + Math.cos(time * 4) * 0.02, y: wrist.y - 0.31, z: 0, visibility: 1 },
               // Pinky (17-20)
-              { x: wrist.x + 0.08, y: wrist.y - 0.09, z: 0 },
-              { x: wrist.x + 0.10, y: wrist.y - 0.15, z: 0 },
-              { x: wrist.x + 0.11, y: wrist.y - 0.20, z: 0 },
-              { x: wrist.x + 0.12 + Math.sin(time * 4.5) * 0.02, y: wrist.y - 0.24, z: 0 },
+              { x: wrist.x + 0.08, y: wrist.y - 0.09, z: 0, visibility: 1 },
+              { x: wrist.x + 0.10, y: wrist.y - 0.15, z: 0, visibility: 1 },
+              { x: wrist.x + 0.11, y: wrist.y - 0.20, z: 0, visibility: 1 },
+              { x: wrist.x + 0.12 + Math.sin(time * 4.5) * 0.02, y: wrist.y - 0.24, z: 0, visibility: 1 },
             ]
 
             const smoothed = smoothLandmarks(prevLandmarksRef.current[0], simLms, 0.45)

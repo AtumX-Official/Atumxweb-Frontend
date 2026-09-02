@@ -1,6 +1,11 @@
 import { Camera, Upload, Edit3 } from "lucide-react";
 
-export function ClassCard({ placeholder, onCameraClick }) {
+interface ClassCardProps {
+  placeholder?: string
+  onCameraClick?: () => void
+}
+
+export function ClassCard({ placeholder, onCameraClick }: ClassCardProps) {
     return (
     <div className="w-[300px] h-[120px] bg-white border-2 border-black rounded-lg p-3 flex items-center gap-3 relative">
       

@@ -1,5 +1,8 @@
 import { useSelector } from "react-redux"
-export default function Help({ className }) {
+import type {SVGProps} from "react";
+
+type HelpIconProps = SVGProps<SVGSVGElement>;
+export default function Help({ className, ...rest } : HelpIconProps) {
     const themeMode = useSelector((state: any) => state.theme.mode)
     const color = themeMode === 'dark' ? 'white' : '#E8F5E9'
 
