@@ -222,7 +222,10 @@ export default function ChatPanel({
           { role: 'assistant', text: warn + (note ? note + '\n\n' : '') + tail },
         ])
       } else {
-        setMessages((prev) => [...prev, { role: 'error', text: res?.error || 'Generation failed.' }])
+        const errorMsg = typeof res?.error === 'string' ? res.error : 
+          res?.error?.message ? String(res.error.message) : 
+          JSON.stringify(res?.error) || 'Generation failed.'
+        setMessages((prev) => [...prev, { role: 'error', text: errorMsg }])
       }
     } catch (err) {
       setMessages((prev) => [
@@ -252,7 +255,10 @@ export default function ChatPanel({
           { role: 'assistant', text: '✓ Applied a fix to your project. Click Run to try again.' },
         ])
       } else {
-        setMessages((prev) => [...prev, { role: 'error', text: r?.error || 'Could not fix it.' }])
+        const errorMsg = typeof r?.error === 'string' ? r.error : 
+          r?.error?.message ? String(r.error.message) : 
+          JSON.stringify(r?.error) || 'Could not fix it.'
+        setMessages((prev) => [...prev, { role: 'error', text: errorMsg }])
       }
     } catch (err) {
       setMessages((prev) => [

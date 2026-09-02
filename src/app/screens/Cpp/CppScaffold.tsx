@@ -25,8 +25,9 @@ import SettingModal from '../../components/supporting/SettingModal'
 import ArrowIcon from "./icons/ArrowIcon";
 import Swal from "sweetalert2";
 import { IoTerminal } from "react-icons/io5";
+import { FiX } from "react-icons/fi";
 import { Tooltip } from '../../components/Tooltip'
-import Header from '../../components//Header'
+import Header from '../../components/Header'
 import FileExplorer from './Sidebar/FileExplorer'
 import { CopyToast } from '../../components/supporting/Popups'
 import { useSelector, useDispatch } from 'react-redux'
@@ -80,7 +81,7 @@ interface CppScaffoldProps {
   output: any
   onSave: (mode: "save" | "saveAs") => void | Promise<boolean>
   onImport: () => void
-  onNewFile: () => void
+  onNewFile: (name?: string) => void
   serialData: string
   onSerialData: (data: string) => void
   onClear: () => void
@@ -221,16 +222,31 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
       ? `${clickbg} ${bgtext} ml-2 mr-2 mt-1 mb-1 font-bold`
       : `hover:${hoverbg} ${bgtext} ml-2 mr-2 mt-1 mb-1 font-bold`
     }`;
-  // Match the Python editor: a new project starts immediately as an in-memory
-  // untitled tab. The user can save it to a browser-selected folder when ready.
+    // New Project: open a centered "Create New Project" modal so the user picks a
+  // name before we create anything. The project is only created once a valid
+  // name is entered — we never create an untitled project immediately.
   const onNewProject = () => {
+    setNewProjectName("")
+    setShowNewProjectModal(true)
+  }
+
+  const handleCloseProjectModal = () => {
+    setShowNewProjectModal(false)
+    setNewProjectName("")
+  }
+
+  const handleCreateProject = () => {
+    const trimmed = newProjectName.trim()
+    if (!trimmed) return
+
     setIsImported(true)
-    setProjectName('untitled')
-    setRootFolder('untitled')
+    setProjectName(trimmed)
+    setRootFolder(trimmed)
     setTerminalPath('')
     setFileTree([])
     onOpenProject?.()
-    onNewFile()
+    onNewFile(trimmed)
+    setShowNewProjectModal(false)
   }
 
   // Save to Kit handler — reuses the Python editor's exact browser flow:
@@ -665,7 +681,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
             // the right firmware (no-op when it already is).
             await serialService.switchToMode("Cpp Mode");
           } else {
-            console.error("No board port found");
+            console.warn("No board port found");
           }
         } else {
           await serialService.disconnect();
@@ -709,6 +725,8 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   const [serialDropdownOpen, setSerialDropdownOpen] = useState(false)
   const [serialPorts, setSerialPorts] = useState<SerialPort[]>([])
   const [selectedSerialPort, setSelectedSerialPort] = useState<SerialPort | null>(null)
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
 
   const refreshSerialPorts = async () => {
     try {
@@ -1386,6 +1404,69 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
         />
         {showSavetokitpop && (
           <Savetokitpop type="save" />
+                )}
+        {showNewProjectModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className={`relative w-[420px] rounded-xl shadow-2xl border-2 border-black ${
+              themeMode === 'dark' ? 'bg-[#1E1E1E] text-white' : 'bg-white text-black'
+            }`}>
+              {/* Red X close button */}
+              <button
+                onClick={handleCloseProjectModal}
+                className="absolute top-3 right-3 text-red-500 hover:text-red-600 hover:scale-110 transition-transform z-10"
+                aria-label="Close"
+              >
+                <FiX className="w-6 h-6" />
+              </button>
+
+              {/* Title */}
+              <div className="px-6 py-5 border-b border-gray-400">
+                <h2 className="text-xl font-bold">Create New Project</h2>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-5">
+                <label className="block text-sm font-medium mb-2">Project Name</label>
+                <input
+                  type="text"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleCreateProject()
+                    }
+                    if (e.key === 'Escape') {
+                      e.preventDefault()
+                      handleCloseProjectModal()
+                    }
+                  }}
+                  placeholder="Enter project name..."
+                  className={`w-full px-4 py-2 rounded-md border-2 border-black text-sm focus:outline-none ${
+                    themeMode === 'dark'
+                      ? 'bg-[#000000] text-white'
+                      : 'bg-[#D6D6D6] text-black'
+                  }`}
+                  autoFocus
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-400 flex justify-end">
+                <button
+                  onClick={handleCreateProject}
+                  disabled={!newProjectName.trim()}
+                  className={`px-6 py-2 rounded-md font-bold transition-colors border-2 border-black ${
+                    newProjectName.trim()
+                      ? 'bg-[#F6EC24] hover:bg-[#e0d020] text-black'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 {isSwitchingOta && (
   <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">

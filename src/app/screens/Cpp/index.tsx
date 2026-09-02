@@ -250,8 +250,8 @@ export default function CppPage() {
       appendOutput(`> Could not open ${name}: ${error instanceof Error ? error.message : String(error)}\n`, 'err')
     }
   }
-  const handleNewFileCreation = () => {
-    createNewTab('untitled', '', '');
+  const handleNewFileCreation = (name = 'untitled') => {
+    createNewTab(name, '', '');
     appendOutput(`> New project created`, 'out');
   }
 
@@ -456,7 +456,7 @@ export default function CppPage() {
       const res = await window.api.file.createProject(name) as any
       if (res?.success && res.data) return res.data
       if (/exist/i.test(String(res?.error || ''))) { name = `${base}_${attempt + 1}`; continue }
-      appendOutput(`> Could not create a project for the generated code: ${res?.error || 'unknown error'}\n`, 'err')
+      appendOutput(`> Could not create a project for the generated code: ${typeof res?.error === 'string' ? res.error : JSON.stringify(res?.error) || 'unknown error'}\n`, 'err')
       return ''
     }
     // Every slugged name collided — fall back to a guaranteed-unique timestamp.
@@ -634,8 +634,8 @@ export default function CppPage() {
       appendOutput(`> AI fix applied to the project. Click Run to try again.\n`, 'out')
       return { ok: true }
     }
-    appendOutput(`> Could not fix it: ${res?.error || 'unknown error'}\n`, 'err')
-    return { ok: false, error: res?.error || 'Could not fix it.' }
+    appendOutput(`> Could not fix it: ${typeof res?.error === 'string' ? res.error : JSON.stringify(res?.error) || 'unknown error'}\n`, 'err')
+    return { ok: false, error: typeof res?.error === 'string' ? res.error : JSON.stringify(res?.error) || 'Could not fix it.' }
   }
 
   const handleRunUsingMpRemote = async () => {
