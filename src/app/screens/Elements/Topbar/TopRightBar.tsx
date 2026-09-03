@@ -251,7 +251,7 @@ return(
           <UnderdevelopmentPopup onNo={() => setShowUnderDev(false)} />
         )}
          {showSettings && (
-          <SettingModal onClose={() => setShowSettings(false)} />
+          <SettingModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
         )}
 
 </div>

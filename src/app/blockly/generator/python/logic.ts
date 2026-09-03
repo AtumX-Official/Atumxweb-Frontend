@@ -7,17 +7,19 @@ customPythonGenerator.forBlock['if'] = function (block) {
   return this.scrub_(block, code)
 }
 
-customPythonGenerator.forBlock['custom_if_else'] = function (block) {
-  const test = this.valueToCode(block, 'TEST', this.ORDER_CONDITIONAL) || 'False'
-  const ifTrue = this.statementToCode(block, 'IF_TRUE') || 'None'
-  const ifFalse = this.statementToCode(block, 'IF_FALSE') || 'None'
+customPythonGenerator.forBlock['logical_if'] = function (block) {
+  const left = this.valueToCode(block, 'LEFT', this.ORDER_LOGICAL_AND) || 'False'
+  const right = this.valueToCode(block, 'RIGHT', this.ORDER_LOGICAL_AND) || 'False'
+  const op = block.getFieldValue('LOGIC_OP') === 'AND' ? 'and' : 'or'
+  return [`${left} ${op} ${right}`, this.ORDER_LOGICAL_AND]
+}
 
-  // Return the expression with proper parentheses for safety
-  const code = `if ${test}:
-    ${ifTrue}\nelse:
-    ${ifFalse}
-  `
-  return [code, this.ORDER_CONDITIONAL]
+customPythonGenerator.forBlock['custom_if_else'] = function (block) {
+  const condition = this.valueToCode(block, 'COND', this.ORDER_CONDITIONAL) || 'False'
+  const doCode = this.statementToCode(block, 'DO') || '    pass\n'
+  const elseCode = this.statementToCode(block, 'ELSE') || '    pass\n'
+
+  return `if ${condition}:\n${doCode}else:\n${elseCode}`
 }
 
 customPythonGenerator.forBlock['custom_compare'] = function (block) {

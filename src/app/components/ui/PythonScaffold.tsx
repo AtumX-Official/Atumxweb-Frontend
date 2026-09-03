@@ -185,7 +185,6 @@ export default function PythonScaffold({
   const [sidebarWidth, setSidebarWidth] = useState(270)
   const isResizingSidebar = useRef(false)
   const scrollPosRef = useRef(0);
-  const settingsRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
   //const [open, setOpen] = useState(false);
   const [open, setOpen] = useState<"save" | "kit" | null>(null);
@@ -738,22 +737,6 @@ export default function PythonScaffold({
   }, [onSave, onImport, onNewFile, onRun, onStop, leftPanel, showSettings, showTerminal])
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
-        setShowSettings(false)
-      }
-    }
-
-    if (showSettings) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showSettings])
-
-  useEffect(() => {
     const handler = () => setOpen(null);
     window.addEventListener("click", handler);
     return () => window.removeEventListener("click", handler);
@@ -765,7 +748,15 @@ export default function PythonScaffold({
   };
 
   const items = [
-    { Icon: Settings, label: "Settings", onClick: () => setShowSettings(true) },
+    {
+      Icon: Settings,
+      label: "Settings",
+      onClick: (event: React.MouseEvent<HTMLDivElement>) => {
+        event.preventDefault()
+        event.stopPropagation()
+        setShowSettings(true)
+      }
+    },
     { Icon: Help, label: "Python manual", onClick: onOpenpdf }
   ];
 
@@ -796,6 +787,13 @@ export default function PythonScaffold({
 
   return (
     <>
+      {showSettings && (
+        <SettingModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
       <Header />
       <div className="flex flex-col h-screen ">
         {/* Top Toolbar */}
@@ -1022,8 +1020,15 @@ export default function PythonScaffold({
 
                 {/* Remaining Icons (USB, Star, Settings) */}
                 {items.map(({ Icon, label, onClick }, i) => (
-               <div key={i} className="group relative w-12 h-13 bg-black rounded border-2 border-black hover:border-[#FFFFFF] transition-all duration-200 cursor-pointer flex items-center justify-center"
-               onClick={onClick}
+               <div
+                 key={i}
+                 className="group relative w-12 h-13 bg-black rounded border-2 border-black hover:border-[#FFFFFF] transition-all duration-200 cursor-pointer flex items-center justify-center"
+                 onMouseDown={(e) => e.stopPropagation()}
+                 onClick={(e) => {
+                   e.preventDefault()
+                   e.stopPropagation()
+                   onClick(e as unknown as React.MouseEvent<HTMLDivElement>)
+                 }}
                >
                <Icon className="w-8 h-8" />
                <Tooltip text={label} />
@@ -1100,14 +1105,6 @@ export default function PythonScaffold({
                   onOpenBoardFile={onOpenBoardFile}
                 />
 
-            {/* Settings Modal */}
-            {showSettings && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#BEBEBE]/20">
-                <div ref={settingsRef} className="drop-shadow-lg rounded-xl">
-                  <SettingModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
-                </div>
-              </div>
-            )}
             <Deletepythonfile
               open={isModalOpen}
               title="Delete File"
