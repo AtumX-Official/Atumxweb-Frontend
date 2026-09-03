@@ -11,6 +11,7 @@ import Gripper from '../assets/Gripperimg'
 import Walker from '../assets/Walkerimg'
 import Crawler from '../assets/Crawlerimg'
 import BackgroundImg from "../assets/Background.svg?url"
+import DemoBoard from '../assets/Demo';
 
 const Models: React.FC = () => {
   const dispatch = useDispatch()
