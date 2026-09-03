@@ -45,7 +45,7 @@ Blockly.Blocks['play_note'] = {
       this.setTooltip('Change the color of the selected LED');
   
       // 👇 apply red-field validation
-      this.setOnChange(function () {
+      this.setOnChange(function (this : Blockly.Block) {
         integervalidatior(this, 'value');
       });
     }
@@ -196,7 +196,7 @@ Blockly.Blocks['play_note'] = {
             this.setInputsInline(true);
             this.setTooltip('Generates a random number between the given range.');
         
-            this.setOnChange(function () {
+            this.setOnChange(function (this : Blockly.Block) {
               validateStartEnd(this);
             });
           }

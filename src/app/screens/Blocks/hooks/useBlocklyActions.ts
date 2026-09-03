@@ -11,14 +11,16 @@ import {
 } from '../../../../../store/websocketSlice'
 import { sendSerialMessage } from '../../../../../store/serialSlice'
 import SerialService from '@/app/services/Serialservice'
+import type  {ModelBundleRaw}  from '@/app/blockly/suboblocks/ai'
+
 declare global {
   interface Window {
-    __aiModels?: Record<string, object>
+    __aiModels?: Record<string, ModelBundleRaw>
     __aiLoadedModels?: Array<{
       fileName: string
       displayName: string
       classNames: string[]
-      blockTypes: string[]
+      blockTypes: string[]  
     }>
   }
 }
@@ -146,13 +148,16 @@ export function useBlocklyActions({ workspaceRef, isConnected, mode }: UseBlockl
     console.log("Json:", JSON.stringify(result, null, 2));
         setRunStatus('Stop')
 
-        if (mode !== "Wireless") {
-           SerialService.startReading((data: string) => {
-            if (/PDone/i.test(data)) {
-              setRunStatus("Start");
-            }
-          });
+    if (mode !== "Wireless") {
+      const unsubscribe = SerialService.addDataListener((data: string) => {
+        if (/PDone/i.test(data)) {
+          setRunStatus("Start");
+          unsubscribe(); // optional: stop listening once we got what we needed
         }
+      });
+
+      SerialService.startReading();
+    }
 
     // Start AI overlay if workspace contains any AI block whose model is loaded.
     // Two ways to introduce an AI block:

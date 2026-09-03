@@ -1,5 +1,10 @@
+interface TooltipProps {
+  text : string,
+  marginTop? : string,
+  py? : string
+}
 
-export const Tooltip = ({ text, marginTop = "mt-1",py="py-[3px]"}) => (
+export const Tooltip = ({ text , marginTop = "mt-1",py="py-[3px]"} : TooltipProps) => (
   <span
     className={`
       absolute top-[100%] left-1/2 -translate-x-[20%] ${marginTop} ${py}

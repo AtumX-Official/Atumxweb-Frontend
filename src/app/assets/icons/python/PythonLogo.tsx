@@ -1,4 +1,8 @@
-export default function PythonLogo({ className }) {
+import type { SVGProps } from "react"
+
+type PythonLogoProps = SVGProps<SVGSVGElement>;
+
+export default function PythonLogo({ className,...rest } : PythonLogoProps) {
   return (
     <svg
       className={className}

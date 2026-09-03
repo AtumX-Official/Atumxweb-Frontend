@@ -1,4 +1,4 @@
-export default {
+const gameHelper: Record<string, string> = {
   brick_breaker: `from machine import Pin
 import neopixel
 import time
@@ -1640,3 +1640,6 @@ while True:
     time.sleep(0.35)
 `
 }
+
+
+export default gameHelper

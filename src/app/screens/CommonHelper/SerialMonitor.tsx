@@ -19,7 +19,7 @@ const SerialMonitor = ({
   const themeMode = useSelector((state: RootState) => state.theme.mode);
   const ws = getWebSocket();
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [autoScroll, setAutoScroll] = useState(() => {
+  const [autoScroll, setAutoScroll] = useState<boolean>(() => {
     const saved = window.localStorage.getItem("serial_autoscroll");
     return saved !== null ? JSON.parse(saved) : true;
   });

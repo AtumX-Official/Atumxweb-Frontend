@@ -39,7 +39,7 @@ export default function HomePage() {
   /* -------------------- Handlers -------------------- */
 
   const handleModeChange = (newMode: Mode) => {
-    if(newMode === 'ai box' || newMode === "games"){
+    if(newMode === "games"){
       setShowUnderDev(true)
       return
     }
@@ -93,16 +93,17 @@ export default function HomePage() {
 
       case "ai box":
         return (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto justify-center">
-            <ModeCard
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto justify-center">
+            {/* Will this bloacks component come here ? */}
+            {/* <ModeCard
               mode={mode}
-              linkto="Mainlayout"
+              linkto="mainlayout"
               image="blocks"
               text="BLOCKS"
-            />
+            /> */}
             <ModeCard
               mode={mode}
-              linkto="gesture"
+              linkto="ai"
               image="gesture"
               text="HAND GESTURE"
             />

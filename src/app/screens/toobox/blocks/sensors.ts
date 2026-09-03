@@ -1,4 +1,4 @@
-export const Sensors = {
+export const Sensors : Record<string, string> = {
     SNOWFLAKE: 
        `
       <block type="sfconnect_us1"></block>

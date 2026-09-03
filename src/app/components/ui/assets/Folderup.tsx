@@ -8,7 +8,7 @@ export default function Folderup ({className=""}){
 <path d="M17.7064 20.8224C17.9782 21.0592 18.419 21.0592 18.6908 20.8224L22.0927 17.8565C22.6359 17.383 22.6357 16.6156 22.0923 16.1423L18.6883 13.1776C18.4165 12.9408 17.9757 12.9408 17.7039 13.1776C17.432 13.4143 17.432 13.7982 17.7039 14.0349L20.6173 16.5724C20.8892 16.8091 20.8892 17.193 20.6173 17.4298L17.7064 19.9651C17.4346 20.2018 17.4346 20.5857 17.7064 20.8224Z" fill="black"/>
 </g>
 <defs>
-<filter id="filter0_d_4905_10485" x="0" y="0" width="28" height="28" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_4905_10485" x="0" y="0" width="28" height="28" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="0.5" dy="1"/>

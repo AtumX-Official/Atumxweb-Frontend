@@ -19,7 +19,7 @@ return(
 <path fillRule="evenodd" clipRule="evenodd" d="M109.848 40.9912L124.991 25.8478C125.774 25.0648 125.774 23.7919 124.991 23.0089C124.207 22.2246 122.935 22.2246 122.152 23.0089L107.009 38.1523C106.225 38.9353 106.225 40.2068 107.009 40.9912C107.792 41.7742 109.065 41.7742 109.848 40.9912Z" fill="black"/>
 </g>
 <defs>
-<filter id="filter0_d_491_819" x="0" y="0" width="232" height="72" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_491_819" x="0" y="0" width="232" height="72" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dy="4"/>

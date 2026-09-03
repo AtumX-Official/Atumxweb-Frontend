@@ -23,7 +23,7 @@ let setup={
       this.jsonInit(setup);
       this.setInputsInline(false);
     },
-    customContextMenu: function(options) {
+    customContextMenu: function(options : (Blockly.ContextMenuRegistry.ContextMenuOption | Blockly.ContextMenuRegistry.LegacyContextMenuOption)[]) {
       // Filter out “Inline Inputs” / “External Inputs”
       const filtered = options.filter(opt => opt.text !== 'External Inputs' && opt.text !== 'Inline Inputs');
       options.length = 0;

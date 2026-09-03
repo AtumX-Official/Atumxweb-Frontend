@@ -1,6 +1,7 @@
 import customGenerator from ".";
+import * as Blockly from 'blockly/core';
 
-customGenerator.forBlock["move_forward"] = function(block){
+customGenerator.forBlock["move_forward"] = function(block : Blockly.Block){
     const steps = block.getFieldValue('STEPS') || '10'; // Default to '10' if not provided
     const jsonOutput = {
       botcmd: {
@@ -11,7 +12,7 @@ customGenerator.forBlock["move_forward"] = function(block){
     return JSON.stringify(jsonOutput, null, 2); 
 }
 
-customGenerator.forBlock["move_Backward"] = function(block){
+customGenerator.forBlock["move_Backward"] = function(block : Blockly.Block){
     const steps = block.getFieldValue('STEPS') || '10'; // Default to '10' if not provided
     const jsonOutput = {
       botcmd: {
@@ -58,7 +59,7 @@ customGenerator.forBlock["dogsitup"] = function(){
     return JSON.stringify(jsonOutput, null, 2); 
 }
 
-customGenerator.forBlock["walker_leg_control"] = function(block){
+customGenerator.forBlock["walker_leg_control"] = function(block : Blockly.Block){
     const leg =  block.getFieldValue('leg');
     const dir = block.getFieldValue('dir')
     const jsonOutput = {
@@ -71,13 +72,13 @@ customGenerator.forBlock["walker_leg_control"] = function(block){
         return JSON.stringify(jsonOutput);
   }
 
-  customGenerator.forBlock['servo'] = function(block) {
+  customGenerator.forBlock['servo'] = function(block : Blockly.Block) {
     const leg = block.getFieldValue('leg');
     const part = block.getFieldValue('part');
     const angle = block.getFieldValue('angle');
   
     // Mapping table
-    const mapping = {
+    const mapping : Record<string , string> = {
       "1-Shoulder": "1",
       "1-Knee": "2",
       "2-Shoulder": "3",

@@ -1,4 +1,4 @@
-export const drone = {
+export const drone : Record<string, string> = {
   DRONE: `
       <block type="setup_drone"></block>
       <block type="drone_move_direction"></block>

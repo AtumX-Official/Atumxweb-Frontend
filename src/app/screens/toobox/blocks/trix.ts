@@ -1,4 +1,4 @@
-export const trixkit = {
+export const trixkit : Record<string, string> = {
     GRIPPER: `
     <block type="move_gripper"></block>
     <block type="move_arm"></block>

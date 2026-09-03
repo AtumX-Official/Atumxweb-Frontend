@@ -1,4 +1,8 @@
-export default function Folder({ className }) {
+import type { SVGProps } from "react";
+
+type FolderIconProps = SVGProps<SVGSVGElement>;
+
+export default function Folder({ className, ...rest } : FolderIconProps) {
   return (
     <svg
       className={className}

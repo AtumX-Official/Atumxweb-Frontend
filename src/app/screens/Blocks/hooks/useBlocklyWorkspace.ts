@@ -119,7 +119,7 @@ export function useBlocklyWorkspace({
       })
     }
 
-    const userEditEvents = [
+    const userEditEvents: string[] = [
       Blockly.Events.BLOCK_CREATE,
       Blockly.Events.BLOCK_CHANGE,
       Blockly.Events.BLOCK_DELETE,

@@ -8,7 +8,7 @@ export default function AddBlock({ className }: { className?: string }) {
 <path d="M34 50V14" stroke="black" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
 <path d="M16 32H52" stroke="black" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
 <defs>
-<filter id="filter0_d_3260_8328" x="0" y="0" width="72" height="72" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_3260_8328" x="0" y="0" width="72" height="72" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="2" dy="4"/>

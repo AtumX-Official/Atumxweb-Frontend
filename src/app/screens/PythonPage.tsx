@@ -14,16 +14,21 @@ import logicSuggestions from '../blockly/python/logic'
 import sensorSuggestions from '../blockly/python/sensor'
 import serialSuggestions from '../blockly/python/serial'
 import standardSuggestions from '../blockly/python/standardSuggestions'
-import { setKit } from '../../store/kitslice'
+import { setKit } from '../../../store/kitslice'
 import { SaveToKitPopup } from './Elements/SavetokitPopup'
 import {Savetokitpop} from '../components/supporting/Popups'
 import { handlePythonImport,handlePythonSave,handleExitPythonApp,handleUnsavedBeforeAction } from '../screens/CommonHelper/ListPorts'
 import PDFComponent from './Elements/Topbar/Pdfcomponent'
-import samplePdf from './Elements/Topbar/Code App (V1) - Python User Manual.pdf';
 import { DndContext } from "@dnd-kit/core";
 import {DeletionToast,FlashSuccessPopup,PressResetPopup} from '../components/supporting/Popups'
-import pythonHoverInfo from '../assets/Misc Data/pythonHoverInfo.json'
+import pythonHoverInfoData from '../assets/Misc Data/pythonHoverInfo.json'
+import { FEATURES } from '../config/features'
+import { notFound } from 'next/navigation'
 
+// const samplePdf = '/manuals/Code App (V1) - Python User Manual.pdf';
+const samplePdf = './Elements/Topbar/Code App (V1) - Python User Manual.pdf';
+
+const pythonHoverInfo = pythonHoverInfoData as Record<string, string>
 interface Tab {
   id: string;
   name: string;
@@ -39,8 +44,17 @@ type TerminalLine = {
   type: 'out' | 'err';
 };
 
+type FileContentData = {
+  filename: string;
+  content: string;
+};
 
-export default function PythonPage() {
+type FileDeleteData = {
+  filename: string;
+};
+
+
+function PythonPageContent() {
   // --- Multi-Tab State ---
   const [tabs, setTabs] = useState<Tab[]>([
     { id: 'initial', name: 'untitled', code: '', path: '', isUnsaved: false, originalCode: '',source:'user',isReadOnly:false }
@@ -216,7 +230,7 @@ useEffect(() => {
     createNewTab('untitled ', '', '');
     appendOutput(`> New project created`, 'out');
   }
-  const closeTab = (e: React.MouseEvent, id: string) => {
+  const closeTab = async(e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (tabs.length === 1) {
       handleNewFileCreation(); // Reset if last tab
@@ -225,7 +239,7 @@ useEffect(() => {
     const tabToClose = tabs.find(t => t.id === id);
     if (!tabToClose) return;
 
-    const result =  handleUnsavedBeforeAction({
+    const result = await handleUnsavedBeforeAction({
       tab: tabToClose,
       onSave: async () => {
         return await handlePythonSave({
@@ -480,7 +494,7 @@ useEffect(() => {
   ];
 
   useEffect(() => {
-    loader.init().then((monaco) => {
+    loader.init().then(() => {
       monaco.languages.register({ id: 'python' })
       monaco.languages.registerCompletionItemProvider('python', {
         provideCompletionItems: (model) => {
@@ -499,7 +513,7 @@ useEffect(() => {
         }
       });
       monaco.languages.registerHoverProvider('python', {
-        provideHover: function (model, position) {
+        provideHover: function (model : monaco.editor.ITextModel, position : monaco.Position) {
 
           const word = model.getWordAtPosition(position);
           if (!word) return null;
@@ -575,7 +589,7 @@ useEffect(() => {
     };
   }, []);
   useEffect(() => {
-    const handler = (data) => {
+    const handler = (data : FileContentData) => {
       const { filename, content } = data;
   
       setTabs(prevTabs => {
@@ -588,15 +602,17 @@ useEffect(() => {
   
         const newId = Date.now().toString();
   
-        const newTab = {
+        const newTab: Tab = {
           id: newId,
           name: filename,
           code: content,
           originalCode: content,
           isUnsaved: false,
-          path: ''
+          path: '',
+          isReadOnly: false,
+          source: 'user',
         };
-  
+    
         setActiveTabId(newId);
   
         return [...prevTabs, newTab];
@@ -608,7 +624,7 @@ useEffect(() => {
     
   }, []);
   useEffect(() => {
-    const deleteHandler = (data) => {
+    const deleteHandler = (data : FileDeleteData) => {
       const { filename } = data;
   
       setTabs(prevTabs =>
@@ -840,7 +856,6 @@ useEffect(() => {
 
 <FlashSuccessPopup
         open={flashSuccessOpen}
-        rightCornerImage="" // empty string
         onOk={handleFlashOk}
       />
 
@@ -852,4 +867,15 @@ useEffect(() => {
     </div>
     </DndContext>
   )
+
+
+  
+}
+
+
+export default function PythonPage() {
+  if (!FEATURES.pythonMode) {
+    notFound()
+  }
+  return <PythonPageContent />
 }

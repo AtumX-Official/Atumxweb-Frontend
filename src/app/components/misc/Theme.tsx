@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSelector, useDispatch } from "react-redux"
-import { toggleTheme } from "../../../store/themeSlice";
+import { toggleTheme } from "../../../../store/themeSlice";
 interface ThemeProps extends React.SVGProps<SVGSVGElement> {
     isSelected?: boolean;
     className?: string;
@@ -41,7 +41,7 @@ return(
 <path fillRule="evenodd" clipRule="evenodd" d="M108.824 182.69L170.115 163.241L163.219 185.421L125.694 199.263L108.824 182.69Z" fill="#7B07FF"/>
 </g>
 <defs>
-<filter id="filter0_d_1373_2238" x="0" y="0" width="256" height="276" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_1373_2238" x="0" y="0" width="256" height="276" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="2" dy="4"/>
@@ -89,7 +89,7 @@ return(
 <path fillRule="evenodd" clipRule="evenodd" d="M166.292 40.9889C165.852 40.7548 165.33 40.7372 164.876 40.941C164.422 41.1447 164.09 41.5475 163.975 42.0299C162.748 47.205 159.515 60.8057 158.56 64.8493C158.397 65.5321 158.702 66.2405 159.305 66.5954C160.572 67.3308 162.714 68.5784 164.036 69.3489C164.706 69.7402 165.56 69.5965 166.062 69.0075C168.915 65.6859 177.949 55.1456 181.324 51.2019C181.642 50.8342 181.771 50.3437 181.683 49.8687C181.595 49.393 181.29 48.9842 180.863 48.7561C177.42 46.9196 169.803 42.8605 166.292 40.9889Z" fill="#F6268B"/>
 <path fillRule="evenodd" clipRule="evenodd" d="M172.12 86.1567C171.89 85.5893 172.012 84.9429 172.425 84.4902C175.218 81.4169 185.959 69.6122 189.883 65.3008C190.222 64.927 190.723 64.7347 191.225 64.7826C191.726 64.8312 192.18 65.1132 192.445 65.545C194.478 68.8875 198.754 75.9086 200.604 78.9407C200.835 79.3165 200.896 79.7692 200.78 80.1929C200.658 80.6167 200.374 80.9736 199.988 81.1801C195.406 83.605 181.629 90.9026 176.939 93.3842C176.539 93.5974 176.065 93.6298 175.638 93.4739C175.211 93.318 174.865 92.9881 174.696 92.5671C173.943 90.682 172.73 87.6674 172.12 86.1567Z" fill="#F6268B"/>
 <defs>
-<filter id="filter0_d_1373_2895" x="0" y="0" width="256" height="276" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_1373_2895" x="0" y="0" width="256" height="276" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="2" dy="4"/>

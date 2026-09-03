@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from "react-redux"
-import type { RootState } from "../../../store/index" // adjust path
-import { toggleSfx } from "../../../store/themeSlice";
+import type { RootState } from "../../../../store/index"
+import { toggleSfx } from "../../../../store/themeSlice";
 interface SfxProps extends React.SVGProps<SVGSVGElement> {
     isSelected?: boolean;
     className?: string;
@@ -40,7 +40,7 @@ return(
 <path fillRule="evenodd" clipRule="evenodd" d="M166.551 111.241C165.891 111.529 165.47 112.173 165.468 112.883C165.469 114.818 165.47 118.695 165.469 120.944C165.468 121.906 166.235 122.697 167.203 122.737C175.9 123.103 214.786 124.737 224.905 125.162C225.472 125.187 226.025 124.943 226.379 124.506C226.744 124.067 226.875 123.487 226.733 122.94C225.073 116.248 220.272 97.0247 218.693 90.6564C218.556 90.1423 218.214 89.7096 217.733 89.4761C217.253 89.2426 216.688 89.2317 216.203 89.4462C207.554 93.2426 173.094 108.368 166.551 111.241Z" fill="#FA258C"/>
 <path fillRule="evenodd" clipRule="evenodd" d="M170.48 141.849C169.69 141.848 168.998 142.353 168.754 143.098C168.083 145.192 166.725 149.405 165.99 151.71C165.696 152.608 166.162 153.575 167.046 153.923C174.4 156.813 205.451 169.011 213.896 172.329C214.413 172.532 214.99 172.49 215.466 172.215C215.95 171.939 216.272 171.462 216.352 170.918C217.206 165.092 219.476 149.564 220.287 143.965C220.36 143.45 220.214 142.927 219.871 142.533C219.528 142.139 219.027 141.913 218.5 141.912C209.917 141.901 177.455 141.858 170.48 141.849Z" fill="#FA258C"/>
 <defs>
-<filter id="filter0_d_1373_1623" x="0" y="0" width="256" height="276" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_1373_1623" x="0" y="0" width="256" height="276" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="2" dy="4"/>
@@ -76,7 +76,7 @@ return(
   <path fillRule="evenodd" clipRule="evenodd" d="M148.599 86.5931L199.95 70.202L140.59 39.4087L148.599 86.5931Z" fill="#1D1D1D"/>
   </g>
   <defs>
-  <filter id="filter0_d_1373_1696" x="0" y="0" width="256" height="276" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+  <filter id="filter0_d_1373_1696" x="0" y="0" width="256" height="276" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
   <feFlood floodOpacity="0" result="BackgroundImageFix"/>
   <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
   <feOffset dy="4"/>

@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react'
 
+interface PythonResponse {
+  type?: 'stdout' | 'stderr' | 'exit';
+  data?: string;
+  code?: number;
+  success : boolean;
+  output? : string;
+  error? : string
+}
+
 export default function PythonExec() {
   const [response, setResponse] = useState<string | null>(null)
   const [responseType, setResponseType] = useState<'stdout' | 'stderr' | null>(null)
@@ -7,13 +16,13 @@ export default function PythonExec() {
 
   useEffect(() => {
     // Attach once
-    window.api.python.onResponse((res) => {
+    window.api.python.onResponse((res : PythonResponse) => {
       if (res.type === 'stdout') {
-        setResponse(res.data)
+        setResponse(res.data ?? '')
         setResponseType('stdout')
         console.log('%c[Python STDOUT]', 'color: green;', res.data)
       } else if (res.type === 'stderr') {
-        setResponse(res.data)
+        setResponse(res.data ?? '')
         setResponseType('stderr')
         console.error('%c[Python STDERR]', 'color: red;', res.data)
       } else if (res.type === 'exit') {

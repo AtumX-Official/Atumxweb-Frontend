@@ -50,7 +50,7 @@ export const SaveToKitPopup = ({
               }
             }}
           />
-          <img src={Edit} className="w-4 h-4 text-black ml-2" />
+          <Edit className="w-4 h-4 text-black ml-2" />
         </div>
 
         {/* Actions */}

@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+interface FileSearchProps {
+    terminalPath : string
+    unsavedChanges : boolean
+}
+
 export default function FileSearch({
     terminalPath,
     unsavedChanges
-}){
+} : FileSearchProps){
     const navigate = useNavigate()
     const [fileResults, setFileResults] = useState<any[]>([]);
     const [fileSearchText, setFileSearchText] = useState("");
@@ -16,7 +21,7 @@ export default function FileSearch({
 
         const res = await window.api.fileSearch(folderPath, fileSearchText);
 
-        if (res?.success) {
+        if (res?.success && res.data) {
         setFileResults(res.data);
         } else {
         setFileResults([]);

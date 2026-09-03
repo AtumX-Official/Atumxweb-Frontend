@@ -1,4 +1,4 @@
-export const Motors = {
+export const Motors : Record<string, string>  = {
     GENERIC: `
       <block type="setupMotor"></block>
       <block type="runMotor"></block>

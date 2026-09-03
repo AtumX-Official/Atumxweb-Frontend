@@ -1,4 +1,4 @@
-export const Maths = {
+export const Maths : Record<string, string> = {
     SNOWFLAKE: `
        <block type="input_value"></block>
 <block type="varmath">

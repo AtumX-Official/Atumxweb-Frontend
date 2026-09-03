@@ -46,9 +46,9 @@ const comPortSlice = createSlice({
         state.error = null
       })
       .addCase(fetchComPort.fulfilled, (state, action) => {
-        state.comPorts = action.payload.availablePorts
+        state.comPorts = action.payload.availablePorts ?? []
         state.currentOpenPort = action.payload.currentOpenPort ?? null
-        state.loading = false
+        state.loading = false 
       })
       .addCase(fetchComPort.rejected, (state, action) => {
         state.loading = false

@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../store";
+import type { RootState } from "../../../../../../store";
 import Swal from "sweetalert2";
 import File from '../../../../components/ui/assets/File'
 import { PlusCircle } from "lucide-react";
@@ -55,7 +55,7 @@ export default function LibraryCard({ data, isInstalled = false, onInstall }: Li
       setLoadingVersions(true);
       try {
         const res = await window.api.cpp.getLibraryVersions(data.name);
-        if (res?.success) setVersions(res.versions);
+        if (res?.success && res.versions) setVersions(res.versions);
       } catch {}
       finally { setLoadingVersions(false); }
     }

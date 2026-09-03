@@ -12,13 +12,23 @@ import { IoMdAddCircleOutline } from "react-icons/io"
 import { SlOptionsVertical } from "react-icons/sl"
 import { createPortal } from "react-dom"
 
-const sortNodes = (nodes) => {
+const sortNodes = (nodes: ExplorerNodeType[]): ExplorerNodeType[] => {
   return [...nodes].sort((a, b) => {
     if (a.type === b.type) {
       return a.name.localeCompare(b.name)
     }
     return a.type === "file" ? -1 : 1
   })
+}
+
+interface FileExplorerProps {
+  data: ExplorerNodeType[]
+  selectedNode: { path: string; type: "file" | "folder" } | null
+  setSelectedNode: (node: { path: string; type: "file" | "folder" }) => void
+  refresh: () => void
+  projectName: string
+  language: string
+  sectionType?: SectionType
 }
 
 type SectionType = "myFiles" | "library" | "example"
@@ -40,7 +50,7 @@ export default function FileExplorer({
   projectName,
   language,
   sectionType = "myFiles"
-}) {
+} : FileExplorerProps ) {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("Deleted Successfully")
 
@@ -91,8 +101,8 @@ function ExplorerNode({
   isInsideOpenFolder = false
 }: {
   node: ExplorerNodeType
-  selectedNode: any
-  setSelectedNode: any
+  selectedNode: { path: string; type: "file" | "folder" } | null
+  setSelectedNode: (node: { path: string; type: "file" | "folder" }) => void
   refresh: () => void
   projectName: string
   toggleStyle: boolean
@@ -147,7 +157,7 @@ function ExplorerNode({
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
-  const handleRenameStart = (e) => {
+  const handleRenameStart = (e: React.MouseEvent): void => {
     e.stopPropagation()
     setRenameValue(node.name)
     setIsRenaming(true)
@@ -186,7 +196,7 @@ function ExplorerNode({
     }
   }
 
-  const handleDeleteClick = (e) => {
+  const handleDeleteClick = (e: React.MouseEvent): void => {
     e.stopPropagation()
     setFileToDelete(node.name)
     setIsModalOpen(true)
@@ -210,7 +220,7 @@ function ExplorerNode({
 
   const handleCancelDelete = () => setIsModalOpen(false)
 
-  const handleAddFileToMyFiles = async (e) => {
+  const handleAddFileToMyFiles = async (e: React.MouseEvent): Promise<void> => {
     e.stopPropagation()
     if (node.type !== "file") return
     try {
@@ -271,7 +281,7 @@ function ExplorerNode({
     const result = await window.api.file.addfile(node.path)
     
     // If api creates with default name, rename to user's typed name
-    if (result.success) {
+    if (result.success && result.path) {
       // rename the created file to the user typed name
       const ext = language === 'cpp' ? '.cpp' : '.py'
       const finalName = trimmed.endsWith(ext) ? trimmed : `${trimmed}${ext}`
@@ -295,8 +305,13 @@ function ExplorerNode({
   const [showOptions, setShowOptions] = useState(false)
   const optionsRef = useRef<HTMLDivElement | null>(null)
 
+interface MenuItem {
+  label: string
+  action: (e: React.MouseEvent) => void
+  danger?: boolean
+}
 
-  const fileMenuItems = [
+  const fileMenuItems : MenuItem[] = [
     { label: "Rename", action: handleRenameStart },
     { label: "Duplicate", action: handleDuplicateClick },
     { label: "Delete", action: handleDeleteClick, danger: true }
@@ -304,7 +319,7 @@ function ExplorerNode({
 
   const folderMenuItems = [
     { label: "Rename", action: handleRenameStart },
-    { label: "Add file",     action: (e) => {
+    { label: "Add file", action: (e : React.MouseEvent) => {
       e.stopPropagation()
       setOpen(true)          // ✅ open folder so children are visible
       setIsCreatingFile(true)

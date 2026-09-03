@@ -1,4 +1,4 @@
-export const Pins = {
+export const Pins : Record<string, string> = {
     SNOWFLAKE: `
        <block type="sfdigital_read"></block>
         <block type="sfdigital_write"></block>

@@ -13,9 +13,31 @@ import Pfolder from "../assets/Filestructuresvg/Pfolder.svg"
 import Cfolder from "../assets/Filestructuresvg/Cfolder.svg"
 import Cfile from "../assets/Filestructuresvg/Cfile.svg"
 
+interface ProjectFile {
+  filepath: string
+  filename: string
+}
+
+interface BlockBoxProps {
+  file: ProjectFile
+}
+
+interface PythonBoxProps {
+  file: ProjectFile
+  onOpen: (type: 'python' | 'cpp', file: ProjectFile) => void
+}
+
+interface CppBoxProps {
+  file: ProjectFile
+  onOpen: (type: 'python' | 'cpp', file: ProjectFile) => void
+}
+
+interface AiBoxProps {
+  file: ProjectFile
+}
 
 
-const BlockBox = ({ file }) => {
+const BlockBox = ({ file } : BlockBoxProps) => {
   const navigate = useNavigate()
   return (
     <button
@@ -32,7 +54,7 @@ const BlockBox = ({ file }) => {
   )
 }
 
-const PythonBox = ({ file , onOpen}) => {
+const PythonBox = ({ file , onOpen} : PythonBoxProps) => {
   return (
     <button
       className="cursor-pointer hover:scale-110 transition-transform duration-300"
@@ -46,7 +68,7 @@ const PythonBox = ({ file , onOpen}) => {
   )
 }
 
-const CppBox = ({ file ,onOpen}) => {
+const CppBox = ({ file ,onOpen} : CppBoxProps) => {
   return (
     <button
       className="cursor-pointer hover:scale-110 transition-transform duration-300"
@@ -61,7 +83,7 @@ const CppBox = ({ file ,onOpen}) => {
   )
 }
 
-const AiBox = ({ file }) => {
+const AiBox = ({ file } : AiBoxProps) => {
   const navigate = useNavigate()
   return (
     <button

@@ -20,7 +20,7 @@ export default function Kits({ className="" }) {
 <path d="M24 22.754C24.5563 21.0399 25.5761 19.5133 26.9461 18.3425C28.316 17.1717 29.9824 16.4031 31.7622 16.1207C33.5422 15.8383 35.3666 16.0538 37.0318 16.7431C38.6968 17.4323 40.1373 18.5689 41.1969 20.0267C42.2563 21.4844 42.8924 23.2062 43.0341 25.0027C43.1757 26.7992 42.8167 28.5997 41.9986 30.2053C41.1805 31.8112 39.936 33.1603 38.3993 34.102C36.8628 35.0436 35.0957 35.5422 33.2938 35.5422V37.9839M33.4154 47.7552V47.9995L33.1721 48V47.7552H33.4154Z" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
 </g>
 <defs>
-<filter id="filter0_d_360_207" x="0" y="0" width="72" height="72" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_360_207" x="0" y="0" width="72" height="72" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="2" dy="4"/>
@@ -48,7 +48,7 @@ fill={isClicked ? "black" : "none"} stroke={isClicked ? "#181818" : isHovered ? 
 strokeWidth="2" stroke={isHovered && !isClicked ? "#F6EC24" : "white"} fill ={isClicked ? "white" : "none"}/>
 </g>
 <defs>
-<filter id="filter0_d_398_252" x="0" y="0" width="72" height="72" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_398_252" x="0" y="0" width="72" height="72" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dy="4"/>

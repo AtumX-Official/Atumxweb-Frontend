@@ -1,6 +1,6 @@
 import {trixkit  } from '../blocks/trix';
 
-export const TRIX = {
+export const TRIX : Record<string, string> = {
   GRIPPER: `
     <xml id="toolbox">
       ${trixkit.GRIPPER}

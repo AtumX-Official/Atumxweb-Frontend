@@ -95,7 +95,7 @@ Blockly.Blocks['custom_repeat_ext'] = {
     this.setPreviousStatement(true, null); 
     this.setNextStatement(true, null); 
     this.setInputsInline(true);
-    this.setOnChange(function () {
+    this.setOnChange(function ( this: Blockly.Block) {
       integervalidatior(this, 'TIMES');
           });
   }

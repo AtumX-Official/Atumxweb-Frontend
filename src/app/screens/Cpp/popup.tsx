@@ -1,12 +1,20 @@
 import React, { useEffect, useRef } from "react";
 
-function PopUp({ showPopUp, children, closePopUp, title = "Create New Project" }) {
+
+interface PopUpProps {
+  showPopUp: boolean
+  children: React.ReactNode
+  closePopUp: () => void
+  title?: string
+}
+
+function PopUp({ showPopUp, children, closePopUp, title = "Create New Project" } : PopUpProps) {
   const modalRef = useRef(null);
 
   useEffect(() => {
     if (!showPopUp) return;
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e : KeyboardEvent) => {
       if (e.key === "Escape") closePopUp();
     };
 

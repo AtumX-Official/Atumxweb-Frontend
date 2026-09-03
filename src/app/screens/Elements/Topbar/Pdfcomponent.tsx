@@ -8,7 +8,14 @@ import workerSrc from '../../../../src/pdf.worker.min.js?url';
 import 'react-pdf/dist/Page/TextLayer.css';
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
-const PDFComponent = ({ pdfUrl, onClose, position, title }) => {
+interface PDFComponentProps {
+  pdfUrl: string
+  onClose: () => void
+  position: { x: number; y: number }
+  title: string
+}
+
+const PDFComponent = ({ pdfUrl, onClose, position, title } : PDFComponentProps) => {
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -64,7 +71,7 @@ useEffect(() => {
     disabled: isResizing,
   });
 
-  const handleResizeMouseDown = (e) => {
+  const handleResizeMouseDown = (e : React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsResizing(true);
@@ -74,7 +81,7 @@ useEffect(() => {
     const startWidth = size.width;
     const startHeight = size.height;
 
-    const onMouseMove = (moveEvent) => {
+    const onMouseMove = (moveEvent : MouseEvent) => {
       const newWidth = Math.max(350, startWidth + (moveEvent.clientX - startX));
       const newHeight = Math.max(400, startHeight + (moveEvent.clientY - startY));
       setSize({ width: newWidth, height: newHeight });

@@ -1,4 +1,4 @@
-export const Loop = {
+export const Loop : Record<string, string> = {
     
     SNOWFLAKE: `
  <block type="custom_repeat_ext">

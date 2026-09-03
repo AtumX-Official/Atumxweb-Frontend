@@ -1,6 +1,10 @@
 import { useSelector } from "react-redux"
+import type { SVGProps } from "react";
 
-export default function Savedtokit({ className }) {
+type SavetokitProps = SVGProps<SVGSVGElement>;
+
+
+export default function Savedtokit({ className, ...rest } : SavetokitProps) {
     const themeMode = useSelector((state: any) => state.theme.mode)
     const color = themeMode === 'dark' ? 'black' : 'black'
     return (

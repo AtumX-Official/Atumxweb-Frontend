@@ -1,6 +1,7 @@
 import { cppGenerator } from './index';
+import * as Blockly from 'blockly/core';
 
-cppGenerator.forBlock['if'] = function (block) {
+cppGenerator.forBlock['if'] = function (block : Blockly.Block) {
   const condition = this.valueToCode(block, 'condition', this.ORDER_NONE) || 'false';
   const statements_do = this.statementToCode(block, 'do');
   const code = `if (${condition}) {\n${statements_do}}\n`;
@@ -8,7 +9,7 @@ cppGenerator.forBlock['if'] = function (block) {
 };
 
 // Custom Compare block (==, !=, <, >, <=, >=)
-cppGenerator.forBlock['custom_compare'] = function (block) {
+cppGenerator.forBlock['custom_compare'] = function (block : Blockly.Block) {
   const operator = block.getFieldValue('OP');
   const left = cppGenerator.valueToCode(block, 'A', cppGenerator.ORDER_NONE) || '0';
   const right = cppGenerator.valueToCode(block, 'B', cppGenerator.ORDER_NONE) || '0';
@@ -16,7 +17,7 @@ cppGenerator.forBlock['custom_compare'] = function (block) {
 };
 
 // Logical AND / OR block
-cppGenerator.forBlock['logical_operator'] = function (block) {
+cppGenerator.forBlock['logical_operator'] = function (block : Blockly.Block) {
   const operator = block.getFieldValue('OP') === 'AND' ? '&&' : '||';
   const left = cppGenerator.valueToCode(block, 'A', cppGenerator.ORDER_NONE) || 'false';
   const right = cppGenerator.valueToCode(block, 'B', cppGenerator.ORDER_NONE) || 'false';
@@ -24,13 +25,13 @@ cppGenerator.forBlock['logical_operator'] = function (block) {
 };
 
 // NOT block
-cppGenerator.forBlock['custom_not'] = function (block) {
+cppGenerator.forBlock['custom_not'] = function (block : Blockly.Block) {
   const value = cppGenerator.valueToCode(block, 'BOOL', cppGenerator.ORDER_NONE) || 'false';
   return `!(${value})`;
 };
 
 // True / False block
-cppGenerator.forBlock['custom_boolean'] = function (block) {
+cppGenerator.forBlock['custom_boolean'] = function (block : Blockly.Block) {
   const value = block.getFieldValue('BOOL');
   return value === 'TRUE' ? 'true' : 'false';
 };
@@ -41,7 +42,7 @@ cppGenerator.forBlock['custom_null'] = function () {
 };
 
 // Ternary if-else block
-cppGenerator.forBlock['custom_if_else'] = function (block) {
+cppGenerator.forBlock['custom_if_else'] = function (block : Blockly.Block) {
   const test = cppGenerator.valueToCode(block, 'TEST', cppGenerator.ORDER_NONE) || 'false';
   const ifTrue = cppGenerator.valueToCode(block, 'IF_TRUE', cppGenerator.ORDER_NONE) || '0';
   const ifFalse = cppGenerator.valueToCode(block, 'IF_FALSE', cppGenerator.ORDER_NONE) || '0';

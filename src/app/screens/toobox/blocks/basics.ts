@@ -1,4 +1,4 @@
-export const Basic = {
+export const Basic : Record<string, string> = {
     SNOWFLAKE: `
     <block type="setup"></block> 
        <block type="led_control">

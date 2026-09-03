@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState,useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { RootState } from '../../../../../store/index';
+import type { RootState, AppDispatch } from '../../../../../store/index';
 import Usb from '../../../assets/Usbicon';
 import Wiredicon from '../../../assets/Wiredicon';
 import Wirelessicon from '../../../assets/Wirelessicon';
@@ -17,6 +17,18 @@ import { useRouter } from 'next/navigation';
 import { Tooltip } from '../../../components/Tooltip';
 import { UnderdevelopmentPopup } from '../../../components/supporting/Popups';
 import SettingModal from '../../../components/supporting/SettingModal';
+
+interface Serial extends EventTarget {
+  addEventListener(
+    type: "connect" | "disconnect",
+    listener: (event: Event) => void
+  ): void
+  removeEventListener(
+    type: "connect" | "disconnect",
+    listener: (event: Event) => void
+  ): void
+}
+
 interface TopBarRightProps {
   setShowKits: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -26,8 +38,8 @@ const TopBarRight: React.FC<TopBarRightProps> = ({ setShowKits }) => {
       const { isConnected, mode,status,lastMode } = useSelector((state: RootState) => state.websocketSlice);
       const selectedPort = useSelector((state: RootState) => state.comPort.selectedComPort);
       const isSerialOpen = useSelector((state: RootState) => state.serial.isOpen);
-      const dispatch = useDispatch()
-      const kitsButtonRef = useRef<HTMLDivElement>(null);
+      const dispatch = useDispatch<AppDispatch>()
+      const kitsButtonRef = useRef<HTMLButtonElement>(null);
       const [showConnectivity, setShowConnectivity] = useState(false);
       const router = useRouter(); 
       const [showUnderDev, setShowUnderDev] = useState(false)
@@ -113,13 +125,13 @@ const TopBarRight: React.FC<TopBarRightProps> = ({ setShowKits }) => {
           dispatch(disconnectSerial());
         };
       
-        navigator.serial.addEventListener(
+        (navigator.serial as any).addEventListener(
           "disconnect",
           handleSerialDisconnect
         );
       
         return () => {
-          navigator.serial.removeEventListener(
+          (navigator.serial as any).removeEventListener(
             "disconnect",
             handleSerialDisconnect
           );
@@ -215,7 +227,7 @@ return(
             setShowConnectivity(true)  
             console.log("WebSocket disconnected manually.");
           }
-          dispatch(setMode());
+          dispatch(setMode("Wireless"));
           //dispatch(setConnectionMode('Wireless'))
           dispatch(setDisconnected());     // Redux: isConnected = false, mode reset
           setActiveIcon('none');           // UI: go back to default black bg with icons

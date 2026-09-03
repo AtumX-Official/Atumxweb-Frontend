@@ -17,8 +17,21 @@ import Aboutinfo from './Aboutcomp';
 import ThemeSelector from './Themecomp'
 import SoundControl from './Soundcomp';
 import Settingsbg from './assets/Settingsbg';
-import Closeicon from './assets/Wrong'
-export default function SettingModal({  onClose }) {
+import Closeicon from './assets/Wrong';
+
+interface SettingModalProps {
+  isOpen?: boolean;
+  onClose: () => void;
+}
+
+interface SettingsMenuItem {
+  key: 'sound' | 'theme' | 'board' | 'about';
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+
+export default function SettingModal({ isOpen, onClose }: SettingModalProps) {
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'checking' | 'available' | 'not_available' | 'downloading' | 'downloaded'
   >('idle')
@@ -46,6 +59,16 @@ export default function SettingModal({  onClose }) {
   };
   
   const BgComponent = bgMap[section];
+
+  const menuItems: SettingsMenuItem[] = [
+    { key: "sound", label: "SOUNDS", icon: Sound },
+    { key: "theme", label: "THEME", icon: Theme },
+    ...(!isCpp
+      ? [{ key: "board", label: "BOARD", icon: Board } as SettingsMenuItem]
+      : []),
+    { key: "about", label: "ABOUT", icon: About },
+  ];
+
     
   return (
     <AnimatePresence>
@@ -91,14 +114,7 @@ export default function SettingModal({  onClose }) {
   
               {/* Menu Items - These will now stay at the top of the sidebar div */}
               <div className="p-3 space-y-2 relative z-10">
-                {[
-                  { key: "sound", label: "SOUNDS", icon: Sound },
-                  { key: "theme", label: "THEME", icon: Theme },
-                  ...(!isCpp
-                    ? [{ key: "board", label: "BOARD", icon: Board }]
-                    : []),
-                  { key: "about", label: "ABOUT", icon: About },
-                ].map((item) => (
+                {menuItems.map((item) => (
                   <div
                     key={item.key}
                     onClick={() => setSection(item.key)}

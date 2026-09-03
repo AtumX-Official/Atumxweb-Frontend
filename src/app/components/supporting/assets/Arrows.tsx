@@ -1,12 +1,18 @@
-export default function Arrow({ className }: { className?: string }) {
+import React from "react";
+
+interface UnderdevProps extends React.SVGProps<SVGSVGElement> {
+    className?: string;
+  }  
+
+export default function Arrow({ className, ...rest} : UnderdevProps) {
     return(
     <svg className={className} width="125" height="105" viewBox="0 0 125 105" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g filter="url(#filter0_d_1545_1599)">
 <path d="M4 30.5V72L71.5 63V97L120.5 46L71.5 0V30.5H4Z" fill="white"/>
 </g>
 <defs>
-<filter id="filter0_d_1545_1599" x="0" y="0" width="124.5" height="105" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<filter id="filter0_d_1545_1599" x="0" y="0" width="124.5" height="105" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+<feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dy="4"/>
 <feGaussianBlur stdDeviation="2"/>

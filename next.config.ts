@@ -1,11 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    // Temporarily allow production builds despite TypeScript errors.
-    // Remove this after the migration is complete.
-    ignoreBuildErrors: true,
-  },
+  allowedDevOrigins: [
+    "bath-culpable-paper.ngrok-free.dev",
+  ],
 
   webpack(config) {
     // Find the default asset rule

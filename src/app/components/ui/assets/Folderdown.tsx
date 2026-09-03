@@ -9,7 +9,7 @@ className={`group ${className}`}
 <path d="M12.5135 14.3974C12.2294 14.6583 12.2294 15.0814 12.5135 15.3424L16.0725 18.6082C16.6408 19.1297 17.5616 19.1295 18.1296 18.6078L21.6873 15.34C21.9714 15.079 21.9714 14.6559 21.6873 14.3949C21.4032 14.134 20.9426 14.134 20.6585 14.3949L17.6135 17.1919C17.3294 17.4529 16.8688 17.4529 16.5847 17.1919L13.5423 14.3974C13.2582 14.1364 12.7976 14.1364 12.5135 14.3974Z" fill="#0F0F0F"/>
 </g>
 <defs>
-<filter id="filter0_d_4832_9150" x="0" y="0" width="28" height="28" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_4832_9150" x="0" y="0" width="28" height="28" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
 <feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="0.5" dy="1"/>

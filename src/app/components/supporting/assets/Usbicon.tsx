@@ -10,8 +10,8 @@ export default function Usbicon({ className }: { className?: string }) {
 <path d="M141.898 65.771L128.788 58.2018C128.781 58.1979 128.773 58.1933 128.768 58.1902C128.041 57.7705 127.226 58.1028 126.797 58.8469L119.023 72.3114C118.593 73.0555 118.713 73.9269 119.44 74.3466L132.57 81.9273C133.295 82.3462 134.35 82.1526 134.779 81.4085L142.553 67.9439C142.983 67.1999 142.623 66.1899 141.898 65.771ZM132.931 78.5449L122.427 72.4805L128.646 61.7091L139.15 67.7735L132.931 78.5449Z" fill="white"/>
 </g>
 <defs>
-<filter id="filter0_d_1545_1921" x="-2" y="0" width="188.906" height="227.339" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<filter id="filter0_d_1545_1921" x="-2" y="0" width="188.906" height="227.339" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+<feFlood floodOpacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="2" dy="4"/>
 <feGaussianBlur stdDeviation="2"/>

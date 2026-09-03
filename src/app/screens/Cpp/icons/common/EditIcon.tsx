@@ -1,6 +1,9 @@
 import { useSelector } from "react-redux"
+import type {SVGProps} from "react";
 
-export default function EditIcon({ className }) {
+type EditIconProps = SVGProps<SVGSVGElement>;
+
+export default function EditIcon({ className , ...rest} : EditIconProps) {
   const themeMode = useSelector((state: any) => state.theme.mode)
   const color = themeMode === 'dark' ? '#000000' : 'black'
 

@@ -4,6 +4,25 @@ import Refreshicon from "../../../assets/Refresh"
 import {  FiX } from "react-icons/fi";
 import {FiAlertTriangle,FiTerminal} from "react-icons/fi"
 
+interface TerminalLine {
+  text: string
+  type: 'out' | 'err'
+}
+
+interface TerminalProps {
+  handleMouseDown: () => void
+  terminalHeight: number
+  terminalRef: React.RefObject<HTMLDivElement | null>
+  setShowTerminal: React.Dispatch<React.SetStateAction<boolean>>
+  onClear: () => void
+  handleCopy: () => void
+  terminalPath: string
+  output: TerminalLine[]
+  serialData: string
+  activeTab: 'terminal' | 'errors'
+  setActiveTab: React.Dispatch<React.SetStateAction<'terminal' | 'errors'>>
+}
+
 export default function({
     handleMouseDown,
     terminalPath,
@@ -15,9 +34,9 @@ export default function({
     onClear,
     activeTab,
     setActiveTab,
-}){
+} : TerminalProps){
     
-    const [autoScroll, setAutoScroll] = useState(() => {
+    const [autoScroll, setAutoScroll] = useState<boolean>(() => {
     const saved = window.localStorage.getItem("serial_autoscroll");
     return saved !== null ? JSON.parse(saved) : true;
     });

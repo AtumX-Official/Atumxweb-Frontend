@@ -85,7 +85,7 @@ Blockly.Blocks['cayosensor_pin'] = {
     this.setNextStatement(true, null);
   },
 
-  onchange: function (event) {
+  onchange: function (event: Blockly.Events.Abstract) {
     if (
       event?.type === Blockly.Events.BLOCK_CREATE ||
       this.workspace?.isLoading

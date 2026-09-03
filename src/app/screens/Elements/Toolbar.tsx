@@ -1,5 +1,10 @@
-import React, { useEffect, useRef, useState,useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../../../../store';
+import { connectSerial, disconnectSerial, sendSerialMessage } from '../../../../store/serialSlice';
+import { setSelectedComPort } from '../../../../store/comPortSlice';
+import { connectWebSocket, getWebSocket, setConnected, setConnectionMode, setDisconnected, setMode } from '../../../../store/websocketSlice';
 import Games from '../../assets/Game';
 import Kits from '../../assets/Kits';
 import Settings from '../../assets/Settings';
@@ -8,6 +13,12 @@ import New from '../../assets/Edit';
 import Import from '../../assets/Import';
 import Save from '../../assets/Save';
 import SavetoKit from '../../assets/Savetokit';
+import Book from '../../assets/icons/common/BookIcon';
+import Usb from '../../assets/Usbicon';
+import Wiredicon from '../../assets/Wiredicon';
+import Wirelessicon from '../../assets/Wirelessicon';
+import Wirelessconnected from '../../assets/Wirelessconnected';
+import ComportSelector from '../../components/Comportselector';
 import ConvertToLanguagePopup,{Connectivity} from '@renderer/components/supporting/Popups';
 interface TopBarProps {
     projectName: string;
@@ -24,11 +35,6 @@ interface TopBarProps {
     selectedLanguage: string;
   }
 
-  const navigate = useNavigate();
-
-  const loadsamples = () => {
-    navigate("/samples"); // navigate to SamplePage
-  };
   const TopBar: React.FC<TopBarProps> = ({
     projectName,
     setProjectName,
@@ -43,7 +49,18 @@ interface TopBarProps {
     onPopupClose,
     selectedLanguage,
   }) => {
-      
+    const navigate = useNavigate();
+    const dispatch = useDispatch<AppDispatch>();
+    const [activeIcon, setActiveIcon] = useState<'none' | 'usb'>('none');
+    const selectedPort = useSelector((state: RootState) => state.comPort.selectedComPort);
+    const isSerialOpen = useSelector((state: RootState) => state.serial.isOpen);
+    const { mode, isConnected, lastMode, status } = useSelector(
+      (state: RootState) => state.websocketSlice,
+    );
+
+    const loadsamples = () => {
+      navigate('/samples');
+    };
 
     return (
       <div className="flex items-center justify-between mb-6">
@@ -100,7 +117,7 @@ interface TopBarProps {
           {selectedKit || "No Kit"}
         </span>
       </div>
-              <ConvertToLanguagePopup show={showPopup} onClose={() => setShowPopup(false)} language={selectedLanguage}/>
+              <ConvertToLanguagePopup show={showPopup} onClose={onPopupClose} language={selectedLanguage}/>
               <div className="flex items-center gap-2 flex-shrink-0">
               <div className="group relative flex items-center space-x-2">
         {mode !== 'Wireless' && (
@@ -131,9 +148,9 @@ interface TopBarProps {
                   } 
                   else if (!isConnected && selectedPort) {
                     // Case 2: If disconnected but port exists → connect again
-                    dispatch(connectSerial(selectedPort))
+                    dispatch(connectSerial())
                       .then(() => {
-                        dispatch(setConnected()); // Set isConnected = true
+                        dispatch(setConnected('Wired')); // Set isConnected = true
                           dispatch(setConnectionMode('Wired')); // Confirm mode and lastMode
                         console.log('Reconnected to serial');
                         setActiveIcon('usb'); // shrink and show comport selector
@@ -204,7 +221,7 @@ interface TopBarProps {
                           dispatch(setDisconnected());  
                           console.log("WebSocket disconnected manually.");
                         }
-                        dispatch(setMode());
+                        dispatch(setMode(''));
                         //dispatch(setConnectionMode('Wireless'))
                         dispatch(setDisconnected());     // Redux: isConnected = false, mode reset
                         setActiveIcon('none');           // UI: go back to default black bg with icons

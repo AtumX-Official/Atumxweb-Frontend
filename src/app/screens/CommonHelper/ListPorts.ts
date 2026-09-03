@@ -1,12 +1,90 @@
 import { setKit } from '../../../../store/kitslice'
 import { showConfirmModal,showSavePopup } from './Popupfuntionalities';
+
+interface ListPortsResult {
+  success: boolean
+  ports?: string[]
+  error?: string
+}
+
+interface FileSaveResult {
+  success: boolean
+  path?: string
+  fileName?: string
+  error?: string
+}
+
+interface FileOpenResult {
+  success: boolean
+  fileName?: string
+  data?: string
+  path?: string
+  error?: string
+}
+
+interface PythonResponse {
+  type?: 'stdout' | 'stderr' | 'exit';
+  data?: string;
+  code?: number;
+  success : boolean;
+  output? : string;
+  error? : string
+}
+
+interface TabData {
+  path?: string
+  name: string
+  code: string
+  originalCode?: string
+  isUnsaved?: boolean
+}
+
+interface ListAvailablePortsArgs {
+  setOutput: (updater: (prev: string) => string) => void
+  setAvailablePorts: (ports: string[]) => void
+  setPorts: (ports: string[]) => void
+  dispatch: (action: unknown) => void
+  setBoardName: (name: string) => void
+}
+
+interface HandlePortRefreshArgs {
+  setPorts: (ports: string[]) => void
+}
+
+interface HandlePythonSaveArgs {
+  mode?: 'save' | 'saveAs'
+  activeTab: TabData
+  updateActiveTabData: (data: Partial<TabData>) => void
+  appendOutput: (msg: string, type?: 'out' | 'err') => void
+  showPopup?: boolean
+}
+
+interface HandlePythonImportArgs {
+  appendOutput: (msg: string, type?: 'out' | 'err') => void
+  createNewTab: (fileName: string, data: string, path: string) => void
+}
+
+interface HandleExitPythonAppArgs {
+  activeTab: TabData
+  updateActiveTabData: (data: Partial<TabData>) => void
+  appendOutput: (msg: string, type?: 'out' | 'err') => void
+  navigate: unknown
+}
+
+interface HandleUnsavedBeforeActionArgs {
+  tab: TabData
+  onSave: () => Promise<boolean>
+  closeWithoutSaving?: boolean
+}
+
+
 export const listAvailablePorts = async ({
     setOutput,
     setAvailablePorts,
     setPorts,
     dispatch,
     setBoardName
-  }) => {
+  } : ListAvailablePortsArgs): Promise<void> => {
     console.log("Calling listPorts…");
   
     try {
@@ -28,7 +106,7 @@ export const listAvailablePorts = async ({
       let boardPort = "";
   
       const pythonIndex = result.ports.findIndex(
-        line => line.includes("303a:817a") || line.includes("2e8a:0005")
+        (line: string) => line.includes("303a:817a") || line.includes("2e8a:0005")
       );
   
       if (pythonIndex !== -1) {
@@ -53,10 +131,10 @@ if (boardName.startsWith("E4650")) {
 }
       }
   
-      const comPorts = result.ports.map(line => line.split(" ")[0]);
+      const comPorts = result.ports.map((line: string) => line.split(" ")[0]);
   
       const orderedPorts = boardPort
-        ? [boardPort, ...comPorts.filter(p => p !== boardPort)]
+        ? [boardPort, ...comPorts.filter((p:string) => p !== boardPort)]
         : comPorts;
   
       setAvailablePorts(orderedPorts);
@@ -76,11 +154,11 @@ if (boardName.startsWith("E4650")) {
   
  export const handlePortRefreshWithPromise = async({
     setPorts
- }) => {
+ } : HandlePortRefreshArgs): Promise<void> => {
     console.log("Refresh function")
         window.api.mpRemote
       .listPorts()
-      .then((result) => {
+      .then((result : ListPortsResult) => {
         console.log('listPorts raw result:', result)
 
         if (!result || !Array.isArray(result.ports)) {
@@ -89,10 +167,10 @@ if (boardName.startsWith("E4650")) {
         }
 
         if (result.success) {
-          const comPorts = result.ports.map((line) => line.split(' ')[0])
+          const comPorts = result.ports.map((line : string) => line.split(' ')[0])
           console.log('comPorts:', comPorts)
 
-          const boardLine = result.ports.find((line) => {
+          const boardLine = result.ports.find((line :string) => {
             const parts = line.split(' ')
             return parts[1] && parts[1] !== 'None'
           })
@@ -100,7 +178,7 @@ if (boardName.startsWith("E4650")) {
 
           const boardPort = boardLine ? boardLine.split(' ')[0] : ''
           const orderedPorts = boardPort
-            ? [boardPort, ...comPorts.filter((p) => p !== boardPort)]
+            ? [boardPort, ...comPorts.filter((p:string) => p !== boardPort)]
             : comPorts
 
           console.log('orderedPorts:', orderedPorts)
@@ -110,7 +188,7 @@ if (boardName.startsWith("E4650")) {
           console.error('Error listing ports:', result.error)
         }
       })
-      .catch((err) => {
+      .catch((err : unknown) => {
         console.error('listPorts threw:', err)
       })
   }
@@ -122,7 +200,7 @@ if (boardName.startsWith("E4650")) {
   updateActiveTabData,
   appendOutput,
   showPopup = true
-}) => {
+}: HandlePythonSaveArgs): Promise<boolean> => {
   const normalizeName = (name: string) =>
     name.replace(/\.py$/i, "").trim();
 
@@ -146,7 +224,7 @@ if (boardName.startsWith("E4650")) {
     currentName
   );
 
-  if (result.success) {
+  if (result.success && result.path && result.fileName) {
     appendOutput(`> File saved to: ${result.path}\n`, "out");
 
     updateActiveTabData({
@@ -169,11 +247,11 @@ if (boardName.startsWith("E4650")) {
   export const handlePythonImport = async ({
     appendOutput,
     createNewTab
-  }) => {
+  }: HandlePythonImportArgs): Promise<void> => {
   
     const result = await window.api.file.open("python");
   
-    if (result.success) {
+    if (result.success && result.fileName && result.data !== undefined && result.path) {
       createNewTab(result.fileName, result.data, result.path);
     } else {
       appendOutput(`> Error importing file: ${result.error}\n`, "err");
@@ -186,8 +264,8 @@ export const handleExitPythonApp = async ({
   appendOutput,
   navigate
 }: {
-  activeTab: any;
-  updateActiveTabData: any;
+  activeTab: TabData;
+  updateActiveTabData: (data: Partial<TabData>) => void;
   appendOutput: (msg: string, type?: "out" | "err") => void;
   navigate: any;
 }): Promise<boolean> => {
@@ -236,7 +314,7 @@ export const handleUnsavedBeforeAction = async ({
   onSave,
   closeWithoutSaving = false,
 }: {
-  tab: any;
+  tab: TabData;
   onSave: () => Promise<boolean>;
   closeWithoutSaving?: boolean;
 }) => {

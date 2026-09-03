@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 type ModeState = 'code' | 'ai box' | 'games'
 
-const initialState: ModeState = 'code'
+const initialState = 'code' satisfies ModeState
 
 const modeSlice = createSlice({
   name: 'mode',

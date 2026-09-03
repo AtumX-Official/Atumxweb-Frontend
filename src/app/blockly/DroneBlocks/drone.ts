@@ -204,7 +204,7 @@ Blockly.Blocks['droneled'] = {
       this.setNextStatement(true, null);
       this.setTooltip('Write angle to selected servo');
       this.setInputsInline(true);
-      this.setOnChange(function () {
+      this.setOnChange(function (this: Blockly.Block) {
         integervalidatior(this, 'ANGLE');
       });
     }
@@ -325,7 +325,7 @@ Blockly.Blocks['droneanalog_read'] = {
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setTooltip('Write an analog value to a pin');
-      this.setOnChange(function () {
+      this.setOnChange(function (this: Blockly.Block) {
         integervalidatior(this, 'value');
       });
     }

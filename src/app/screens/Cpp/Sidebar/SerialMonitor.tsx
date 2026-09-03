@@ -2,6 +2,17 @@ import { useState, useEffect, useRef } from 'react'
 import AutoScroll from "../../../assets/AutoScroll"
 import Refreshicon from "../../../assets/Refresh"
 import { FiX } from "react-icons/fi"
+
+interface SerialMonitorProps {
+  handleMouseDown: () => void
+  terminalHeight: number
+  terminalRef: React.RefObject<HTMLDivElement | null>
+  setShowSerialTerminal: React.Dispatch<React.SetStateAction<boolean>>
+  onClear: () => void
+  handleCopy: () => void
+  serialData: string
+}
+
 export default function SerialMonitor({
     handleMouseDown,
     terminalHeight,
@@ -11,8 +22,8 @@ export default function SerialMonitor({
     handleCopy,
     serialData
 }
-){
-    const [autoScroll, setAutoScroll] = useState(() => {
+: SerialMonitorProps){
+    const [autoScroll, setAutoScroll] = useState<boolean>(() => {
         const saved = window.localStorage.getItem("serial_autoscroll");
         return saved !== null ? JSON.parse(saved) : true;
       });

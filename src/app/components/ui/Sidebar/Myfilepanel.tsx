@@ -27,7 +27,7 @@ interface MyFilesPanelProps {
   setSearchText: React.Dispatch<React.SetStateAction<string>>
   searchResults: any[]
   groupedResults: Record<string, any>
-  searchBoxRef: React.RefObject<HTMLDivElement>
+  searchBoxRef: React.RefObject<HTMLDivElement | null>
   handleGlobalSearch: () => void
   clearSearch: () => void
   highlightWord: (text: string) => void

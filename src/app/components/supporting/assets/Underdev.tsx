@@ -1,4 +1,10 @@
-export default function Underdev({ className }: { className?: string }) {
+import React from "react";
+
+interface UnderdevProps extends React.SVGProps<SVGSVGElement> {
+    className?: string;
+  }  
+
+export default function Underdev({ className, ...rest }: UnderdevProps) {
 return(
 <svg className={className} width="205" height="186" viewBox="0 0 205 186" fill="none" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
 <rect width="205" height="186" fill="url(#pattern0_2993_4546)"/>

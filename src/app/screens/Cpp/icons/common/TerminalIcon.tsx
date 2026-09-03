@@ -1,6 +1,10 @@
 import { useSelector } from "react-redux"
 
-export default function TerminalIcon({ className }) {
+import type {SVGProps} from "react";
+
+type TerminalIconProps = SVGProps<SVGSVGElement>;
+
+export default function TerminalIcon({ className, ...rest } : TerminalIconProps) {
   const themeMode = useSelector((state: any) => state.theme.mode)
 const color = themeMode === 'dark' ? '#000000' : 'black'
 

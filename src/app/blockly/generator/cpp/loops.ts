@@ -1,7 +1,8 @@
 import { cppGenerator } from './index';
+import * as Blockly from 'blockly/core';
 
 // Repeat block (for loop with fixed count)
-cppGenerator.forBlock['repeat'] = function (block) {
+cppGenerator.forBlock['repeat'] = function (block : Blockly.Block) {
   const times = block.getFieldValue('TIMES') || '0';
   const branch = this.statementToCode(block, 'DO');
   const loopVar = 'i'; // You can use a unique ID if needed
@@ -12,7 +13,7 @@ ${branch}}
 };
 
 // Repeat While / Until
-cppGenerator.forBlock['repeat_while'] = function (block) {
+cppGenerator.forBlock['repeat_while'] = function (block : Blockly.Block) {
   const type = block.getFieldValue('TYPE');
   let condition = this.valueToCode(block, 'CONDITION', this.ORDER_NONE) || 'false';
   const branch = this.statementToCode(block, 'DO');
@@ -28,8 +29,8 @@ ${branch}}
 };
 
 // For Loop with start, end, step
-cppGenerator.forBlock['for_loop'] = function (block) {
-  const variable = block.getField('VAR').getText();
+cppGenerator.forBlock['for_loop'] = function (block : Blockly.Block) {
+  const variable = block.getField('VAR')?.getText();
   const from = block.getFieldValue('FROM') || '0';
   const to = block.getFieldValue('TO') || '0';
   const by = block.getFieldValue('BY') || '1';
@@ -43,8 +44,8 @@ ${branch}}
 };
 
 // For Each (assuming C++ vector or array)
-cppGenerator.forBlock['for_each'] = function (block) {
-  const variable = block.getField('VAR').getText();
+cppGenerator.forBlock['for_each'] = function (block : Blockly.Block) {
+  const variable = block.getField('VAR')?.getText();
   const list = this.valueToCode(block, 'LIST', this.ORDER_NONE) || 'list';
   const branch = this.statementToCode(block, 'DO');
   const code = `for (auto ${variable} : ${list}) {
@@ -54,7 +55,7 @@ ${branch}}
 };
 
 // Break / Continue
-cppGenerator.forBlock['break_continue'] = function (block) {
+cppGenerator.forBlock['break_continue'] = function (block : Blockly.Block) {
   const action = block.getFieldValue('ACTION');
   const code = action.toLowerCase() + ';';
 

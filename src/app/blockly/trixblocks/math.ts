@@ -15,7 +15,7 @@ Blockly.Blocks['varmath'] = {
         .setCheck('Number')
     this.setColour("#2FADE7");
     this.setOutput(true, 'Number');
-    this.setOnChange(function () {
+    this.setOnChange( () => {
       integervalidatior(this, 'LEFT');
       integervalidatior(this, 'RIGHT');
     });
@@ -36,7 +36,7 @@ Blockly.Blocks['math_modulo'] = {
       this.setInputsInline(true);
       this.setOutput(true, 'Number');
       this.setTooltip(Blockly.Msg.MATH_MODULO_TOOLTIP);
-      this.setOnChange(function () {
+      this.setOnChange( () => {
         integervalidatior(this, 'num');
         integervalidatior(this, 'den');
       });
@@ -51,7 +51,7 @@ Blockly.Blocks['math_modulo'] = {
           .appendField('square root'); 
       this.setOutput(true, 'Number');
       this.setTooltip(Blockly.Msg.MATH_SINGLE_TOOLTIP_ROOT);
-      this.setOnChange(function () {
+      this.setOnChange( () =>  {
         integervalidatior(this, 'NUM');
       });
     }
@@ -69,7 +69,7 @@ Blockly.Blocks['math_modulo'] = {
         ]), 'operation')
     this.setColour("#2FADE7");
     this.setOutput(true, 'Boolean');
-    this.setOnChange(function () {
+    this.setOnChange( () =>  {
       integervalidatior(this, 'value');
     });
 }

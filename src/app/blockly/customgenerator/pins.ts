@@ -1,4 +1,3 @@
-import { LRN } from "@tensorflow/tfjs";
 import customGenerator from ".";
 import * as Blockly from 'blockly/core';
 
@@ -153,6 +152,6 @@ const finalLnValue = (typeof varValue === 'object' && varValue !== null)
   }
   return JSON.stringify(jsonOutput, null, 2);
 }
-customGenerator.forBlock['setupanimal'] = function(block, generator) {
+customGenerator.forBlock['setupanimal'] = function(block: Blockly.Block, generator: any) {
   return '';
 };

@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from 'react-redux';
-import type { RootState } from '../../../../../store/index';
+import type { RootState, AppDispatch } from '../../../../../store/index';
 import { setSelectedComPort } from '../../../../../store/comPortSlice';
 import { disconnectSerial, sendSerialMessage, connectSerial } from '../../../../../store/serialSlice';
 import SerialService from "../../../services/Serialservice";
@@ -21,16 +21,16 @@ interface TopLeftBarProps {
   handleImport: () => void;
   handleSave: (savemode: SaveMode) => void;
   saveToKit: (action?: "save" | "clear") => void;  
-  selectedKit: string;
-  setShowKits: React.Dispatch<React.SetStateAction<boolean>>;
-  kitsButtonRef: React.RefObject<HTMLDivElement>;
-  showPopup: boolean;
-  onPopupClose: () => void;
-  selectedLanguage: string;
+  selectedKit?: string;
+  setShowKits?: React.Dispatch<React.SetStateAction<boolean>>;
+  kitsButtonRef?: React.RefObject<HTMLDivElement>;
+  showPopup?: boolean;
+  onPopupClose?: () => void;
+  selectedLanguage?: string;
   handleLanguageClick: (language: string) => void;
   handleExitApp: () => void;
-  onOpenPDF;
-  runstatus;
+  onOpenPDF: () => void;
+  runstatus?: any;
   animalMode: "Gripper" | "Walker" | "Crawler";
   setAnimalMode: React.Dispatch<React.SetStateAction<"Gripper" | "Walker" | "Crawler">>;
   selectedCategory: string;
@@ -52,7 +52,7 @@ const TopLeftBar: React.FC<TopLeftBarProps> = ({
   selectedCategory
 }) => {
   const router = useRouter();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
   const { isConnected } = useSelector((state: RootState) => state.websocketSlice);
   const selectedKit = useSelector((state: RootState) => state.kits.kit)
   const handleBookfunction = () =>
@@ -85,7 +85,7 @@ const TopLeftBar: React.FC<TopLeftBarProps> = ({
         <button className="group relative hover:scale-110 transition-transform duration-200">
           <Back className="w-[60px] h-[60px] cursor-pointer " onClick={() => {    
                 
-            handleExitApp(router.push)
+            handleExitApp()
             if (runstatus === "Start" && isConnected) {
               dispatch(disconnectSerial());
               dispatch(setSelectedComPort(null));

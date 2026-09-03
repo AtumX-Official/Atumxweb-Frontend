@@ -20,7 +20,7 @@ import Help from '@renderer/assets/icons/common/Help'
 import {Deletepythonfile} from "@renderer/components/supporting/Popups"
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
 import {  useSelector } from 'react-redux';
-import { handlePortRefreshWithPromise } from '@renderer/screens/PythonHelper/ListPorts'
+import { handlePortRefreshWithPromise } from '@renderer/screens/CommonHelper/ListPorts'
 import { Tooltip } from './Tooltip'
 import Header from '../Header'
 import { UnderdevelopmentPopup } from '../supporting/Popups'
@@ -37,6 +37,38 @@ interface Project {
   created: string
   filepath: string
   filename: string
+}
+
+interface OutputLine {
+  type: string
+  text: string
+}
+
+interface SearchResultItem {
+  fileName: string
+  filePath: string
+  lineNumber: number
+  lineText: string
+  matchStart: number
+  matchLength: number
+}
+
+interface GroupedResult {
+  fileName: string
+  filePath: string
+  results: SearchResultItem[]
+}
+
+interface PythonScaffoldNavigationState {
+  searchText?: string
+  lineNumber?: number
+}
+
+interface MonacoFindMatch {
+  range: {
+    startLineNumber: number
+    startColumn: number
+  }
 }
 
 export default function PythonScaffold({
@@ -65,23 +97,23 @@ export default function PythonScaffold({
   setIsChangeHappens: (val: boolean) => void
   unsavedChanges: boolean
   ports: Array<string>
-  setPorts: () => void
+  setPorts: (ports : string[]) => void
   projectName: string
   setProjectName: (name: string) => void
   children?: React.ReactNode
   fontFn: (size: string) => void
   onRun: () => void
   onStop: () => void
-  output;
-  onSave: (mode) => void
+  output : OutputLine[];
+  onSave: (mode : 'save' | 'saveAs') => void
   onImport: () => void
   onNewFile: () => void
   serialData: string
   onClear: () => void
   selectedkit: string
-  onSaveToKit: () => any
-  onExit: () => any
-  onOpenpdf: () => any
+  onSaveToKit: () => void
+  onExit: () => Promise<void>
+  onOpenpdf: () => void
   onOpenBoardFile:(file: string) => void
 }) {
   const navigate = useNavigate()
@@ -94,14 +126,14 @@ export default function PythonScaffold({
   const textColor = themeMode === 'dark' ? 'text-white' : 'text-black'
   const [activeTab, setActiveTab] = useState<'serial' | 'errors'>('serial') 
    const [runStatus, setRunStatus] = useState<'running' | 'stopped'>('stopped')
-  const [autoScroll, setAutoScroll] = useState(() => {
+  const [autoScroll, setAutoScroll] = useState<boolean>(() => {
     const saved = window.localStorage.getItem("serial_autoscroll");
     return saved !== null ? JSON.parse(saved) : true;
   });
   //Global Search
   const [showSearchBox, setShowSearchBox] = useState(false)
   const [searchText, setSearchText] = useState("")
-  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([])
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
   const [showUnderDev, setShowUnderDev] = useState(false)
   const bgColor = themeMode === 'dark' ? 'bg-[#000000]' : 'bg-[#D6D6D6]'
@@ -122,13 +154,13 @@ export default function PythonScaffold({
   //File search
   const [showFileSearch, setShowFileSearch] = useState(false);
   const [fileSearchText, setFileSearchText] = useState("");
-  const [fileResults, setFileResults] = useState<any[]>([]);
+  const [fileResults, setFileResults] = useState<SearchResultItem[]>([]);
   useEffect(() => {
     window.localStorage.setItem("serial_autoscroll", JSON.stringify(autoScroll));
   }, [autoScroll]);
 
   const [examples, setExamples] = useState<any[]>([])
-  const [libraries, setLibraries] = useState([])
+  const [libraries, setLibraries] = useState<any[]>([])
   const [leftPanel, setLeftPanel] = useState<null | 'Searchall'| 'folder' | 'library' | 'example' | 'board files'>(() => {
     return window.localStorage.getItem('py_leftPanel') as 'Searchall'|'folder' | 'library' | 'example' | null
   })
@@ -166,7 +198,7 @@ export default function PythonScaffold({
       true
     );
 
-    return matches.map(m => {
+    return matches.map((m : MonacoFindMatch) => {
     const lineContent = model.getLineContent(m.range.startLineNumber);
 
       return {
@@ -183,7 +215,7 @@ export default function PythonScaffold({
 
   const onOpenFolder = async () => {
     const res = await window.api.file.openFolderDialog('python');
-    if (res.success) {
+    if (res.success && res.data) {
       setTerminalPath(res.data)
       refresh()
     } else {
@@ -207,7 +239,7 @@ export default function PythonScaffold({
       ? searchInUnsavedEditor(searchText)
       : []
 
-    if (res?.success) {
+    if (res?.success && res.data) {
       setSearchResults([...unsavedResults, ...res.data])
     } else {
       setSearchResults(unsavedResults)
@@ -231,7 +263,7 @@ export default function PythonScaffold({
     );
   }
 
-  const groupedResults = searchResults.reduce((acc: any, r: any) => {
+  const groupedResults = searchResults.reduce((acc: Record<string, GroupedResult>, r: SearchResultItem) => {
     const key = r.filePath;
 
     if (!acc[key]) {
@@ -243,7 +275,7 @@ export default function PythonScaffold({
     }
     acc[key].results.push(r);
     return acc;
-  }, {});
+  }, {} as Record<string, GroupedResult>);
 
     const [fileTree, setFileTree] = useState<any[]>([])
     const [selectedNode, setSelectedNode] = useState<{
@@ -380,7 +412,7 @@ export default function PythonScaffold({
 
     const matches = model.findMatches(word, true, false, false, null, true);
 
-    const decorations = matches.map(match => ({
+    const decorations = matches.map((match : MonacoFindMatch) => ({
       range: match.range,
       options: { inlineClassName: "myHighlight" }
     }));
@@ -415,7 +447,7 @@ export default function PythonScaffold({
 
   const refresh = async () => {
     const res = await window.api.file.fetchDirs('python')
-    if (res.success) {
+    if (res.success && res.rootPath && res.folderName) {
       setFileTree(res.data)
       setTerminalPath(res.rootPath)
       setRootFolder(res.folderName)
@@ -443,7 +475,7 @@ export default function PythonScaffold({
       ? projects[0].filepath.split("\\").slice(0, -1).join("\\")
       : "";
     const res = await window.api.fileSearch(folderPath, fileSearchText);
-    if (res?.success) {
+    if (res?.success && res.data) {
       setFileResults(res.data);
     } else {
       setFileResults([]);
@@ -638,13 +670,13 @@ export default function PythonScaffold({
     setTimeout(() => setShowCopiedToast(false), 1200);
   };
 
-  const items = [
+  const items: { Icon: React.ComponentType<{ className?: string }>; label: string }[] = [
     { Icon: Settings, label: "Settings" },
     { Icon: Help, label: "Help" }
   ];
 
   useEffect(() => {
-    const state = location.state as any
+    const state = location.state as PythonScaffoldNavigationState | null
 
     if (!state || !window.monacoEditor) return
 
