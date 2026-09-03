@@ -16,7 +16,7 @@ import { Tooltip } from '../components/Tooltip';
 import { Connectivity } from '../components/supporting/Popups';
 import { IO_MAP } from './Elements/ioconfig';
 import { UnderdevelopmentPopup } from '../components/supporting/Popups';
-import BackgroundImg from "../assets/Background.svg"
+import BackgroundImg from "../assets/Background.svg?url"
 import Header from '../components/Header'
 import SettingModal from '../components/supporting/SettingModal';
 

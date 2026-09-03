@@ -9,8 +9,8 @@ import { setMode } from "../../../store/modeSlice";
 
 import "../assets/css/homepage.css";
 
-import BackgroundImg from "../assets/Background.svg";
-import Backgrounddark from "../assets/Backgrounddark.svg";
+import BackgroundImg from "../assets/Background.svg?url";
+import Backgrounddark from "../assets/Backgrounddark.svg?url";
 import Header from "../components/Header";
 import ModeCard from "../components/ModeCard";
 import ModeSwitch from "../components/ModeSwitch";
@@ -93,14 +93,14 @@ export default function HomePage() {
 
       case "ai box":
         return (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto justify-center">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto justify-center">
             {/* Will this bloacks component come here ? */}
-            <ModeCard
+            {/* <ModeCard
               mode={mode}
               linkto="mainlayout"
               image="blocks"
               text="BLOCKS"
-            />
+            /> */}
             <ModeCard
               mode={mode}
               linkto="ai"

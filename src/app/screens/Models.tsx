@@ -10,7 +10,7 @@ import type { RootState } from '../../../store'
 import Gripper from '../assets/Gripperimg'
 import Walker from '../assets/Walkerimg'
 import Crawler from '../assets/Crawlerimg'
-import BackgroundImg from "../assets/Background.svg"
+import BackgroundImg from "../assets/Background.svg?url"
 
 const Models: React.FC = () => {
   const dispatch = useDispatch()

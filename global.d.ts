@@ -286,6 +286,11 @@ declare global {
     error?: string
   }
 
+  declare module "*.svg?url" {
+    const src: string;
+    export default src;
+  }
+
   interface Window {
     api: {
       mpRemote: {

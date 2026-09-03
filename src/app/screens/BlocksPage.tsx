@@ -16,7 +16,7 @@ import TopLeftBar from './Elements/Topbar/Topleft'
 import TopBarRight from './Elements/Topbar/TopRightBar'
 import TopBarCenter from './Elements/Topbar/TopCenter'
 import Models, { AddBlocks } from './Models'
-import BackgroundImg from "../assets/Background.svg"
+import BackgroundImg from "../assets/Background.svg?url"
 import Curriculum from './Elements/Topbar/Curriculumcomponent'
 import ConvertToLanguagePopup, {
   RunPopup,
