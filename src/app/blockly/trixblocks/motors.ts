@@ -488,3 +488,52 @@ Blockly.Blocks['cayosetupMotor'] = {
         
       }
     };
+
+    Blockly.Blocks['stemrobosetupMotor'] = {
+      init: function() {
+        this.setColour("#4787FF");
+        this.appendDummyInput()
+              .appendField('Setup')
+              .appendField(new Blockly.FieldDropdown([
+                ['Motor1', 'Motor1'],
+                ['Motor2', 'Motor2'],
+                ['Motor3', 'Motor3'],
+                ['Motor4', 'Motor4'],
+              ]), 'ID')
+        this.appendDummyInput()
+           .appendField("MA")
+          .appendField(new Blockly.FieldDropdown([
+            ["IO1", '4'],
+            ["IO2", '5'],
+            ["IO3", '6'],
+            ["IO4", '7'],
+            ["IO5", '15'],
+            ["IO6", '16'],
+            ["IO7", '21'],
+            ["IO8", '47'],
+            ["IO9", '48'],
+            ["IO10",'38'],
+            ["IO11", '2'],
+            ["IO12", '1']
+          ]), 'MA');
+        this.appendDummyInput()
+            .appendField("MB")
+          .appendField(new Blockly.FieldDropdown([
+            ["IO1", '4'],
+            ["IO2", '5'],
+            ["IO3", '6'],
+            ["IO4", '7'],
+            ["IO5", '15'],
+            ["IO6", '16'],
+            ["IO7", '21'],
+            ["IO8", '47'],
+            ["IO9", '48'],
+            ["IO10",'38'],
+            ["IO11", '2'],
+            ["IO12", '1']
+          ]), 'MB');
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setTooltip('Setup motor with 4 pin dropdowns');
+      }
+    };

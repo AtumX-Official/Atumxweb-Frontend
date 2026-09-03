@@ -41,5 +41,17 @@ export const Displays : Record<string, string> = {
 <block type="happy"></block>
 <block type="alarm"></block>
 <block type="conf"></block>
-  `
+  `,
+  STEMROBO : `
+  <block type="stemroboLCDsetup"></block>
+<block type="LCDprint"></block>
+<block type="LCDPrintWS"></block>
+<block type="LCDsetcursor"></block>
+<block type="LCDcmd"></block>
+<block type="stemroboOleddisplay"></block>
+<block type="Display"></block>
+<block type="happy"></block>
+<block type="alarm"></block>
+<block type="conf"></block>   
+  `,
   };

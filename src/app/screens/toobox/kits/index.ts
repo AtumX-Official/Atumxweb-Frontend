@@ -1,8 +1,8 @@
 import { CAYO } from './cayo';
 import { SNOWFLAKE } from './snowflake';
-import {SUBO} from './subo'
-import {REKKA} from './rekka'
-
+import { SUBO } from './subo'
+import { REKKA } from './rekka'
+import { STEMROBO } from './stemrobo';
 
 export interface KitConfig {
   BASIC?: string
@@ -21,14 +21,14 @@ export interface KitConfig {
   }
 }
 
-
 /**
  * Central registry of all kits
  * Keys MUST match selectedKit.toUpperCase()
  */
-export const Kits : Record<string, KitConfig>  = {
+export const Kits: Record<string, KitConfig> = {
   CAYO,
   SNOWFLAKE,
   SUBO,
-  REKKA
-} ;
+  REKKA,
+  STEMROBO
+} as const;

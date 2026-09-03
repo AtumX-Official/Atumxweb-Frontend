@@ -52,5 +52,18 @@ export const Pins : Record<string, string> = {
   </value>
     </block>  
     <block type="dronepinmode"></block>
-  `
+  `,
+  STEMROBO : `
+  <block type="stemrobodigital_read"></block>
+ <block type="stemrobodigital_write"></block>
+ <block type="stemroboanalog_read"></block>
+   <block type="stemroboanalog_write">
+   <value name="value">
+   <shadow type="math_number">
+   <field name="NUM">0</field>
+   </shadow>
+  </value>
+   </block>
+ <block type="stemrobopinmode"></block>
+`,
   };

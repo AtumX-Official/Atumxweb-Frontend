@@ -9,5 +9,10 @@ export const Relays : Record<string, string> = {
       <block type="cayoRelayOn"></block>
       <block type="cayoRelayOff"></block>
     `,
+    STEMROBO : `
+    <block type="stemrobosetrelay"></block>
+    <block type="stemroboRelayOn"></block>
+    <block type="stemroboRelayOff"></block>
+    `
   };
   

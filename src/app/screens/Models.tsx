@@ -20,6 +20,7 @@ const Models: React.FC = () => {
     // { id: "snowflake", label: "SNOWFLAKE", Icon: Snowflake },
     { id: "subo", label: "SUBO", Icon: Subu },
     { id: "rekka", label: "REKKA", Icon: Rekka },
+    {id: "stemrobo", label: "STEMROBO", Icon: DemoBoard}
   ]
 
   const handleKitClick = (id: string) => {

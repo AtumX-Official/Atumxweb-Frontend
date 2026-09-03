@@ -18,6 +18,11 @@ export const Motors : Record<string, string>  = {
       <block type="subumotorset"></block>
       <block type="runMotorsubu"></block>
       <block type="subumotorpwm"></block>
-    `
+    `,
+    STEMROBO : `
+    <block type="stemrobosetupMotor"></block>
+     <block type="runMotor"></block>
+     <block type="motorrunpwm"></block>
+   `
   };
   

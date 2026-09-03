@@ -5,6 +5,7 @@ import subo from '../../assets/Subu'
 import cayo from '../../assets/Cayo.svg'
 import { useState,useEffect } from "react";
 import { FiEdit2 } from "react-icons/fi";
+import stemrobo from '../../assets/Demo'
 
 declare global {
   interface window {
@@ -35,6 +36,7 @@ export default function BoardInfo() {
     snowflake,
     subo,
     cayo,
+    stemrobo
   };
 
   const BoardIcon = kitMap[selectedKit];

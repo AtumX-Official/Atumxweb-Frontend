@@ -14,7 +14,19 @@ customGenerator.forBlock['setupMotor'] = function(block: Blockly.Block){
     }
     return JSON.stringify(jsonOutput, null, 2);
 }
-
+customGenerator.forBlock['stemrobosetupMotor'] = function(block: Blockly.Block){
+  const ID = block.getFieldValue('ID')
+  const MA = block.getFieldValue('MA');
+  const MB = block.getFieldValue('MB');
+    const jsonOutput = {
+      MotorSetup : {
+          ID,
+          MA,
+          MB
+        }
+  }
+  return JSON.stringify(jsonOutput, null, 2);
+}
 customGenerator.forBlock['sfsetupMotor'] = function(block: Blockly.Block){
   const ID = block.getFieldValue('ID')
   const MA = block.getFieldValue('MA');
