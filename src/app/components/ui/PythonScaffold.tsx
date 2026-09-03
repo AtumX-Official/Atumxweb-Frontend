@@ -20,6 +20,7 @@ import Help from '@renderer/assets/icons/common/Help'
 import {Deletepythonfile} from "@renderer/components/supporting/Popups"
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
 import FileService from "@/app/services/FileService";
+import WorkspaceFileService, { ExplorerNode, SearchResult } from "@/app/services/WorkspaceFileService";
 import {  useSelector } from 'react-redux';
 import { handlePortRefreshWithPromise } from '@renderer/screens/CommonHelper/ListPorts'
 import serialService from '@renderer/services/Serialservice'
@@ -66,6 +67,15 @@ export default function PythonScaffold({
   onExit,
   onOpenpdf,
   onOpenBoardFile,
+  onOpenFolder,
+  onReadFile,
+  onWriteFile,
+  onCreateFile,
+  onCreateFolder,
+  onRenameFile,
+  onDeleteFile,
+  onDeleteFolder,
+  onRefresh,
 
 }: {
   setIsChangeHappens: (val: boolean) => void
@@ -89,6 +99,15 @@ export default function PythonScaffold({
   onExit: () => any
   onOpenpdf: () => any
   onOpenBoardFile:(file: string) => void
+  onOpenFolder?: () => void
+  onReadFile?: (path: string) => Promise<string | null>
+  onWriteFile?: (path: string, content: string) => Promise<boolean>
+  onCreateFile?: (path: string, content?: string) => Promise<boolean>
+  onCreateFolder?: (path: string) => Promise<boolean>
+  onRenameFile?: (oldPath: string, newName: string) => Promise<boolean>
+  onDeleteFile?: (path: string) => Promise<boolean>
+  onDeleteFolder?: (path: string) => Promise<boolean>
+  onRefresh?: () => Promise<void>
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -205,66 +224,104 @@ export default function PythonScaffold({
   );
   };
 
-  /* const onOpenFolder = async () => {
-    const res = await window.api.file.openFolderDialog('python');
-    if (res.success) {
-      setTerminalPath(res.data)
-      refresh()
-    } else {
-      console.error('Error opening folder:', res.error)
+  const handleOpenFolder = async () => {
+    try {
+      const result = await WorkspaceFileService.openFolder();
+      if (result.success && result.rootName) {
+        setRootFolder(result.rootName);
+        setTerminalPath(result.rootName);
+        setProjectName(result.rootName);
+        // Build the file tree from the opened folder
+        const tree = await WorkspaceFileService.buildFileTree();
+        setFileTree(tree);
+      } else if (result.error && result.error !== 'cancelled') {
+        alert(result.error);
+      }
+    } catch (error: any) {
+      console.error('Error opening folder:', error);
     }
-  } */
+  };
 
-  const onOpenFolder = async () => {
-  try {
-    if (!('showDirectoryPicker' in window)) {
-      alert(
-        'Folder selection is not supported in this browser. Please use Chrome or Edge.'
-      );
-      return;
+  const readFile = async (relativePath: string): Promise<string | null> => {
+    const result = await WorkspaceFileService.readFile(relativePath);
+    if (result.success && result.data !== undefined) {
+      return result.data;
     }
+    console.error('Error reading file:', result.error);
+    return null;
+  };
 
-    const directoryHandle =
-      await window.showDirectoryPicker();
+  const writeFile = async (relativePath: string, content: string): Promise<boolean> => {
+    const result = await WorkspaceFileService.writeFile(relativePath, content);
+    return result.success;
+  };
 
-    console.log('Selected folder:', directoryHandle.name);
-
-    setTerminalPath(directoryHandle.name);
-
-    // Store the selected folder handle if you need it later
-    // You can use directoryHandle to access files inside the folder.
-
-  } catch (error: any) {
-    if (error?.name === 'AbortError') {
-      console.log('User cancelled folder selection');
-      return;
+  const createFile = async (relativePath: string, content: string = ""): Promise<boolean> => {
+    const result = await WorkspaceFileService.createFile(relativePath, content);
+    if (result.success) {
+      await refresh();
+      return true;
     }
+    console.error('Error creating file:', result.error);
+    return false;
+  };
 
-    console.error('Error opening folder:', error);
-  }
-};
+  const createFolder = async (relativePath: string): Promise<boolean> => {
+    const result = await WorkspaceFileService.createFolder(relativePath);
+    if (result.success) {
+      await refresh();
+      return true;
+    }
+    console.error('Error creating folder:', result.error);
+    return false;
+  };
+
+  const renameFile = async (oldPath: string, newName: string): Promise<boolean> => {
+    const result = await WorkspaceFileService.rename(oldPath, newName);
+    if (result.success) {
+      await refresh();
+      return true;
+    }
+    console.error('Error renaming file:', result.error);
+    return false;
+  };
+
+  const deleteFileByPath = async (relativePath: string): Promise<boolean> => {
+    const result = await WorkspaceFileService.deleteFile(relativePath);
+    if (result.success) {
+      await refresh();
+      return true;
+    }
+    console.error('Error deleting file:', result.error);
+    return false;
+  };
+
+  const deleteFolderByPath = async (relativePath: string): Promise<boolean> => {
+    const result = await WorkspaceFileService.deleteFolder(relativePath);
+    if (result.success) {
+      await refresh();
+      return true;
+    }
+    console.error('Error deleting folder:', result.error);
+    return false;
+  };
 
   const handleGlobalSearch = async (customPath?: string) => {
     if (!searchText.trim()) return
 
     setSearchResults([])
 
-    const folderPath = customPath
-      ? customPath
-      : projects[0]?.filepath
-        ? projects[0].filepath.split("\\").slice(0, -1).join("\\")
-        : ""
-    const res = await window.api.globalSearch(folderPath, searchText)
+    // Search in workspace files
+    let workspaceResults: SearchResult[] = [];
+    if (WorkspaceFileService.isFolderOpen()) {
+      workspaceResults = await WorkspaceFileService.searchInProject(searchText);
+    }
 
     const unsavedResults = unsavedChanges
       ? searchInUnsavedEditor(searchText)
       : []
 
-    if (res?.success) {
-      setSearchResults([...unsavedResults, ...res.data])
-    } else {
-      setSearchResults(unsavedResults)
-    }
+    setSearchResults([...unsavedResults, ...workspaceResults])
   }
   function renderHighlightedLine(
     text: string,
@@ -470,7 +527,12 @@ export default function PythonScaffold({
     setShowFileSearch(false)
   }
 
-  const refresh = () => Promise.resolve()
+  const refresh = async (): Promise<void> => {
+    if (WorkspaceFileService.isFolderOpen()) {
+      const tree = await WorkspaceFileService.buildFileTree();
+      setFileTree(tree);
+    }
+  }
 
   const refreshSerialPorts = async () => {
     try {
@@ -542,12 +604,9 @@ export default function PythonScaffold({
   const handleFileSearch = async () => {
     if (!fileSearchText.trim()) return;
 
-    const folderPath = projects[0]?.filepath
-      ? projects[0].filepath.split("\\").slice(0, -1).join("\\")
-      : "";
-    const res = await window.api.fileSearch(folderPath, fileSearchText);
-    if (res?.success) {
-      setFileResults(res.data);
+    if (WorkspaceFileService.isFolderOpen()) {
+      const results = await WorkspaceFileService.searchInProject(fileSearchText);
+      setFileResults(results);
     } else {
       setFileResults([]);
     }
@@ -767,7 +826,7 @@ export default function PythonScaffold({
                   <EditIcon className="w-12 h-12 bg-[#F6EC24] p-2 cursor-pointer hover:scale-105 rounded hover:border-[3px] border-black transition-transform duration-200" />
                   <Tooltip  text='New' />
                 </div>
-                <div className="group relative hover:scale-110 transition-transform duration-200" onClick={onOpenFolder}>
+                <div className="group relative hover:scale-110 transition-transform duration-200" onClick={handleOpenFolder}>
                   <DownloadIcon className="w-12 h-12 bg-[#F6EC24] p-2 cursor-pointer hover:scale-105 rounded hover:border-[3px] border-black transition-transform duration-200" />
                   <Tooltip text='Open' />
                 </div>

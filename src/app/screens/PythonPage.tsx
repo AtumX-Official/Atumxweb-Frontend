@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import PythonScaffold from '../components/ui/PythonScaffold'
 import FileService from "@/app/services/FileService";
+import WorkspaceFileService from "@/app/services/WorkspaceFileService";
 import Editor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import { useSelector, useDispatch } from 'react-redux'
@@ -235,8 +236,11 @@ const handleOpenBoardFile = (file: string) => {
 
   useEffect(() => {
     if (incomingFilePath) {
-      window.api.file.fileOpen(incomingFilePath).then((result) => {
-        if (result.success) {
+      let cancelled = false;
+      const loadFile = async () => {
+        const result = await WorkspaceFileService.readFile(incomingFilePath);
+        if (cancelled) return;
+        if (result.success && result.data !== undefined) {
           const existingTab = tabs.find(t => t.path === incomingFilePath);
           if (existingTab) {
             setActiveTabId(existingTab.id);
@@ -246,7 +250,11 @@ const handleOpenBoardFile = (file: string) => {
         } else {
           appendOutput(`> Error loading file: ${result.error}\n`, 'err');
         }
-      })
+      };
+      loadFile();
+      return () => {
+        cancelled = true;
+      };
     }
   }, [incomingFilePath, fileName]);
   const [flashSuccessOpen, setFlashSuccessOpen] = useState(false);
@@ -518,7 +526,40 @@ useEffect(() => {
         onSaveToKit={() => ShowSavetokitpop(true)}
         onExit={handleExitAndFlash}
         onOpenpdf={() => setShowPDF(true)}
-        onOpenBoardFile={handleOpenBoardFile} 
+        onOpenBoardFile={handleOpenBoardFile}
+        onOpenFolder={async () => {
+          const result = await WorkspaceFileService.openFolder();
+          if (result.success && result.rootName) {
+            // Create a new tab with the folder name
+            const folderName = result.rootName;
+            // Load the file tree
+            const tree = await WorkspaceFileService.buildFileTree();
+            // Store tree in session for the scaffold to pick up
+            window.__workspaceFileTree = tree;
+            window.__workspaceRootName = folderName;
+            // Trigger a refresh of the scaffold
+            window.dispatchEvent(new CustomEvent('workspace-opened', { detail: { tree, rootName: folderName } }));
+          }
+        }}
+        onReadFile={async (path: string) => {
+          const result = await WorkspaceFileService.readFile(path);
+          if (result.success && result.data !== undefined) {
+            return result.data;
+          }
+          return null;
+        }}
+        onWriteFile={async (path: string, content: string) => {
+          const result = await WorkspaceFileService.writeFile(path, content);
+          return result.success;
+        }}
+        onRefresh={async () => {
+          if (WorkspaceFileService.isFolderOpen()) {
+            const tree = await WorkspaceFileService.buildFileTree();
+            window.__workspaceFileTree = tree;
+            return tree;
+          }
+          return [];
+        }}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* TAB BAR */}

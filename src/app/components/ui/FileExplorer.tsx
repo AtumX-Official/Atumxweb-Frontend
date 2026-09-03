@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
 import FolderIcon from '@renderer/assets/icons/common/FolderIcon'
 import CppLogo from "@renderer/assets/icons/cplusplus/CppLogo"
 import fileicon from './assets/File.svg'
@@ -11,6 +11,7 @@ import Folderdown from './assets/Folderdown'
 import { IoMdAddCircleOutline } from "react-icons/io"
 import { SlOptionsVertical } from "react-icons/sl"
 import { createPortal } from "react-dom"
+import WorkspaceFileService from "@/app/services/WorkspaceFileService"
 
 const sortNodes = (nodes) => {
   return [...nodes].sort((a, b) => {
@@ -107,7 +108,7 @@ function ExplorerNode({
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState("")
   const renameInputRef = useRef<HTMLInputElement | null>(null)
-  const navigate = useNavigate()
+  const router = useRouter()
   const themeMode = useSelector((state: any) => state.theme.mode)
   
   const isSelected = selectedNode?.path === node.path
@@ -169,7 +170,7 @@ function ExplorerNode({
       newName += oldExt
     }
 
-    const result = await window.api.file.renameFile(node.path, newName)
+    const result = await WorkspaceFileService.rename(node.path, newName)
     if (result.success) {
       refresh()
     } else {
@@ -194,7 +195,12 @@ function ExplorerNode({
 
   const handleConfirmDelete = async () => {
     try {
-      const res = await window.api.file.delete(node.path)
+      let res;
+      if (node.type === "file") {
+        res = await WorkspaceFileService.deleteFile(node.path);
+      } else {
+        res = await WorkspaceFileService.deleteFolder(node.path);
+      }
       if (res.success) {
         setIsModalOpen(false)
         triggerToast("Deleted Successfully")
@@ -231,7 +237,7 @@ function ExplorerNode({
     }
   }
   const handleDuplicateClick = async () => {
-    const result = await window.api.file.duplicateFile(node.path, language)
+    const result = await WorkspaceFileService.createFile(node.path + '.copy')
     if (result.success) {
       refresh()
     } else {
@@ -264,21 +270,15 @@ function ExplorerNode({
   const handleNewFileCommit = async () => {
     if (!isCreatingFile) return
     setIsCreatingFile(false)
-  
+
     const trimmed = newFileName.trim()
     if (!trimmed) return
-  
-    const result = await window.api.file.addfile(node.path)
-    
-    // If api creates with default name, rename to user's typed name
+
+    const ext = language === 'cpp' ? '.cpp' : '.py'
+    const finalName = trimmed.endsWith(ext) ? trimmed : `${trimmed}${ext}`
+    const filePath = node.path ? `${node.path}/${finalName}` : finalName
+    const result = await WorkspaceFileService.createFile(filePath)
     if (result.success) {
-      // rename the created file to the user typed name
-      const ext = language === 'cpp' ? '.cpp' : '.py'
-      const finalName = trimmed.endsWith(ext) ? trimmed : `${trimmed}${ext}`
-      
-      if (result.name !== finalName) {
-        await window.api.file.renameFile(result.path, finalName)
-      }
       refresh()
     } else {
       triggerToast(`Failed to create file: ${result.error}`)
@@ -351,15 +351,12 @@ function ExplorerNode({
             if (node.type === "folder") {
               setOpen((o) => !o)
             } else {
-              
-              navigate(`/${language}`, {
-                state: {
-                  filePath: node.path,
-                  fileName: node.name,
-                  isReadOnly: isReadOnlySection,
-                  sourceType: node.sourceType || sectionType
-                }
-              })
+              const params = new URLSearchParams()
+              params.set("filePath", node.path)
+              params.set("fileName", node.name)
+              params.set("isReadOnly", String(isReadOnlySection))
+              params.set("sourceType", node.sourceType || sectionType)
+              router.push(`/${language}?${params.toString()}`)
             }
           }}
           className={`

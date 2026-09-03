@@ -1,6 +1,7 @@
 import { setKit } from '../../../../store/kitslice'
 import { showConfirmModal,showSavePopup } from './Popupfuntionalities';
 import SerialService from '../../services/Serialservice';
+import WorkspaceFileService from '../../services/WorkspaceFileService';
 
 
 const PYTHON_USB_IDS = ["303a:817a", "2e8a:0005"];
@@ -110,39 +111,44 @@ if (boardName.startsWith("E4650")) {
 
   const currentName = normalizeName(activeTab.name);
 
-  let pathToSave: string | undefined;
-
-  if (mode === "save") {
-    // Normal save: use existing path if available
-    pathToSave =
-      activeTab.path?.replace(/[^\\/]+$/, `${currentName}.py`);
-  } else if (mode === "saveAs") {
-    // Save As: force dialog by NOT sending a path
-    pathToSave = undefined;
+  // If the tab has a path (file from workspace), save directly to that path
+  if (mode === "save" && activeTab.path) {
+    const result = await WorkspaceFileService.writeFile(activeTab.path, activeTab.code);
+    if (result.success) {
+      updateActiveTabData({
+        originalCode: activeTab.code,
+        isUnsaved: false
+      });
+      appendOutput(`> File saved: ${activeTab.path}\n`, "out");
+      if (showPopup) {
+        showSavePopup();
+      }
+      return true;
+    } else {
+      appendOutput(`> Error saving file: ${result.error}\n`, "err");
+      return false;
+    }
   }
 
-  const result = await FileService.savePythonFile(
-  activeTab.code,
-  currentName
-);
-
-console.log(result);
+  // For new files or Save As, use the save dialog
+  const result = await WorkspaceFileService.saveAsDialog(
+    activeTab.code,
+    `${currentName}.py`
+  );
 
   if (result.success) {
-    appendOutput(`> File saved to: ${result.path}\n`, "out");
-
+    appendOutput(`> File saved to: ${result.fileName}\n`, "out");
     updateActiveTabData({
-      path: result.path,
-      name: result.fileName.replace(/\.py$/i, ""),
+      name: result.fileName?.replace(/\.py$/i, "") || currentName,
       originalCode: activeTab.code,
       isUnsaved: false
     });
-
     if (showPopup) {
       showSavePopup();
     }
-
     return true;
+  } else if (result.error === "cancelled") {
+    return false;
   } else {
     appendOutput(`> Error saving file: ${result.error}\n`, "err");
     return false;

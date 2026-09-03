@@ -3,7 +3,7 @@ export {};
 declare global {
   /** Runtime bridge exposed by the desktop preload script. */
   interface RendererApi {
-    [service: string]: any;
+    [service: string]: unknown;
   }
 
   interface FilePickerAcceptType {
@@ -25,16 +25,48 @@ declare global {
     multiple?: boolean;
   }
 
+  interface DirectoryPickerOptions {
+    id?: string;
+    mode?: "read" | "readwrite";
+    startIn?: FileSystemHandle | string;
+  }
+
+  // File System Access API type augmentations
+  interface FileSystemHandlePermissionOptions {
+    mode?: "read" | "readwrite";
+  }
+
+  interface FileSystemHandle {
+    queryPermission?: (
+      options?: FileSystemHandlePermissionOptions
+    ) => Promise<PermissionState>;
+    requestPermission?: (
+      options?: FileSystemHandlePermissionOptions
+    ) => Promise<PermissionState>;
+  }
+
+  interface FileSystemDirectoryHandle {
+    values(): AsyncIterableIterator<FileSystemHandle>;
+    entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+    keys(): AsyncIterableIterator<string>;
+  }
+
   interface Window {
     api: RendererApi;
-    monacoEditor: any;
+    monacoEditor: unknown;
+    __workspaceFileTree?: unknown;
+    __workspaceRootName?: string;
 
-    showSaveFilePicker: (
+    showSaveFilePicker?: (
       options?: SaveFilePickerOptions
     ) => Promise<FileSystemFileHandle>;
 
-    showOpenFilePicker: (
+    showOpenFilePicker?: (
       options?: OpenFilePickerOptions
     ) => Promise<FileSystemFileHandle[]>;
+
+    showDirectoryPicker?: (
+      options?: DirectoryPickerOptions
+    ) => Promise<FileSystemDirectoryHandle>;
   }
 }

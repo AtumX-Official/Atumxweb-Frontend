@@ -7,6 +7,7 @@ import Myfileicon from '../assets/Myfileicon'
 import FileIcon from "@renderer/assets/icons/common/FileIcon"
 import Folderup from '../assets/Folderup'
 import fileicon from '../assets/File.svg'
+import WorkspaceFileService from "@/app/services/WorkspaceFileService"
 interface MyFilesPanelProps {
   textColor: string
   selectedNode: any
@@ -117,13 +118,11 @@ const MyFilesPanel = ({
               onKeyDown={async e => {
                 if (e.key !== 'Enter') return
 
-                await window.api.file.createCodeFile({
-                  target: selectedNode ? 'selection' : 'root',
-                  selectionPath: selectedNode?.path,
-                  selectionType: selectedNode?.type,
-                  name: e.currentTarget.value,
-                  language: 'python'
-                })
+                const name = e.currentTarget.value;
+                const parentPath = selectedNode?.type === 'folder' ? selectedNode?.path : '';
+                const filePath = parentPath ? `${parentPath}/${name}.py` : `${name}.py`;
+
+                await WorkspaceFileService.createFile(filePath)
 
                 setIsFileCreating(false)
                 await refresh()
@@ -142,13 +141,11 @@ const MyFilesPanel = ({
               onKeyDown={async e => {
                 if (e.key !== 'Enter') return
 
-                await window.api.file.createCodeDir({
-                  target: selectedNode ? 'selection' : 'root',
-                  selectionPath: selectedNode?.path,
-                  selectionType: selectedNode?.type,
-                  name: e.currentTarget.value,
-                  language: 'python'
-                })
+                const name = e.currentTarget.value;
+                const parentPath = selectedNode?.type === 'folder' ? selectedNode?.path : '';
+                const folderPath = parentPath ? `${parentPath}/${name}` : `${name}`;
+
+                await WorkspaceFileService.createFolder(folderPath)
 
                 setIsFolderCreating(false)
                 await refresh()
