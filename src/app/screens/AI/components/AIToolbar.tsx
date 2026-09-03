@@ -4,7 +4,7 @@ import { Tooltip } from '@renderer/components/Tooltip'
 import EditIcon from '@renderer/assets/icons/common/EditIcon'
 import SaveIcon from '@renderer/assets/icons/common/SaveIcon'
 import Settings from '@renderer/assets/icons/common/Settings'
-import BackgroundImg from "@renderer/assets/Background.svg"
+import BackgroundImg from "@renderer/assets/Background.svg?url"
 import DownloadIcon from '@renderer/assets/icons/common/DownloadIcon'
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
 import BackIcon from '@renderer/assets/icons/common/Backicon'
