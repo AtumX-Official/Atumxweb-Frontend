@@ -1,4 +1,3 @@
-import { CreateFileArgs, CreateFileResult } from 'react-dom';
 import { setKit } from '../../../../store/kitslice'
 import { showConfirmModal,showSavePopup } from './Popupfuntionalities';
 

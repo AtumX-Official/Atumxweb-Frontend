@@ -9,8 +9,8 @@ import { setMode } from "../../../store/modeSlice";
 
 import "../assets/css/homepage.css";
 
-import BackgroundImg from "../assets/Background.svg?url";
-import Backgrounddark from "../assets/Backgrounddark.svg?url";
+import BackgroundImg from "../assets/Background.svg";
+import Backgrounddark from "../assets/Backgrounddark.svg";
 import Header from "../components/Header";
 import ModeCard from "../components/ModeCard";
 import ModeSwitch from "../components/ModeSwitch";
@@ -97,7 +97,7 @@ export default function HomePage() {
             {/* Will this bloacks component come here ? */}
             <ModeCard
               mode={mode}
-              linkto="Mainlayout"
+              linkto="mainlayout"
               image="blocks"
               text="BLOCKS"
             />

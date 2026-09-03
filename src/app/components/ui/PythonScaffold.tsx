@@ -215,7 +215,7 @@ export default function PythonScaffold({
 
   const onOpenFolder = async () => {
     const res = await window.api.file.openFolderDialog('python');
-    if (res.success) {
+    if (res.success && res.data) {
       setTerminalPath(res.data)
       refresh()
     } else {
@@ -239,7 +239,7 @@ export default function PythonScaffold({
       ? searchInUnsavedEditor(searchText)
       : []
 
-    if (res?.success) {
+    if (res?.success && res.data) {
       setSearchResults([...unsavedResults, ...res.data])
     } else {
       setSearchResults(unsavedResults)

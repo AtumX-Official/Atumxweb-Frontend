@@ -45,7 +45,7 @@ export default function GlobalSearch({
         ? searchInUnsavedEditor(searchText)
         : [];
 
-      if (res?.success) {
+      if (res?.success && res.data) {
         setSearchResults([...unsavedResults, ...res.data]);
         setHasSearched(true);
       } else {

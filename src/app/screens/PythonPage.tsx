@@ -19,13 +19,14 @@ import { SaveToKitPopup } from './Elements/SavetokitPopup'
 import {Savetokitpop} from '../components/supporting/Popups'
 import { handlePythonImport,handlePythonSave,handleExitPythonApp,handleUnsavedBeforeAction } from '../screens/CommonHelper/ListPorts'
 import PDFComponent from './Elements/Topbar/Pdfcomponent'
-import samplePdf from './Elements/Topbar/Code App (V1) - Python User Manual.pdf';
 import { DndContext } from "@dnd-kit/core";
 import {DeletionToast,FlashSuccessPopup,PressResetPopup} from '../components/supporting/Popups'
 import pythonHoverInfoData from '../assets/Misc Data/pythonHoverInfo.json'
 import { FEATURES } from '../config/features'
 import { notFound } from 'next/navigation'
 
+// const samplePdf = '/manuals/Code App (V1) - Python User Manual.pdf';
+const samplePdf = './Elements/Topbar/Code App (V1) - Python User Manual.pdf';
 
 const pythonHoverInfo = pythonHoverInfoData as Record<string, string>
 interface Tab {

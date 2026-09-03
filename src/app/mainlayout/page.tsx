@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useRef } from "react";
-import { ClassCard } from "./Classcard";
-import TestCard from "./Testcard";
 
 export default function MainLayout() {
   const [classes, setClasses] = useState([1, 2]);

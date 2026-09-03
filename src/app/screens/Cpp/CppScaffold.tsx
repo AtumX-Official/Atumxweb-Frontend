@@ -40,7 +40,7 @@ import FileSearch from './Sidebar/FileSearch'
 import Libraryicon from '../../components/ui/assets/Libraryicon'
 import { DeletionToast } from "../../components/supporting/Popups"
 import Backicon from "../../assets/icons/common/Backicon"
-import BackgroundImg from "../../assets/Background.svg?url"
+import BackgroundImg from "../../assets/Background.svg"
 import SerialMonitor from './Sidebar/SerialMonitor'
 import {PressBootResetPopup} from '../../components/supporting/Popups'
 interface Project {
@@ -267,7 +267,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     setLeftPanel('folder');
     window.localStorage.setItem('cpp_leftPanel', 'folder');
   
-    setTerminalPath(res.data);
+    if(res.data) setTerminalPath(res.data);
     refresh();
   
     navigate("/cpp", {
