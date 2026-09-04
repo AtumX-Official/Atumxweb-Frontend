@@ -1,6 +1,6 @@
 import React from 'react'
 import { IoIosStar } from 'react-icons/io'
-import fileicon from '../assets/File.svg'
+import FileIconAsset from '../assets/File.svg'
 import { RiDeleteBin6Line } from "react-icons/ri";
 
 interface KitFilesPanelProps {
@@ -39,7 +39,7 @@ const KitFilesPanel = ({
                   onClick={() => onOpenBoardFile(file)}
                 >
                   <div>
-                    <img src={fileicon} className="inline-block w-4 h-4" />
+                    <FileIconAsset className="inline-block w-4 h-4" />
                     <span className={`${textColor} px-1`}>{file}</span>
                   </div>
 

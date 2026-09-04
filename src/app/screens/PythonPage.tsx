@@ -238,14 +238,22 @@ const handleOpenBoardFile = (file: string) => {
     if (incomingFilePath) {
       let cancelled = false;
       const loadFile = async () => {
-        const result = await WorkspaceFileService.readFile(incomingFilePath);
+        const normalizedPath = incomingFilePath.replace(/\\/g, '/').replace(/^\/+/, '');
+        const rootHandle = WorkspaceFileService.getRootHandle();
+        const result = rootHandle
+          ? await WorkspaceFileService.readFileFromDirectory(rootHandle, normalizedPath)
+          : { success: false, error: 'No folder open' };
         if (cancelled) return;
         if (result.success && result.data !== undefined) {
-          const existingTab = tabs.find(t => t.path === incomingFilePath);
+          console.debug('[PythonPage] content passed to Monaco', {
+            filePath: normalizedPath,
+            contentLength: result.data.length,
+          });
+          const existingTab = tabs.find(t => t.path === normalizedPath);
           if (existingTab) {
             setActiveTabId(existingTab.id);
           } else {
-            createNewTab(fileName, result.data, incomingFilePath);
+            createNewTab(fileName, result.data, normalizedPath);
           }
         } else {
           appendOutput(`> Error loading file: ${result.error}\n`, 'err');

@@ -6,7 +6,7 @@ import FileExplorer from '../FileExplorer'
 import Myfileicon from '../assets/Myfileicon'
 import FileIcon from "@renderer/assets/icons/common/FileIcon"
 import Folderup from '../assets/Folderup'
-import fileicon from '../assets/File.svg'
+import FileIconAsset from '../assets/File.svg'
 import WorkspaceFileService from "@/app/services/WorkspaceFileService"
 interface MyFilesPanelProps {
   textColor: string
@@ -110,7 +110,7 @@ const MyFilesPanel = ({
       <div className="flex-1 min-h-0 p-3 custom-scrollbar">
         {isFileCreating && (
           <div className="flex mb-2">
-          <img src={fileicon}  className="inline-block w-6 h-6 mr-2" />
+          <FileIconAsset className="inline-block w-6 h-6 mr-2" />
             <input
               className="bg-neutral-secondary-medium text-xs px-2 py-1 border border-black dark:border-white rounded w-full focus:border-black focus:outline-none focus:ring-0"
               autoFocus

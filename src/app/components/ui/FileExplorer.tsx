@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import FolderIcon from '@renderer/assets/icons/common/FolderIcon'
 import CppLogo from "@renderer/assets/icons/cplusplus/CppLogo"
-import fileicon from './assets/File.svg'
+import FileIconAsset from './assets/File.svg'
 import libicon from './assets/Libicon.svg'
 import { Deletepythonfile, DeletionToast } from "../supporting/Popups"
 import { useSelector } from 'react-redux'
@@ -251,21 +251,21 @@ function ExplorerNode({
       return <img src={libicon} alt="library-file" className="inline-block w-5 h-5 shrink-0" />
     }
     if (sectionType === "example") {
-      return <img src={fileicon} alt="example-file" className="inline-block w-5 h-5 shrink-0" />
+      return <FileIconAsset aria-label="example-file" className="inline-block w-5 h-5 shrink-0" />
     }
     if (sectionType === "myFiles") {
       if (node.sourceType === "library") {
         return <img src={libicon} alt="library-copied-file" className="inline-block w-5 h-5 shrink-0" />
       }
       if (node.sourceType === "example") {
-        return <img src={fileicon} alt="example-copied-file" className="inline-block w-5 h-5 shrink-0" />
+        return <FileIconAsset aria-label="example-copied-file" className="inline-block w-5 h-5 shrink-0" />
       }
       if (language === "cpp") {
         return <CppLogo className="inline-block w-5 h-5 shrink-0" />
       }
-      return <img src={fileicon} alt="user-file" className="inline-block w-5 h-5 shrink-0" />
+      return <FileIconAsset aria-label="user-file" className="inline-block w-5 h-5 shrink-0" />
     }
-    return <img src={fileicon} alt="file" className="inline-block w-5 h-5 shrink-0" />
+    return <FileIconAsset aria-label="file" className="inline-block w-5 h-5 shrink-0" />
   }
   const handleNewFileCommit = async () => {
     if (!isCreatingFile) return
@@ -481,7 +481,7 @@ function ExplorerNode({
       <li className="list-none">
         <div className="h-9 px-2 rounded flex items-center gap-2 bg-[#561DBC] ring-2 ring-yellow-300">
           {/* file icon */}
-          <img src={fileicon} alt="new-file" className="inline-block w-5 h-5 shrink-0" />
+          <FileIconAsset aria-label="new-file" className="inline-block w-5 h-5 shrink-0" />
           <input
             ref={newFileInputRef}
             value={newFileName}

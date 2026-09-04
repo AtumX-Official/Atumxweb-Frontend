@@ -114,6 +114,10 @@ class WorkspaceFileService {
       return this.fileTreeCache;
     }
     if (!this.rootHandle) return [];
+    console.debug("[WorkspaceFileService] building file tree", {
+      rootHandleExists: true,
+      rootName: this.rootHandle.name,
+    });
     const tree = await this.readDirectoryRecursive(this.rootHandle, "");
     this.fileTreeCache = tree;
     this.fileTreeCacheTime = Date.now();
@@ -155,6 +159,11 @@ class WorkspaceFileService {
         const children = await this.readDirectoryRecursive(dirHandle, relativePath);
         nodes.push({ name, path: relativePath, type: "folder", children, handle: dirHandle });
       } else {
+        console.debug("[WorkspaceFileService] tree file handle", {
+          filePath: relativePath,
+          fileName: handle.name,
+          kind: handle.kind,
+        });
         nodes.push({ name, path: relativePath, type: "file", handle: handle as FileSystemFileHandle });
       }
     }
@@ -167,22 +176,147 @@ class WorkspaceFileService {
     error?: string;
   }> {
     if (!this.rootHandle) {
+      console.debug("[WorkspaceFileService] readFile: no root directory handle", {
+        requestedPath: relativePath,
+      });
       return { success: false, error: "No folder open" };
     }
+    return this.readFileFromDirectory(this.rootHandle, relativePath);
+  }
+
+  async readFileFromDirectory(
+    rootHandle: FileSystemDirectoryHandle,
+    filePath: string
+  ): Promise<{
+    success: boolean;
+    data?: string;
+    error?: string;
+  }> {
     try {
-      const fileHandle = await this.getFileHandle(relativePath);
+      const normalizedPath = this.normalizePath(filePath);
+      console.debug("[WorkspaceFileService] readFile", {
+        rootHandleExists: Boolean(rootHandle),
+        rootName: rootHandle.name,
+        requestedPath: filePath,
+        normalizedPath,
+      });
+      const rootPermission = await rootHandle.queryPermission?.({ mode: "read" });
+      console.debug("[WorkspaceFileService] root directory permission", {
+        rootName: rootHandle.name,
+        permission: rootPermission || "unsupported",
+      });
+      const parts = normalizedPath.split("/").filter(Boolean);
+      if (parts.length === 0) {
+        return { success: false, error: "Invalid file path" };
+      }
+
+      let currentHandle = rootHandle;
+      for (let i = 0; i < parts.length - 1; i++) {
+        console.debug("[WorkspaceFileService] resolving directory segment", {
+          segment: parts[i],
+          resolvedPath: parts.slice(0, i + 1).join("/"),
+        });
+        currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
+        console.debug("[WorkspaceFileService] directory handle returned", {
+          segment: parts[i],
+          name: currentHandle.name,
+          kind: currentHandle.kind,
+        });
+      }
+
+      const fileName = parts[parts.length - 1];
+      console.debug("[WorkspaceFileService] resolving file segment", {
+        fileName,
+        parentPath: parts.slice(0, -1).join("/"),
+      });
+      const fileHandle = await currentHandle.getFileHandle(fileName);
       if (!fileHandle) {
-        return { success: false, error: `File not found: ${relativePath}` };
+        return { success: false, error: `File not found: ${normalizedPath}` };
       }
-      const hasPermission = await this.verifyPermission(fileHandle, false);
-      if (!hasPermission) {
-        return { success: false, error: "Permission denied" };
+      const treeFileHandle = this.getCachedTreeFileHandle(normalizedPath);
+      console.debug("[WorkspaceFileService] resolved file handle", {
+        fileName: fileHandle.name,
+        kind: fileHandle.kind,
+        matchesRequestedName: fileHandle.name === fileName,
+        treeHandleExists: Boolean(treeFileHandle),
+        treeHandleIsSameObject: treeFileHandle === fileHandle,
+      });
+      const permission = await fileHandle.queryPermission?.({ mode: "read" });
+      console.debug("[WorkspaceFileService] file permission", {
+        fileName: fileHandle.name,
+        permission: permission || "unsupported",
+      });
+      if (permission !== "granted") {
+        const hasPermission = await this.verifyPermission(fileHandle, false);
+        if (!hasPermission) {
+          return { success: false, error: `Permission denied: ${normalizedPath}` };
+        }
       }
-      const file = await fileHandle.getFile();
+      let file: File | undefined;
+      try {
+        file = await fileHandle.getFile();
+        console.debug("[WorkspaceFileService] getFile succeeded", {
+          fileName: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+        });
+      } catch (error: unknown) {
+        console.warn("[WorkspaceFileService] retrying stale file handle", {
+          fileName: fileHandle.name,
+          errorName: (error as { name?: string }).name,
+          errorCode: (error as { code?: string }).code,
+          error: (error as { message?: string }).message,
+        });
+        if (treeFileHandle && treeFileHandle !== fileHandle) {
+          try {
+            file = await treeFileHandle.getFile();
+            console.debug("[WorkspaceFileService] tree handle getFile succeeded", {
+              fileName: file.name,
+              size: file.size,
+              type: file.type,
+              lastModified: file.lastModified,
+            });
+          } catch (treeError: unknown) {
+            console.warn("[WorkspaceFileService] tree handle getFile failed", {
+              fileName: treeFileHandle.name,
+              errorName: (treeError as { name?: string }).name,
+              error: (treeError as { message?: string }).message,
+            });
+          }
+        }
+        if (!file) {
+          const refreshedHandle = await this.getFileHandleFromRoot(rootHandle, parts);
+          if (!refreshedHandle) {
+            throw error;
+          }
+          file = await refreshedHandle.getFile();
+          console.debug("[WorkspaceFileService] refreshed getFile succeeded", {
+            fileName: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified,
+          });
+        }
+      }
+      if (!file) {
+        return { success: false, error: `File could not be read: ${normalizedPath}` };
+      }
       const text = await file.text();
+      console.debug("[WorkspaceFileService] file content read", {
+        fileName: file.name,
+        contentLength: text.length,
+        textReadSucceeded: true,
+      });
       return { success: true, data: text };
     } catch (error: unknown) {
-      return { success: false, error: (error as { message?: string }).message || "Failed to read file" };
+      const message = (error as { message?: string }).message || "Failed to read file";
+      console.error("[WorkspaceFileService] readFile failed", {
+        filePath,
+        errorName: (error as { name?: string }).name,
+        error: message,
+      });
+      return { success: false, error: message };
     }
   }
 
@@ -444,6 +578,39 @@ class WorkspaceFileService {
 
   private normalizePath(path: string): string {
     return path.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  }
+
+  private async getFileHandleFromRoot(
+    rootHandle: FileSystemDirectoryHandle,
+    parts: string[]
+  ): Promise<FileSystemFileHandle | null> {
+    try {
+      let currentDir = rootHandle;
+      for (let i = 0; i < parts.length - 1; i++) {
+        currentDir = await currentDir.getDirectoryHandle(parts[i]);
+      }
+      return await currentDir.getFileHandle(parts[parts.length - 1]);
+    } catch {
+      return null;
+    }
+  }
+
+  private getCachedTreeFileHandle(relativePath: string): FileSystemFileHandle | null {
+    if (!this.fileTreeCache) return null;
+    const normalizedPath = this.normalizePath(relativePath);
+    const findFile = (nodes: ExplorerNode[]): FileSystemFileHandle | null => {
+      for (const node of nodes) {
+        if (node.path === normalizedPath && node.type === "file") {
+          return node.handle as FileSystemFileHandle;
+        }
+        if (node.children) {
+          const match = findFile(node.children);
+          if (match) return match;
+        }
+      }
+      return null;
+    };
+    return findFile(this.fileTreeCache);
   }
 
   private async getFileHandle(relativePath: string): Promise<FileSystemFileHandle | null> {
