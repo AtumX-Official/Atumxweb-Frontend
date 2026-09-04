@@ -7,6 +7,8 @@ class SerialService {
   private openingPromise: Promise<void> | null = null;
   private writePromise: Promise<void> = Promise.resolve();
   private readBuffer = "";
+  private readonly debug = false;
+  private textDecoder = new TextDecoder();
 
   private boardDisconnected = false;
   private boardConnected = false;
@@ -184,55 +186,59 @@ class SerialService {
     expectedMode: "Blockly Mode" | "Python Mode",
     timeout = 15000
   ): Promise<SerialPort> {
-    const deadline = Date.now() + timeout;
+    this.checkWebSerialSupport();
+
+    const isExpectedPort = (port: SerialPort): boolean => {
+      const info = port.getInfo();
+      const vendorId = info.usbVendorId?.toString(16).padStart(4, "0");
+      const productId = info.usbProductId?.toString(16).padStart(4, "0");
+      const usbId = `${vendorId}:${productId}`;
+
+      return expectedMode === "Blockly Mode"
+        ? usbId === "303a:1001" || usbId === "2e8a:000a"
+        : usbId === "303a:817a" || usbId === "2e8a:0005";
+    };
+
+    // Check once first in case the connect event fired before this method started.
+    const existingPorts = await this.getAuthorizedPorts();
+    const existingPort = existingPorts.find(isExpectedPort);
+    if (existingPort) {
+      return existingPort;
+    }
 
     console.log(`[Board] Waiting for ${expectedMode}...`);
 
-    while (Date.now() < deadline) {
-      const ports = await this.getAuthorizedPorts();
+    return new Promise<SerialPort>((resolve, reject) => {
+      let settled = false;
 
-      console.log(`[Board] Authorized ports: ${ports.length}`);
+      const cleanup = () => {
+        navigator.serial.removeEventListener("connect", handleConnect);
+        clearTimeout(timer);
+      };
 
-      for (const port of ports) {
-        const info = port.getInfo();
+      const finish = (port: SerialPort) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(port);
+      };
 
-        const vendorId = info.usbVendorId
-          ?.toString(16)
-          .padStart(4, "0");
-
-        const productId = info.usbProductId
-          ?.toString(16)
-          .padStart(4, "0");
-
-        const usbId = `${vendorId}:${productId}`;
-
-        console.log(`[Board] Checking USB: ${usbId}`);
-
-        if (
-          expectedMode === "Blockly Mode" &&
-          (usbId === "303a:1001" || usbId === "2e8a:000a")
-        ) {
-          console.log("[Board] Blockly board detected");
-          return port;
+      const handleConnect = (event: Event & { port?: SerialPort }) => {
+        const port = event.port;
+        if (port && isExpectedPort(port)) {
+          finish(port);
         }
+      };
 
-        if (
-          expectedMode === "Python Mode" &&
-          (usbId === "303a:817a" || usbId === "2e8a:0005")
-        ) {
-          console.log("[Board] Python board detected");
-          return port;
-        }
-      }
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(`Board did not reconnect in ${expectedMode}`));
+      }, timeout);
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    throw new Error(
-      `Board did not reconnect in ${expectedMode}`
-    );
+      navigator.serial.addEventListener("connect", handleConnect);
+    });
   }
 
   async enterPythonMode(): Promise<void> {
@@ -577,7 +583,7 @@ class SerialService {
           continue;
         }
 
-        const data = new TextDecoder().decode(value);
+        const data = this.textDecoder.decode(value, { stream: true });
 
         this.readBuffer += data;
 
@@ -590,10 +596,9 @@ class SerialService {
             continue;
           }
 
-          console.log(
-            "[Serial] Data:",
-            line
-          );
+          if (this.debug) {
+            console.log("[Serial] Data:", line);
+          }
 
           this.notifyData(line);
         }

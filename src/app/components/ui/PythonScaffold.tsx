@@ -34,6 +34,7 @@ import Refreshicon from "@renderer/assets/Refresh";
 import {  FiX } from "react-icons/fi";
 import {FiAlertTriangle,FiTerminal} from "react-icons/fi"
 import Backicon from "@renderer/assets/icons/common/Backicon"
+import Usb from "@renderer/assets/Usbicon"
 
 interface Project {
   created: string
@@ -956,15 +957,15 @@ export default function PythonScaffold({
                       setSerialDropdownOpen((prev) => !prev);
                       await refreshSerialPorts();
                     }}
-                    className="w-[175px] h-12 bg-black text-white rounded-lg border-2 border-black hover:border-white flex items-center justify-between px-3 transition-all"
+                    className="bg-black rounded-[8px] flex items-center justify-center w-[50px] h-[50px] border border-transparent hover:border-[#F6EC24] transition-all"
+                    aria-label={selectedSerialPort ? 'Serial port connected' : 'Select Serial Port'}
                   >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <span className="text-purple-400">🔌</span>
-                      <span className="text-xs font-bold truncate">
-                        {selectedSerialPort ? serialService.getPortName(selectedSerialPort, 0) : 'Select Serial Port'}
-                      </span>
-                    </div>
-                    <span>{serialDropdownOpen ? '▲' : '▼'}</span>
+                    <Usb
+                      isConnected={serialService.isConnected()}
+                      className={`w-[20px] h-[35px] cursor-pointer ${
+                        serialService.isConnected() ? 'text-green-400' : 'text-white'
+                      }`}
+                    />
                   </button>
 
                   {serialDropdownOpen && (
