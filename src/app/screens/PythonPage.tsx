@@ -55,6 +55,7 @@ export default function PythonPage() {
     { id: 'initial', name: 'untitled', code: '', path: '', isUnsaved: false, originalCode: '',source:'user',isReadOnly:false }
   ]);
   const [activeTabId, setActiveTabId] = useState('initial');
+  const [projectName, setProjectName] = useState('untitled');
 
   // Helper to get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
@@ -494,14 +495,9 @@ useEffect(() => {
         setIsChangeHappens={setIsChangeHappens}
         ports={ports}
         setPorts={setPorts}
-        projectName={activeTab.name}
+        projectName={projectName}
         unsavedChanges={tabs.some(t => t.isUnsaved)}
-        setProjectName={(name) =>
-          updateActiveTabData({
-            name,
-            isUnsaved: true   
-          })
-        }        
+        setProjectName={setProjectName}
         onSave={(mode: any) => {
           if (activeTab?.isReadOnly) {
             return
@@ -540,6 +536,7 @@ useEffect(() => {
           if (result.success && result.rootName) {
             // Create a new tab with the folder name
             const folderName = result.rootName;
+            setProjectName(folderName);
             // Load the file tree
             const tree = await WorkspaceFileService.buildFileTree();
             // Store tree in session for the scaffold to pick up
@@ -672,7 +669,7 @@ useEffect(() => {
         </div>
         <SaveToKitPopup
           open={Savetokitpopup}
-          projectName={activeTab.name}
+          projectName={projectName}
           onClose={() => ShowSavetokitpop(false)}
           onConfirm={(name) => {
             ShowSavetokitpop(false);
