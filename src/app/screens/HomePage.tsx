@@ -33,7 +33,15 @@ export default function HomePage() {
     (state: { theme: { mode: "light" | "dark" } }) => state.theme.mode
   );
 
-  const [pressResetOpen, setPressResetOpen] = useState(false);
+  const [pressResetOpen, setPressResetOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    return (
+      searchParams.get("showResetPopup") === "true" ||
+      searchParams.get("showResetAlert") === "true"
+    );
+  });
   const [showUnderDev, setShowUnderDev] = useState(false)
 
   /* -------------------- Handlers -------------------- */

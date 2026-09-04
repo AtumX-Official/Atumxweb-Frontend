@@ -278,30 +278,33 @@ const handleOpenBoardFile = (file: string) => {
   
     if (!canExit) return;
   
-    try {
-      const board = await serialService.detectBoardMode();
+    // Start the Home transition immediately. The reset popup is initialized from
+    // the query string during Home's first render, so it is visible while the
+    // board finishes switching modes in the background.
+    window.localStorage.setItem('modecard', 'blocks');
+    router.replace('/?showResetPopup=true');
 
-      if (board?.mode === 'Python Mode') {
-        console.log('[Board] Switching Python → Blockly');
-        await serialService.ensureBlocklyMode();
-      } else if (board?.mode === 'Blockly Mode') {
-        console.log('[Board] Already in Blockly Mode');
-      } else {
-        console.log('[Board] No board detected - returning home anyway');
+    void (async () => {
+      try {
+        const board = await serialService.detectBoardMode();
+
+        if (board?.mode === 'Python Mode') {
+          console.log('[Board] Switching Python → Blockly');
+          await serialService.ensureBlocklyMode();
+        } else if (board?.mode === 'Blockly Mode') {
+          console.log('[Board] Already in Blockly Mode');
+        } else {
+          console.log('[Board] No board detected - returning home anyway');
+        }
+      } catch (err) {
+        console.warn('[Board switch] Blockly switch failed:', err);
       }
-    } catch (err) {
-      console.warn('[Board switch] Blockly switch failed:', err);
-      appendOutput(
-        `> Could not switch board to Blockly mode: ${err instanceof Error ? err.message : String(err)}\n`,
-        'err'
-      );
-    }
-
-    router.replace('/');
+    })();
   };
 
   const handleFlashOk = () => {
     setFlashSuccessOpen(false);
+    window.localStorage.setItem('modecard', 'blocks');
     router.replace("/?showResetPopup=true");
     };
 

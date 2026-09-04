@@ -32,6 +32,12 @@ const nextConfig: NextConfig = {
         test: /\.pdf$/i,
         type: "asset/resource",
       },
+
+      // Bundle animated image assets as URLs for <img> elements.
+      {
+        test: /\.(gif|webp|avif)$/i,
+        type: "asset/resource",
+      },
     );
 
     return config;
