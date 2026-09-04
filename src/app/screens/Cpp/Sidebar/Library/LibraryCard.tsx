@@ -54,7 +54,9 @@ export default function LibraryCard({ data, isInstalled = false, onInstall }: Li
     if (next && versions.length === 0) {
       setLoadingVersions(true);
       try {
-        const res = await window.api.cpp.getLibraryVersions(data.name);
+        const getLibraryVersions = window.api?.cpp?.getLibraryVersions;
+        if (typeof getLibraryVersions !== "function") return;
+        const res = await getLibraryVersions(data.name);
         if (res?.success) setVersions(res.versions);
       } catch {}
       finally { setLoadingVersions(false); }
@@ -66,7 +68,12 @@ export default function LibraryCard({ data, isInstalled = false, onInstall }: Li
     const iniPath = selectedFilePath.endsWith("platformio.ini")
       ? selectedFilePath
       : `${selectedFilePath}\\platformio.ini`;
-    const res = await window.api.cpp.addLibrary(iniPath, { ...data, version: selectedVersion });
+    const addLibrary = window.api?.cpp?.addLibrary;
+    if (typeof addLibrary !== "function") {
+      Swal.fire({ toast: true, position: "top-end", icon: "error", title: "Library management is unavailable", showConfirmButton: false, timer: 2000, timerProgressBar: true, background: "#1f2937", color: "#fff" });
+      return;
+    }
+    const res = await addLibrary(iniPath, { ...data, version: selectedVersion });
     if (res?.success) {
       onInstall?.();
       Swal.fire({ toast: true, position: "top-end", icon: "success", title: res?.message || "Added successfully", showConfirmButton: false, timer: 1800, timerProgressBar: true, background: "#1f2937", color: "#fff" });

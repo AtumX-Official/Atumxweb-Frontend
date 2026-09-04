@@ -22,31 +22,36 @@ export default function LibraryBrowser({ showSearch, setShowSearch }) {
 
   // Load installed libraries from disk on project change
   useEffect(() => {
-    if (!selectedFilePath) return;
+    const getInstalledLibraries = window.api?.cpp?.getInstalledLibraries;
+    if (!selectedFilePath || typeof getInstalledLibraries !== "function") return;
 
-    window.api.cpp.getInstalledLibraries(selectedFilePath).then((res) => {
+    getInstalledLibraries(selectedFilePath).then((res) => {
       if (res.success) setInstalledLibs(res.libraries);
-    });
+    }).catch(() => setInstalledLibs([]));
   }, [selectedFilePath]);
 
   const refreshInstalled = async () => {
-    if (!selectedFilePath) return;
-    const res = await window.api.cpp.getInstalledLibraries(selectedFilePath);
+    const getInstalledLibraries = window.api?.cpp?.getInstalledLibraries;
+    if (!selectedFilePath || typeof getInstalledLibraries !== "function") return;
+    const res = await getInstalledLibraries(selectedFilePath);
     if (res.success) setInstalledLibs(res.libraries);
   };
 
   const search = async (q: string, pageNum: number, append = false) => {
-    if (!q.trim() || loading) return;
+    const searchLibraries = window.api?.cpp?.searchLibraries;
+    if (!q.trim() || loading || typeof searchLibraries !== "function") return;
     setLoading(true);
 
-    const res = await window.api.cpp.searchLibraries(q, pageNum);
+    try {
+      const res = await searchLibraries(q, pageNum);
 
-    if (res.success) {
-      setLibraries((prev) => (append ? [...prev, ...res.results] : res.results));
-      setHasMore(res.hasMore);
+      if (res.success) {
+        setLibraries((prev) => (append ? [...prev, ...res.results] : res.results));
+        setHasMore(res.hasMore);
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleSearch = () => {
