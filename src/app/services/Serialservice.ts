@@ -34,6 +34,7 @@ class SerialService {
 
       if (event.port === this.port) {
         this.boardDisconnected = true;
+        this.notifyConnectionState(false);
       }
     });
 
@@ -52,6 +53,13 @@ class SerialService {
   }>();
 
   private listeners = new Set<(data: string) => void>();
+  private connectionListeners = new Set<(connected: boolean) => void>();
+
+  private notifyConnectionState(connected: boolean) {
+    for (const callback of this.connectionListeners) {
+      callback(connected);
+    }
+  }
 
   // --------------------------------------------------
   // CONNECTION
@@ -419,6 +427,14 @@ class SerialService {
     };
   }
 
+  addConnectionListener(callback: (connected: boolean) => void) {
+    this.connectionListeners.add(callback);
+
+    return () => {
+      this.connectionListeners.delete(callback);
+    };
+  }
+
   private notifyData(data: string) {
     for (const waiter of this.pendingWaiters) {
       if (waiter.matcher(data)) {
@@ -489,6 +505,7 @@ class SerialService {
         }
 
         console.log("[Serial] Connected");
+        this.notifyConnectionState(true);
 
         // Start reader only after the port is open.
         void this.startReading();
@@ -755,6 +772,7 @@ class SerialService {
     }
 
     this.port = null;
+    this.notifyConnectionState(false);
 
     try {
       if (port.readable || port.writable) {

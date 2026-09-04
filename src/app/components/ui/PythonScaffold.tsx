@@ -13,7 +13,7 @@ import FolderIcon from '@renderer/assets/icons/common/FolderIcon'
 import FontIncreaseIcon from '@renderer/assets/icons/common/FontIncreaseIcon'
 import FontDecreaseIcon from '@renderer/assets/icons/common/FontDecreaseIcon'
 import PythonLogo from '@renderer/assets/icons/python/PythonLogo'
-import { IoHome, IoReloadOutline } from 'react-icons/io5'
+import { IoHome } from 'react-icons/io5'
 import { FaPlay, FaStop } from 'react-icons/fa'
 import SettingModal from '../supporting/SettingModal'
 import Help from '@renderer/assets/icons/common/Help'
@@ -21,12 +21,14 @@ import {Deletepythonfile} from "@renderer/components/supporting/Popups"
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
 import FileService from "@/app/services/FileService";
 import WorkspaceFileService, { ExplorerNode, SearchResult } from "@/app/services/WorkspaceFileService";
-import {  useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from '../../../../store';
+import { setConnected, setConnectionMode, setDisconnected } from '../../../../store/websocketSlice';
 import { handlePortRefreshWithPromise } from '@renderer/screens/CommonHelper/ListPorts'
 import serialService from '@renderer/services/Serialservice'
 import { Tooltip } from './Tooltip'
 import Header from '../Header'
-import { CopyToast } from '../supporting/Popups'
+import { Connectivity, CopyToast } from '../supporting/Popups'
 import Exampleicon from "@renderer/assets/icons/common/Exampleicon"
 import LeftSidebarPanel from "./Sidebar/Pysidebar"
 import AutoScroll from "@renderer/assets/AutoScroll"
@@ -117,10 +119,10 @@ export default function PythonScaffold({
   const [projects, setProjects] = useState<Project[]>([])
   const [terminalPath, setTerminalPath] = useState('')
   const [rootFolder, setRootFolder] = useState('')
-  const [serialDropdownOpen, setSerialDropdownOpen] = useState(false)
-  const [serialPorts, setSerialPorts] = useState<SerialPort[]>([])
-  const [selectedSerialPort, setSelectedSerialPort] = useState<SerialPort | null>(null)
   const themeMode = useSelector((state: any) => state.theme.mode)
+  const dispatch = useDispatch()
+  const isSerialConnected = useSelector((state: RootState) => state.websocketSlice.isConnected)
+  const [connectionNoticeId, setConnectionNoticeId] = useState(0)
   const textColor = themeMode === 'dark' ? 'text-white' : 'text-black'
   const [activeTab, setActiveTab] = useState<'serial' | 'errors'>('serial') 
    const [runStatus, setRunStatus] = useState<'running' | 'stopped'>('stopped')
@@ -534,41 +536,9 @@ export default function PythonScaffold({
     }
   }
 
-  const refreshSerialPorts = async () => {
-    try {
-      const ports = await serialService.getAuthorizedPorts();
-      setSerialPorts(ports);
-    } catch (error) {
-      console.error('Failed to get serial ports:', error);
-      setSerialPorts([]);
-    }
-  };
-
   const connectAuthorizedPythonBoard = async () => {
     await serialService.enterPythonMode()
   }
-
-  const handleAddSerialDevice = async () => {
-    try {
-      const port = await serialService.requestPort();
-
-      if (!port) {
-        return;
-      }
-
-      setSelectedSerialPort(port)
-      await connectAuthorizedPythonBoard()
-      await refreshSerialPorts()
-      setSerialDropdownOpen(false)
-      console.log('Serial device connected');
-    } catch (error) {
-      console.error('Serial connection failed:', error);
-    }
-  };
-
-  useEffect(() => {
-    refreshSerialPorts();
-  }, []);
 
   useEffect(() => {
     const connectBoard = () => {
@@ -586,6 +556,22 @@ export default function PythonScaffold({
 
     return () => serial.removeEventListener('connect', connectBoard)
   }, [])
+
+  useEffect(() => {
+    dispatch(setConnectionMode('Wired'))
+
+    const removeConnectionListener = serialService.addConnectionListener((connected) => {
+      dispatch(connected ? setConnected('Wired') : setDisconnected())
+      setConnectionNoticeId((current) => current + 1)
+    })
+
+    if (serialService.isConnected()) {
+      dispatch(setConnected('Wired'))
+      setConnectionNoticeId((current) => current + 1)
+    }
+
+    return removeConnectionListener
+  }, [dispatch])
 
   const clearSearch = () => {
     setSearchText("");
@@ -788,6 +774,7 @@ export default function PythonScaffold({
 
   return (
     <>
+      {connectionNoticeId > 0 && <Connectivity key={connectionNoticeId} />}
       {showSettings && (
         <SettingModal
           isOpen={showSettings}
@@ -951,72 +938,33 @@ export default function PythonScaffold({
               </div>
 
               <div className="flex items-end gap-2 relative">
-                <div className="relative">
+                <div className="group relative">
                   <button
                     onClick={async () => {
-                      setSerialDropdownOpen((prev) => !prev);
-                      await refreshSerialPorts();
+                      if (serialService.isConnected()) {
+                        await serialService.disconnect();
+                        setRunStatus('stopped');
+                      } else {
+                        try {
+                          await serialService.connect();
+                        } catch (error) {
+                          console.error('Unable to connect USB:', error);
+                        }
+                      }
                     }}
                     className="bg-black rounded-[8px] flex items-center justify-center w-[50px] h-[50px] border border-transparent hover:border-[#F6EC24] transition-all"
-                    aria-label={selectedSerialPort ? 'Serial port connected' : 'Select Serial Port'}
+                    aria-label={serialService.isConnected() ? 'Disconnect USB' : 'Connect USB'}
                   >
                     <Usb
-                      isConnected={serialService.isConnected()}
+                      isConnected={isSerialConnected}
                       className={`w-[20px] h-[35px] cursor-pointer ${
-                        serialService.isConnected() ? 'text-green-400' : 'text-white'
+                        isSerialConnected ? 'text-green-400' : 'text-white'
                       }`}
                     />
+                    <Tooltip
+                      text={serialService.isConnected() ? 'Disconnect USB' : 'Connect USB'}
+                    />
                   </button>
-
-                  {serialDropdownOpen && (
-                    <div className="absolute right-0 top-14 w-[300px] bg-[#0b0b0b] text-white rounded-xl shadow-2xl border border-[#333] z-[9999] overflow-hidden">
-                      <button
-                        onClick={async () => {
-                          await refreshSerialPorts();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-purple-400 hover:bg-[#222] border-b border-[#333]"
-                      >
-                        <IoReloadOutline className="w-5 h-5" />
-                        <span className="font-semibold">Refresh</span>
-                      </button>
-
-                      {serialPorts.length > 0 ? (
-                        serialPorts.map((port, index) => {
-                          const name = serialService.getPortName(port, index);
-
-                          return (
-                            <button
-                              key={`${name}-${index}`}
-                              onClick={async () => {
-                                try {
-                                  setSelectedSerialPort(port)
-                                  await connectAuthorizedPythonBoard()
-                                  setSerialDropdownOpen(false)
-                                  console.log('Connected:', name);
-                                } catch (error) {
-                                  console.error('Failed to connect:', error);
-                                }
-                              }}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#222] border-b border-[#333]"
-                            >
-                              <span className="text-purple-400">🔌</span>
-                              <span className="text-sm">{name}</span>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <div className="px-4 py-4 text-gray-400 text-sm">No authorized devices</div>
-                      )}
-
-                      <button
-                        onClick={handleAddSerialDevice}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-purple-400 hover:bg-[#222] border-t border-[#333]"
-                      >
-                        <span className="text-xl">＋</span>
-                        <span className="font-semibold">Add Serial Device</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {/* Remaining Icons (USB, Star, Settings) */}
