@@ -127,6 +127,19 @@ export default function CppPage() {
   };
   const themeMode = useSelector((state: any) => state.theme.mode)
 
+  // COM port detection: resolve the authorized Web Serial ports to their USB
+  // ids, the same way the Python page fills its port list.
+  const listAvailablePorts = () => {
+    serialService
+      .listPorts()
+      .then((result) => {
+        setPorts(result);
+      })
+      .catch((error: Error) => {
+        appendOutput(`> Unable to list Web Serial ports: ${error.message}\n`, 'err');
+      });
+  };
+
   useEffect(() => {
     // Serial monitor data via Web Serial (SerialService). This keeps working in
     // a pure browser; mode switching is handled by BoardModeManager/SwitchToMode.
@@ -135,6 +148,9 @@ export default function CppPage() {
       setSerialData(prev => prev + data + '\n'); // append new line
     };
     const removeListener = serialService.addDataListener(handleSerialData);
+
+    listAvailablePorts();
+
     return () => removeListener();
   },[])
 

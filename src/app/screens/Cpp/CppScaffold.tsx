@@ -19,7 +19,6 @@ import { TbFolderPlus } from 'react-icons/tb'
 import FileIcon from "./icons/common/FileIcon"
 import Folderup from '../../components/ui/assets/Folderup'
 import File from '../../components/ui/assets/File'
-import { IoReloadOutline } from 'react-icons/io5'
 import ChatPanel from './ChatPanel'
 import SettingModal from '../../components/supporting/SettingModal'
 import ArrowIcon from "./icons/ArrowIcon";
@@ -33,6 +32,11 @@ import { CopyToast } from '../../components/supporting/Popups'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../../store'
 import { setPath } from "../../../../store/projectSlice";
+import {
+  setConnected,
+  setDisconnected,
+  setConnectionMode,
+} from "../../../../store/websocketSlice";
 import LibraryBrowser from './Sidebar/Library/LibraryBrowser'
 import Terminal from './Sidebar/Terminal'
 import GlobalSearch from './Sidebar/GlobalSearch'
@@ -47,6 +51,7 @@ import {
 } from '../../components/supporting/Popups'
 import { browserWorkspace } from './browserWorkspace'
 import serialService from '../../services/Serialservice'
+import Usb from '../../assets/Usbicon'
 import Savedtokit from '../../assets/icons/common/Savetokit'
 import { SaveToKitPopup } from '../Elements/SavetokitPopup'
 
@@ -207,6 +212,9 @@ const [isChatOpen, setIsChatOpen] = useState(false);
     );
   };
   const themeMode = useSelector((state: any) => state.theme.mode)
+  const isSerialConnected = useSelector(
+    (state: RootState) => state.websocketSlice.isConnected
+  )
   const [open, setOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const bgColor = themeMode === 'dark' ? 'bg-[#000000]' : 'bg-[#D6D6D6]'
@@ -671,95 +679,82 @@ const [isChatOpen, setIsChatOpen] = useState(false);
   };
 
   useEffect(() => {
-    const handleSerial = async () => {
-      try {
-        if (showSerialTerminal) {
-          const board = await serialService.detectBoardMode();
+    // The board connection is owned by this screen for its whole lifetime, not
+    // by the serial panel: opening/closing the monitor only shows or hides the
+    // output, it never drops the link. Connect on mount and again on every
+    // mid-session replug (auto-reconnect); connectAuthorizedCppBoard() detects
+    // the board, opens the port and ensures the C++ runtime, and switchToMode()
+    // no-ops when nothing needs to change, so a replug never re-sends 'cswitch'.
+    const connectBoard = () => {
+      void connectAuthorizedCppBoard().catch((error) => {
+        console.warn('Could not connect the board for C++ mode:', error)
+      })
+    }
 
-          if (board?.port) {
-            await serialService.connectPort(board.port);
-            // Keep the board on the C++ runtime so the serial monitor talks to
-            // the right firmware (no-op when it already is).
-            await serialService.switchToMode("Cpp Mode");
-          } else {
-            console.warn("No board port found");
-          }
-        } else {
-          await serialService.disconnect();
-        }
-      } catch (err) {
-        console.error("Serial error:", err);
-      }
-    };
+    connectBoard()
 
-    void handleSerial();
-
-    return () => {
-      void serialService.disconnect();
-    };
-  }, [showSerialTerminal]);
-
-  useEffect(() => {
-    // Mid-session plug-in: quietly ensure the freshly-connected board is on the
-    // C++ runtime. switchToMode() no-ops when nothing needs to change.
     if (typeof navigator === 'undefined' || !('serial' in navigator)) {
       return;
     }
 
     const serial = navigator.serial as unknown as EventTarget
 
-    const handleConnect = () => {
-      void serialService.switchToMode("Cpp Mode").catch((error) => {
-        console.warn('[Cpp] Could not prepare board for C++ mode:', error)
-      })
+    serial.addEventListener('connect', connectBoard)
+
+    return () => serial.removeEventListener('connect', connectBoard)
+  }, [])
+
+  useEffect(() => {
+    // Mirror the transport's connection state into Redux so the shared
+    // connection state (websocketSlice) stays truthful on the C++ page too.
+    dispatch(setConnectionMode('Wired'))
+
+    const removeConnectionListener = serialService.addConnectionListener(
+      (connected) => {
+        dispatch(connected ? setConnected('Wired') : setDisconnected())
+      }
+    )
+
+    if (serialService.isConnected()) {
+      dispatch(setConnected('Wired'))
     }
 
-    serial.addEventListener('connect', handleConnect)
-
-    return () => serial.removeEventListener('connect', handleConnect)
-  }, [])
+    return removeConnectionListener
+  }, [dispatch])
 
   useEffect(() => {
     dispatch(setPath(terminalPath))
   }, [terminalPath])
   const [showToast, setShowToast] = useState(false);
-  const [serialDropdownOpen, setSerialDropdownOpen] = useState(false)
-  const [serialPorts, setSerialPorts] = useState<SerialPort[]>([])
-  const [selectedSerialPort, setSelectedSerialPort] = useState<SerialPort | null>(null)
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
 
-  const refreshSerialPorts = async () => {
+  /**
+   * USB button. Same two-state toggle the Python screen uses: connected ->
+   * release the port, otherwise open the browser's port picker. The C++ path
+   * then runs through connectAuthorizedCppBoard() so the board still lands on
+   * the C++ runtime exactly as it did from the old dropdown.
+   */
+  const handleUsbToggle = async () => {
     try {
-      const ports = await serialService.getAuthorizedPorts();
-      setSerialPorts(ports);
-    } catch (error) {
-      console.error('Failed to get serial ports:', error);
-      setSerialPorts([]);
-    }
-  };
+      if (serialService.isConnected()) {
+        await serialService.disconnect();
+        setRunStatus('stopped');
+        return;
+      }
 
-  const handleAddSerialDevice = async () => {
-    try {
       const port = await serialService.requestPort();
 
       if (!port) {
         return;
       }
 
-      setSelectedSerialPort(port);
       await connectAuthorizedCppBoard(port);
-      await refreshSerialPorts();
-      setSerialDropdownOpen(false); 
       console.log('Serial device connected');
     } catch (error) {
       console.error('Serial connection failed:', error);
     }
   };
-
-  useEffect(() => {
-    refreshSerialPorts();
-  }, []);
 
   const [editedName, setEditedName] = useState(projectName)
   useEffect(() => {
@@ -957,72 +952,20 @@ const [isChatOpen, setIsChatOpen] = useState(false);
               </div>
 
               <div className="flex items-end gap-2 relative">
-                <div className="relative">
+                <div className="group relative">
                   <button
-                    onClick={async () => {
-                      setSerialDropdownOpen((prev) => !prev);
-                      await refreshSerialPorts();
-                    }}
-                    className="w-[175px] h-12 bg-black text-white rounded-lg border-2 border-black hover:border-white flex items-center justify-between px-3 transition-all"
+                    onClick={handleUsbToggle}
+                    className="bg-black rounded-[8px] flex items-center justify-center w-[50px] h-[50px] border border-transparent hover:border-[#F6EC24] transition-all"
+                    aria-label={isSerialConnected ? 'Disconnect USB' : 'Connect USB'}
                   >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <span className="text-purple-400">🔌</span>
-                      <span className="text-xs font-bold truncate">
-                        {selectedSerialPort ? serialService.getPortName(selectedSerialPort, 0) : 'Select Serial Port'}
-                      </span>
-                    </div>
-                    <span>{serialDropdownOpen ? '▲' : '▼'}</span>
+                    <Usb
+                      isConnected={isSerialConnected}
+                      className={`w-[20px] h-[35px] cursor-pointer ${
+                        isSerialConnected ? 'text-green-400' : 'text-white'
+                      }`}
+                    />
+                    <Tooltip text={isSerialConnected ? 'Disconnect USB' : 'Connect USB'} />
                   </button>
-
-                  {serialDropdownOpen && (
-                    <div className="absolute right-0 top-14 w-[300px] bg-[#0b0b0b] text-white rounded-xl shadow-2xl border border-[#333] z-[9999] overflow-hidden">
-                      <button
-                        onClick={async () => {
-                          await refreshSerialPorts();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-purple-400 hover:bg-[#222] border-b border-[#333]"
-                      >
-                        <IoReloadOutline className="w-5 h-5" />
-                        <span className="font-semibold">Refresh</span>
-                      </button>
-
-                      {serialPorts.length > 0 ? (
-                        serialPorts.map((port, index) => {
-                          const name = serialService.getPortName(port, index);
-
-                          return (
-                            <button
-                              key={`${name}-${index}`}
-                              onClick={async () => {
-                                try {
-                                  setSelectedSerialPort(port);
-                                  await connectAuthorizedCppBoard(port);
-                                  setSerialDropdownOpen(false);
-                                  console.log('Connected:', name);
-                                } catch (error) {
-                                  console.error('Failed to connect:', error);
-                                }
-                              }}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#222] border-b border-[#333]"
-                            >
-                              <span className="text-purple-400">🔌</span>
-                              <span className="text-sm">{name}</span>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <div className="px-4 py-4 text-gray-400 text-sm">No authorized devices</div>
-                      )}
-
-                      <button
-                        onClick={handleAddSerialDevice}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-purple-400 hover:bg-[#222] border-t border-[#333]"
-                      >
-                        <span className="text-xl">＋</span>
-                        <span className="font-semibold">Add Serial Device</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
                 {/* Remaining Icons (USB, Star, Settings) */}
                 {[Settings].map((Icon, i) => (

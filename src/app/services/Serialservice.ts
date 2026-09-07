@@ -17,6 +17,8 @@ class SerialService {
   private openingPromise: Promise<void> | null = null;
   private writePromise: Promise<void> = Promise.resolve();
   private readBuffer = "";
+  private readonly debug = false;
+  private textDecoder = new TextDecoder();
 
   private boardDisconnected = false;
   private boardConnected = false;
@@ -82,6 +84,7 @@ class SerialService {
 
       if (event.port === this.port) {
         this.boardDisconnected = true;
+        this.notifyConnectionState(false);
       }
 
       // A physical detach invalidates the logical runtime history: when the
@@ -109,6 +112,13 @@ class SerialService {
   }>();
 
   private listeners = new Set<(data: string) => void>();
+  private connectionListeners = new Set<(connected: boolean) => void>();
+
+  private notifyConnectionState(connected: boolean) {
+    for (const callback of this.connectionListeners) {
+      callback(connected);
+    }
+  }
 
   // --------------------------------------------------
   // CONNECTION
@@ -668,6 +678,14 @@ class SerialService {
     };
   }
 
+  addConnectionListener(callback: (connected: boolean) => void) {
+    this.connectionListeners.add(callback);
+
+    return () => {
+      this.connectionListeners.delete(callback);
+    };
+  }
+
   private notifyData(data: string) {
     for (const waiter of this.pendingWaiters) {
       if (waiter.matcher(data)) {
@@ -738,6 +756,7 @@ class SerialService {
         }
 
         console.log("[Serial] Connected");
+        this.notifyConnectionState(true);
 
         // Start reader only after the port is open.
         void this.startReading();
@@ -832,7 +851,7 @@ class SerialService {
           continue;
         }
 
-        const data = new TextDecoder().decode(value);
+        const data = this.textDecoder.decode(value, { stream: true });
 
         this.readBuffer += data;
 
@@ -845,10 +864,9 @@ class SerialService {
             continue;
           }
 
-          console.log(
-            "[Serial] Data:",
-            line
-          );
+          if (this.debug) {
+            console.log("[Serial] Data:", line);
+          }
 
           this.notifyData(line);
         }
@@ -1005,6 +1023,7 @@ class SerialService {
     }
 
     this.port = null;
+    this.notifyConnectionState(false);
 
     try {
       if (port.readable || port.writable) {
