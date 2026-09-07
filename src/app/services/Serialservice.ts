@@ -389,6 +389,49 @@ class SerialService {
     return true;
   }
 
+  /**
+   * A port stays listed by `getPorts()` after the device is unplugged, so the
+   * `connected` flag decides whether the board is physically present. Older
+   * Chromium builds do not expose it, and there the detected port is trusted.
+   */
+  private isPortPresent(port: SerialPort): boolean {
+    return port.connected !== false;
+  }
+
+  /**
+   * True only when a supported board is physically connected.
+   */
+  async isBoardConnected(): Promise<boolean> {
+    try {
+      const board = await this.detectBoardMode();
+
+      return !!board && this.isPortPresent(board.port);
+    } catch (error) {
+      console.warn("[Board] Connection check failed:", error);
+      return false;
+    }
+  }
+
+  /**
+   * True only when a connected board is still in Python Mode. Such a board has
+   * to be switched back to Blockly Mode, and that switch only takes effect once
+   * the user presses RESET - the single condition that justifies the
+   * "Press RESET" popup. No board, an unplugged board, or one already in
+   * Blockly Mode needs no reset.
+   */
+  async needsBlocklyModeReset(): Promise<boolean> {
+    try {
+      const board = await this.detectBoardMode();
+
+      return (
+        board?.mode === "Python Mode" && this.isPortPresent(board.port)
+      );
+    } catch (error) {
+      console.warn("[Board] Reset check failed:", error);
+      return false;
+    }
+  }
+
   // --------------------------------------------------
   // BOARD INFORMATION
   // --------------------------------------------------

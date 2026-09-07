@@ -29,6 +29,8 @@ interface Navigator {
   
     readonly readable: ReadableStream<Uint8Array> | null;
     readonly writable: WritableStream<Uint8Array> | null;
+    /** Only exposed by newer Chromium builds. */
+    readonly connected?: boolean;
     getInfo(): SerialPortInfo;
   }
 

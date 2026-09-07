@@ -278,34 +278,44 @@ const handleOpenBoardFile = (file: string) => {
   
     if (!canExit) return;
   
-    // Start the Home transition immediately. The reset popup is initialized from
-    // the query string during Home's first render, so it is visible while the
-    // board finishes switching modes in the background.
     window.localStorage.setItem('modecard', 'blocks');
-    router.replace('/?showResetPopup=true');
+
+    // The popup follows the board alone: a successfully connected board shows
+    // the RESET popup on Home, and with no board attached Home opens normally.
+    const boardConnected = await serialService.isBoardConnected();
+
+    // Only a connected board that is still in Python Mode has to be switched
+    // back to Blockly Mode, and that switch needs a RESET. A board already in
+    // Blockly Mode still gets the popup, but nothing to switch.
+    const needsReset =
+      boardConnected && (await serialService.needsBlocklyModeReset());
+
+    // The reset popup is initialized from the query string during Home's first
+    // render, so it is visible while the board switches modes in the background.
+    router.replace(boardConnected ? '/?showResetPopup=true' : '/');
+
+    if (!needsReset) {
+      console.log('[Board] No mode switch required - returning home');
+      return;
+    }
 
     void (async () => {
       try {
-        const board = await serialService.detectBoardMode();
-
-        if (board?.mode === 'Python Mode') {
-          console.log('[Board] Switching Python → Blockly');
-          await serialService.ensureBlocklyMode();
-        } else if (board?.mode === 'Blockly Mode') {
-          console.log('[Board] Already in Blockly Mode');
-        } else {
-          console.log('[Board] No board detected - returning home anyway');
-        }
+        console.log('[Board] Switching Python → Blockly');
+        await serialService.ensureBlocklyMode();
       } catch (err) {
         console.warn('[Board switch] Blockly switch failed:', err);
       }
     })();
   };
 
-  const handleFlashOk = () => {
+  const handleFlashOk = async () => {
     setFlashSuccessOpen(false);
     window.localStorage.setItem('modecard', 'blocks');
-    router.replace("/?showResetPopup=true");
+
+    // The freshly flashed board only needs a RESET while it is still connected.
+    const boardConnected = await serialService.isBoardConnected();
+    router.replace(boardConnected ? "/?showResetPopup=true" : "/");
     };
 
   // OK handler for PressResetPopup
@@ -722,7 +732,7 @@ useEffect(() => {
 <FlashSuccessPopup
         open={flashSuccessOpen}
         rightCornerImage="" // empty string
-        onOk={handleFlashOk}
+        onOk={() => void handleFlashOk()}
       />
 
       <PressResetPopup
