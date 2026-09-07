@@ -61,6 +61,14 @@ class SerialService {
     }
   }
 
+  private isExpectedDeviceLoss(error: unknown): boolean {
+    const serialError = error as { name?: string; message?: string };
+    const message = serialError.message || "";
+
+    return serialError.name === "NetworkError" &&
+      /device (?:has been|was) lost|device (?:has been )?disconnected/i.test(message);
+  }
+
   // --------------------------------------------------
   // CONNECTION
   // --------------------------------------------------
@@ -622,10 +630,17 @@ class SerialService {
       }
     } catch (error) {
       if (this.isReading) {
-        console.error(
-          "[Serial] Read error:",
-          error
-        );
+        if (this.isExpectedDeviceLoss(error)) {
+          this.boardDisconnected = true;
+          this.boardConnected = false;
+          this.notifyConnectionState(false);
+          console.log("[Serial] Expected device loss while reading; reader stopped");
+        } else {
+          console.error(
+            "[Serial] Read error:",
+            error
+          );
+        }
       }
     } finally {
       this.isReading = false;
