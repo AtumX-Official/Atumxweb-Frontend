@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Python
+AtumXBackend/.venv/
+AtumXBackend/__pycache__/
+AtumXBackend/**/*.pyc
+
+# Backend temporary files
+AtumXBackend/temp/*
+!AtumXBackend/temp/.gitkeep
