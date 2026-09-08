@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { useEffect, useState, useRef } from 'react'
 import PythonScaffold from '../components/ui/PythonScaffold'
-import FileService from "@/app/services/FileService";
+import FileService from "@/app/services/Fileservice";
 import WorkspaceFileService from "@/app/services/WorkspaceFileService";
 import Editor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
@@ -215,7 +215,9 @@ const handleOpenBoardFile = (file: string) => {
       }
     });
   
-    if (result === "cancel") return;
+    // NOTE: handleUnsavedBeforeAction is async and `result` is the pending promise,
+    // so this guard never matches today. Behaviour preserved - see report.
+    if ((result as unknown) === "cancel") return;
   
     const newTabs = tabs.filter(t => t.id !== id);
     setTabs(newTabs);

@@ -4,8 +4,9 @@ import { setConnected,setDisconnected } from './websocketSlice';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import SerialService from '@/app/services/Serialservice';
 interface SerialState {
+  portPath: string | null;
   isOpen: boolean;
-  deviceName: string | null;
+  deviceName?: string | null;
   lastData: string | null;
 }
 

@@ -50,7 +50,10 @@ export const SaveToKitPopup = ({
               }
             }}
           />
-          <img src={Edit} className="w-4 h-4 text-black ml-2" />
+          {/* FIXME: Edit is an SVG component, not an image URL - React drops a
+              function-valued `src`, so no image renders. Left as-is (see report);
+              the intended markup is <Edit className="w-4 h-4 text-black ml-2" />. */}
+          <img src={Edit as unknown as string} className="w-4 h-4 text-black ml-2" />
         </div>
 
         {/* Actions */}

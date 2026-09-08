@@ -1,4 +1,4 @@
-export default function Arrow({ className }: { className?: string }) {
+export default function Arrow({ className }: { className?: string; width?: number | string; height?: number | string }) {
     return(
     <svg className={className} width="125" height="105" viewBox="0 0 125 105" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g filter="url(#filter0_d_1545_1599)">

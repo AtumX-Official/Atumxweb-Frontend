@@ -40,7 +40,7 @@ export default function FileExplorer({
   refresh,
   projectName,
   language,
-  sectionType = "myFiles"
+  sectionType = "myFiles" as SectionType
 }) {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("Deleted Successfully")

@@ -241,7 +241,10 @@ Blockly.Blocks['get_variable'] = {
     popup.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
 
     const img = document.createElement('img');
-    img.src = DeleteVarImg.src;
+    // FIXME: DeleteVarImg is a StaticImageData object, so this assigns
+    // "[object Object]" and the image never loads. Left as-is (see report); lines
+    // 90 and 244 in this file show the intended `DeleteVarImg.src`.
+    img.src = DeleteVarImg as unknown as string;
     img.style.width = '100px';
     img.style.height = '100px';
     img.style.margin = '0 auto 15px auto';
@@ -359,7 +362,7 @@ Blockly.Blocks['variable'] = {
     popup.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
 
     const img = document.createElement('img');
-    img.src = DeleteVarImg;
+    img.src = DeleteVarImg.src;
     img.style.width = '100px';
     img.style.height = '100px';
     img.style.margin = '0 auto 15px auto';

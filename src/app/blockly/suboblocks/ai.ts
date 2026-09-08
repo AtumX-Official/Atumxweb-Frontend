@@ -25,10 +25,13 @@ declare global {
 
 // ── Field: file picker that loads a model into window.__aiModels ─────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-class FieldModelLoader extends (Blockly.Field as any) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static fromJson(_options: any): FieldModelLoader {
+// Blockly.Field is generic over its value type; re-typing the base as a plain
+// Field constructor keeps this subclass assignable to fieldRegistry's
+// RegistrableField without widening it to `any`.
+const FieldBase = Blockly.Field as unknown as new (value?: unknown) => Blockly.Field
+
+class FieldModelLoader extends FieldBase {
+  static fromJson(_options: Blockly.FieldConfig): FieldModelLoader {
     return new FieldModelLoader()
   }
 

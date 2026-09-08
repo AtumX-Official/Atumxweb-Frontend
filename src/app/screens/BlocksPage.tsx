@@ -64,7 +64,7 @@ const BlocksPage: React.FC = () => {
   const [code, setCode] = useState('')
   const [output, setOutput] = useState('')
   const [projectName, setProjectName] = useState('project 1')
-  const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | string | null>(null);
   const [unsavedChanges, setUnsavedChanges] = useState(true)
 
   // ── UI overlay state ─────────────────────────────────────────────────────
@@ -78,13 +78,16 @@ const BlocksPage: React.FC = () => {
   const [animalMode, setAnimalMode] = useState<'Gripper' | 'Walker' | 'Crawler'>()
   const [pdfPosition, setPdfPosition] = useState({ x: 0, y: 0 })
 
-  const kitsButtonRef = useRef<HTMLDivElement>(null)
+  const kitsButtonRef = useRef<HTMLButtonElement>(null)
   const bgColor = themeMode === 'dark' ? '#4D4D4D' : 'white'
   const bgyellow = themeMode === 'dark' ? "bg-[#FFDE21]" : "bg-[#EAC90F]"
   const modifiedToolboxes = useRef<Record<string, string>>({});
   const toolboxXmlRef = useRef<string>("");
   const [toolboxXml, setToolboxXml] = useState<string>('')
-  const shouldShowModal = pathname.state?.showModal;
+  // `pathname` is Next's usePathname() (a string). This still reads react-router's
+  // old location.state, so it is always undefined - kept as-is; see report.
+  const shouldShowModal = (pathname as unknown as { state?: { showModal?: boolean } })
+    .state?.showModal;
   // ── Workspace & actions ──────────────────────────────────────────────────
 
   const workspace = useBlocklyWorkspace({

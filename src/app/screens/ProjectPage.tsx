@@ -84,7 +84,7 @@ const ProjectPage: React.FC = () => {
   const [openSort, setOpenSort] = useState(false)
   const [selectedSort, setSelectedSort] = useState('Newest')
   const [showSettings, setShowSettings] = useState(false)
-  const [projects, setProjects] = useState<any[]>([])
+  const [projects, setProjects] = useState<Record<string, any>>([])
   const [sortedProjects, setSortedProjects] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<

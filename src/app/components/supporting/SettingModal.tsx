@@ -99,12 +99,12 @@ export default function SettingModal({ isOpen, onClose }) {
               {/* Menu Items - These will now stay at the top of the sidebar div */}
               <div className="p-3 space-y-2 relative z-10">
                 {[
-                  { key: "sound", label: "SOUNDS", icon: Sound },
-                  { key: "theme", label: "THEME", icon: Theme },
+                  { key: "sound" as const, label: "SOUNDS", icon: Sound },
+                  { key: "theme" as const, label: "THEME", icon: Theme },
                   ...(!isCpp
-                    ? [{ key: "board", label: "BOARD", icon: Board }]
+                    ? [{ key: "board" as const, label: "BOARD", icon: Board }]
                     : []),
-                  { key: "about", label: "ABOUT", icon: About },
+                  { key: "about" as const, label: "ABOUT", icon: About },
                 ].map((item) => (
                   <div
                     key={item.key}

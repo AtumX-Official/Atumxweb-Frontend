@@ -4,6 +4,21 @@ import Refreshicon from "../../../assets/Refresh"
 import {  FiX } from "react-icons/fi";
 import {FiAlertTriangle,FiTerminal} from "react-icons/fi"
 
+interface TerminalProps {
+    handleMouseDown?: (event: React.MouseEvent<HTMLDivElement>) => void;
+    terminalPath?: string;
+    terminalHeight?: number;
+    terminalRef?: React.RefObject<HTMLDivElement>;
+    output?: { text: string; type: string }[];
+    setShowTerminal?: React.Dispatch<React.SetStateAction<boolean>>;
+    handleCopy?: React.ClipboardEventHandler<HTMLPreElement>;
+    onClear?: () => void;
+    activeTab?: 'terminal' | 'errors';
+    setActiveTab?: React.Dispatch<React.SetStateAction<'terminal' | 'errors'>>;
+    // Passed by CppScaffold but rendered by the serial monitor, not here.
+    serialData?: string;
+}
+
 export default function({
     handleMouseDown,
     terminalPath,
@@ -15,7 +30,7 @@ export default function({
     onClear,
     activeTab,
     setActiveTab,
-}){
+}: TerminalProps){
     
     const [autoScroll, setAutoScroll] = useState(() => {
     const saved = window.localStorage.getItem("serial_autoscroll");

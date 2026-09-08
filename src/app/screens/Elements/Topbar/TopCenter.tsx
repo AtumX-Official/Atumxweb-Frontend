@@ -2,7 +2,7 @@ import { Tooltip } from "../../../components/Tooltip";
 interface TopBarCenterProps {
   selectedKit: string;
   setShowKits: React.Dispatch<React.SetStateAction<boolean>>;
-  kitsButtonRef: React.RefObject<HTMLDivElement>;
+  kitsButtonRef: React.RefObject<HTMLButtonElement>;
   projectName: string;
   setProjectName: (name: string) => void;
 }

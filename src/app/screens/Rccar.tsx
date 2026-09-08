@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef,useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDispatch,useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
+import { useAppDispatch } from '../../../store/hooks'
 import Back from './../components/ui/Controlback'
 import Kits from '../assets/Kits';
 import Settings from '../assets/Settings';
@@ -24,7 +25,7 @@ import SettingModal from '../components/supporting/SettingModal';
 const Rccar = () => {
   const navigate = useNavigate()
   const { isConnected, mode,status } = useSelector((state: RootState) => state.websocketSlice);
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const [showUnderDev, setShowUnderDev] = useState(false)
   const [action, setAction] = useState('')
@@ -36,7 +37,7 @@ const Rccar = () => {
   const hideDropdown = selectedKit === "subo" && selectedCategory === "gaadi"
   const [projectName, setProjectName] = useState('project 1')
   const [showKits, setShowKits] = useState(false)
-  const kitsButtonRef = useRef<HTMLDivElement>(null);
+  const kitsButtonRef = useRef<HTMLButtonElement>(null);
   const themeMode = useSelector((state: any) => state.theme.mode)
   const bgColor = themeMode === 'dark' ? '#4D4D4D' : 'white'
   const bgyellow = themeMode === 'dark' ? "bg-[#FFDE21]" : "bg-[#EAC90F]"

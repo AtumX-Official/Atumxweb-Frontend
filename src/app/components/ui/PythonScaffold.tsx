@@ -19,7 +19,7 @@ import SettingModal from '../supporting/SettingModal'
 import Help from '@renderer/assets/icons/common/Help'
 import {Deletepythonfile} from "@renderer/components/supporting/Popups"
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
-import FileService from "@/app/services/FileService";
+import FileService from "@/app/services/Fileservice";
 import WorkspaceFileService, { ExplorerNode, SearchResult } from "@/app/services/WorkspaceFileService";
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../../../../store';
@@ -39,6 +39,7 @@ import Backicon from "@renderer/assets/icons/common/Backicon"
 import Usb from "@renderer/assets/Usbicon"
 
 interface Project {
+  
   created: string
   filepath: string
   filename: string
@@ -110,7 +111,7 @@ export default function PythonScaffold({
   onRenameFile?: (oldPath: string, newName: string) => Promise<boolean>
   onDeleteFile?: (path: string) => Promise<boolean>
   onDeleteFolder?: (path: string) => Promise<boolean>
-  onRefresh?: () => Promise<void>
+  onRefresh?: () => Promise<unknown>
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()

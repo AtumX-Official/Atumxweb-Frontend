@@ -58,7 +58,10 @@ export default function ConvertToLanguagePopup({ show, onClose, language }) {
             <div className="relative h-[100px] bg-[#F6EC24] flex items-center justify-center p-2 overflow-visible">
               <div className="flex flex-row items-center justify-between w-full px-4">
                 <img src={Blocks} alt="blocks" className="w-30 h-22 object-contain" />
-                <img src={Arrow} alt="arrow" className="w-18 h-18 object-contain" />
+                {/* FIXME: Arrow is an SVG component, not an image URL - React drops a
+                    function-valued `src`, so no image renders. Left as-is (see report);
+                    the intended markup is <Arrow className="w-18 h-18 object-contain" />. */}
+                <img src={Arrow as unknown as string} alt="arrow" className="w-18 h-18 object-contain" />
                 <img src={languageIcon} alt={language} className="w-18 h-22 object-contain" />
               </div>
             </div>
@@ -824,6 +827,7 @@ export const Deletepythonfile = ({
 interface FlashSuccessPopupProps {
   open: boolean;
   onOk: () => void;
+  rightCornerImage?: string;
 }
 
 export const FlashSuccessPopup = ({ open, onOk }: FlashSuccessPopupProps) => {
@@ -990,7 +994,7 @@ export const PressBootResetPopup = ({ open, onOk,onClose }: BootResetProps) => {
               {/* GIF */}
 <div className="flex items-center justify-center px-6 pt-0 h-[180px] overflow-hidden">
   <img
-    src={BR}
+    src={BR as unknown as string}
     alt="Reset"
     className="w-60 lg:w-70 object-contain drop-shadow-lg"
   />

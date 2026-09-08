@@ -134,4 +134,3 @@ export const removeWSMessageListener = (listener: (event: MessageEvent) => void)
 }
 
 export default websocketSlice.reducer
-export type { WebSocketState }

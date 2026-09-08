@@ -1,7 +1,8 @@
 "use client"
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from '../../../../../store/hooks';
 import type { RootState } from '../../../../../store/index';
 import { setSelectedComPort } from '../../../../../store/comPortSlice';
 import { disconnectSerial, sendSerialMessage, connectSerial } from '../../../../../store/serialSlice';
@@ -21,14 +22,14 @@ interface TopLeftBarProps {
   handleImport: () => void;
   handleSave: (savemode: SaveMode) => void;
   saveToKit: (action?: "save" | "clear") => void;  
-  selectedKit: string;
-  setShowKits: React.Dispatch<React.SetStateAction<boolean>>;
-  kitsButtonRef: React.RefObject<HTMLDivElement>;
-  showPopup: boolean;
-  onPopupClose: () => void;
-  selectedLanguage: string;
+  selectedKit?: string;
+  setShowKits?: React.Dispatch<React.SetStateAction<boolean>>;
+  kitsButtonRef?: React.RefObject<HTMLButtonElement>;
+  showPopup?: boolean;
+  onPopupClose?: () => void;
+  selectedLanguage?: string;
   handleLanguageClick: (language: string) => void;
-  handleExitApp: () => void;
+  handleExitApp: (navigate?: (href: string) => void) => void;
   onOpenPDF;
   runstatus;
   animalMode: "Gripper" | "Walker" | "Crawler";
@@ -52,7 +53,7 @@ const TopLeftBar: React.FC<TopLeftBarProps> = ({
   selectedCategory
 }) => {
   const router = useRouter();
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   const { isConnected } = useSelector((state: RootState) => state.websocketSlice);
   const selectedKit = useSelector((state: RootState) => state.kits.kit)
   const handleBookfunction = () =>

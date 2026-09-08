@@ -3,12 +3,20 @@ import { setKit, setCategory } from '../../../../store/kitslice'
 import { showConfirmModal, showSavePopup } from "./Popupfuntionalities";
 import { restoreVariableBlocksToToolbox } from "../../blockly/trixblocks/variable";
 import { registerPlaceholderAIBlocks } from "../../blockly/suboblocks/ai";
+import type { RunStatus } from "../Blocks/hooks/useBlocklyActions";
 type SaveMode = "save" | "saveAs";
+
+/**
+ * What BlocksPage keeps in its `fileHandle` state: a real handle after Save/Save As,
+ * or just the file name after an import (the handle itself is parked on
+ * `window.__currentFileHandle`).
+ */
+type StoredFileHandle = FileSystemFileHandle | string | null;
 
 interface SaveParams {
   workspaceRef: React.MutableRefObject<Blockly.WorkspaceSvg | null>;
-  fileHandle: FileSystemFileHandle | null;
-  setFileHandle: React.Dispatch<React.SetStateAction<FileSystemFileHandle | null>>;
+  fileHandle: StoredFileHandle;
+  setFileHandle: React.Dispatch<React.SetStateAction<StoredFileHandle>>;
   setProjectName: (name: string) => void;
   setOutput: (msg: string) => void;
   setUnsavedChanges: (state: boolean) => void;
@@ -19,7 +27,7 @@ interface SaveParams {
   sendSerialMessage: (msg: string) => void;
   selectedKit: string;
   importedSnapshotRef: any;
-  projectName: (name: string) => void;
+  projectName: string;
   selectedCategory: string;
   savemode: string;
 }
@@ -29,8 +37,8 @@ interface ImportFileParams {
   originalSnapshotRef: React.MutableRefObject<string | null>;
   savedWorkspaceStates: React.MutableRefObject<Record<string, any>>;
   setCode: (code: string) => void;
-  fileHandle: FileSystemFileHandle | null;
-  setFileHandle: React.Dispatch<React.SetStateAction<FileSystemFileHandle | null>>;
+  fileHandle: StoredFileHandle;
+  setFileHandle: React.Dispatch<React.SetStateAction<StoredFileHandle>>;
   setProjectName: (name: string) => void;
   setOutput: (msg: string) => void;
   setUnsavedChanges: (state: boolean) => void;
@@ -42,7 +50,7 @@ interface ImportFileParams {
   setSelectedIcon: any,
   dispatch: any,
   importedSnapshotRef: any,
-  projectName: (name: string) => void;
+  projectName: string;
   selectedCategory: string;
   modifiedToolboxes: React.MutableRefObject<Record<string, string>>,
   toolboxXmlRef: React.MutableRefObject<string>,
@@ -54,8 +62,8 @@ interface NewFileParams {
   originalSnapshotRef: React.MutableRefObject<string | null>;
   savedWorkspaceStates: React.MutableRefObject<Record<string, any>>;
   setCode: (code: string) => void;
-  fileHandle: FileSystemFileHandle | null;
-  setFileHandle: React.Dispatch<React.SetStateAction<FileSystemFileHandle | null>>;
+  fileHandle: StoredFileHandle;
+  setFileHandle: React.Dispatch<React.SetStateAction<StoredFileHandle>>;
   setProjectName: (name: string) => void;
   setOutput: (msg: string) => void;
   setUnsavedChanges: (state: boolean) => void;
@@ -65,10 +73,11 @@ interface NewFileParams {
   code: string;
   sendSerialMessage: (msg: string) => void;
   selectedKit: string;
-  setrunStatus: (status: string) => void;
+  setrunStatus: React.Dispatch<React.SetStateAction<RunStatus>>;
   importedSnapshotRef: any;
   setShowKits: (state: boolean) => void;
-  projectName: (name: string) => void;
+  projectName: string;
+  filePath?: string;
 }
 export const handleSave = async ({
   workspaceRef,
@@ -124,13 +133,15 @@ export const handleSave = async ({
         setFileHandle(handle);
       }
 
-      const writable = await handle.createWritable();
+      // Only a real handle reaches this line today; after an import `fileHandle`
+      // holds the file name instead (see StoredFileHandle).
+      const writable = await (handle as FileSystemFileHandle).createWritable();
 
       await writable.write(jsonText);
 
       await writable.close();
 
-      const name = handle.name;
+      const name = (handle as FileSystemFileHandle).name;
 
       setProjectName(name.replace(/\.[^/.]+$/, ""));
 
@@ -437,8 +448,8 @@ export const handleExitApp = async ({
   projectName,
 }: {
   workspaceRef: React.MutableRefObject<Blockly.WorkspaceSvg | null>;
-  fileHandle: FileSystemFileHandle | null;
-  setFileHandle: (handle: FileSystemFileHandle | null) => void;
+  fileHandle: StoredFileHandle;
+  setFileHandle?: (handle: StoredFileHandle) => void;
   unsavedChanges: boolean;
   selectedKit: string;
   selectedCategory: string;
@@ -514,12 +525,12 @@ export const handleExitApp = async ({
     }
 
     // Write to the selected file
-    const writable = await handle.createWritable();
+    const writable = await (handle as FileSystemFileHandle).createWritable();
 
     await writable.write(jsonText);
     await writable.close();
 
-    setOutput(`> File saved to ${handle.name}`);
+    setOutput(`> File saved to ${(handle as FileSystemFileHandle).name}`);
 
     showSavePopup();
 

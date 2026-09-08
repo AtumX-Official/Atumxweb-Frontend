@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState,useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from '../../../../../store/hooks';
 import type { RootState } from '../../../../../store/index';
 import Usb from '../../../assets/Usbicon';
 import Wiredicon from '../../../assets/Wiredicon';
@@ -26,7 +27,7 @@ const TopBarRight: React.FC<TopBarRightProps> = ({ setShowKits }) => {
       const { isConnected, mode,status,lastMode } = useSelector((state: RootState) => state.websocketSlice);
       const selectedPort = useSelector((state: RootState) => state.comPort.selectedComPort);
       const isSerialOpen = useSelector((state: RootState) => state.serial.isOpen);
-      const dispatch = useDispatch()
+      const dispatch = useAppDispatch()
       const kitsButtonRef = useRef<HTMLDivElement>(null);
       const [showConnectivity, setShowConnectivity] = useState(false);
       const router = useRouter(); 

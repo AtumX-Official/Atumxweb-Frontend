@@ -72,7 +72,7 @@ interface CppScaffoldProps {
   onRun: () => void
   output: any
   onSave: (mode: "save" | "saveAs") => void | Promise<boolean>
-  onImport: () => void
+  onImport?: () => void
   onNewFile: () => void
   serialData: string
   onClear: () => void
@@ -80,7 +80,7 @@ interface CppScaffoldProps {
   chatOpen: boolean
   onToggleChat: () => void
   ports: Array<string>
-  setPorts: ()=> void
+  setPorts: React.Dispatch<React.SetStateAction<string[]>>
   onCodeGenerated: (
     files: { path: string; content: string }[],
     suggestedName?: string,
@@ -91,6 +91,7 @@ interface CppScaffoldProps {
   hasOpenCode: boolean
   getEditContext: () => Promise<string | undefined>
   onFixBuild: () => Promise<{ ok: boolean; error?: string }>
+  onOpenProject?: () => void
 }
 
 const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function CppScaffold({
@@ -330,7 +331,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
     })
   }
 
-  const toggleTerminal = (tab: 'terminal' | 'errors') => {
+  const toggleTerminal = (tab?: 'terminal' | 'errors') => {
     setActiveTab(tab);
   
     const shouldOpen = !showTerminal || activeTab !== tab;

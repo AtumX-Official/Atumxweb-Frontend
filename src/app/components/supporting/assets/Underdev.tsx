@@ -1,4 +1,4 @@
-export default function Underdev({ className }: { className?: string }) {
+export default function Underdev({ className }: { className?: string; width?: number | string; height?: number | string }) {
 return(
 <svg className={className} width="205" height="186" viewBox="0 0 205 186" fill="none" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
 <rect width="205" height="186" fill="url(#pattern0_2993_4546)"/>

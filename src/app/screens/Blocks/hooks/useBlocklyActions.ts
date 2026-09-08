@@ -11,18 +11,6 @@ import {
 } from '../../../../../store/websocketSlice'
 import { sendSerialMessage } from '../../../../../store/serialSlice'
 import SerialService from '@/app/services/Serialservice'
-declare global {
-  interface Window {
-    __aiModels?: Record<string, object>
-    __aiLoadedModels?: Array<{
-      fileName: string
-      displayName: string
-      classNames: string[]
-      blockTypes: string[]
-    }>
-  }
-}
-
 export type RunStatus = 'Start' | 'Stop'
 export type RunPopupVariant = 'CONNECT' | 'NOCODE' | 'RUNNING' | null
 
@@ -35,8 +23,8 @@ interface UseBlocklyActionsOptions {
 // ── Workspace validation ──────────────────────────────────────────────────
 
 type ValidationResult =
-  | { valid: false; reason: 'empty' | 'noSetup' | 'errors' }
-  | { valid: true; outputForDevice: Record<string, unknown> }
+  | { valid: false; reason: 'empty' | 'noSetup' | 'errors'; outputForDevice?: undefined }
+  | { valid: true; outputForDevice: Record<string, unknown>; reason?: undefined }
 
 function validateWorkspace(workspace: Blockly.Workspace): ValidationResult {
   const allBlocks = workspace.getAllBlocks(false)
