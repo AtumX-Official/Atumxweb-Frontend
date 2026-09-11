@@ -55,7 +55,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Sensor, label: 'SENSOR', color: '#9F7826' },
     { icon: Input, label: 'ACTUATORS', color: '#4787FF' },
     { icon: Display, label: 'DISPLAY', color: '#FF12A0' },
-    { icon: Rekkaicon, label: 'REKKA', color: '#4787FF'},
+    { icon: Rekkaicon, label: 'REKKA', color: '#4787FF'}, 
+    { icon: AIIcon, label: 'AI', color: '#7C3AED' },
   ];
 
   const addBlockIcon = [{ icon: AddBlock, label: 'ADD BLOCKS', color: '#8726F6' }];

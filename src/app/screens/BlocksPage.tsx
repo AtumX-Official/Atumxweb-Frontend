@@ -36,6 +36,7 @@ import BlocklyControls from './Blocks/components/BlocklyControls'
 import { registerAIClassBlocks, registerPlaceholderAIBlocks } from '../blockly/suboblocks/ai'
 import { buildToolboxXml } from './toobox/toolboxBuilder'
 import "../blockly";
+import AIRunnerOverlay from './Blocks/components/AIRunnerOverlay';
 declare global {
   interface Window {
     __aiLoadedModels?: Array<{
@@ -440,7 +441,7 @@ useEffect(() => {
           )}
 
           {actions.runPopup && <RunPopup variant={actions.runPopup} />}
-          {/* <AIRunnerOverlay /> */}
+          <AIRunnerOverlay />
 
         </div>
 
