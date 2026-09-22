@@ -1,8 +1,10 @@
 import { useState } from "react";
 interface BackProps extends React.SVGProps<SVGSVGElement> {
     className?: string;
+    /** Per-modality artwork (gesture / pose / audio / blocks) shown in the resting state. */
+    normalImage?: string;
   }  
-export default function Back({ className, ...rest }: BackProps) {
+export default function Back({ className, normalImage, ...rest }: BackProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [isClicked, setIsClicked] = useState(false);
 return(
@@ -23,6 +25,18 @@ return(
 </svg>
 
 </>
+    ) : normalImage ? (
+        <img
+          src={normalImage}
+          alt=""
+          className={`group ${className}`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onClick={() => {
+            setIsClicked(!isClicked);
+            if (rest.onClick) rest.onClick({} as any);
+          }}
+        />
     ):(
         <svg width="108" height="108" viewBox="0 0 108 108" fill="none" xmlns="http://www.w3.org/2000/svg"
         className={`group ${className}`} 

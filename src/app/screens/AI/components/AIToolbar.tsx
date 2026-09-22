@@ -8,6 +8,15 @@ import BackgroundImg from "@renderer/assets/Background.svg?url"
 import DownloadIcon from '@renderer/assets/icons/common/DownloadIcon'
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
 import BackIcon from '@renderer/assets/icons/common/Backicon'
+import BlockBackIcon from '@renderer/assets/Blockback'
+import gestureLight from '@renderer/assets/icons/misc/gesture_light.svg?url'
+import gestureDark from '@renderer/assets/icons/misc/gesture_dark.svg?url'
+import poseLight from '@renderer/assets/icons/misc/pose_light.svg?url'
+import poseDark from '@renderer/assets/icons/misc/pose_dark.svg?url'
+import audioLight from '@renderer/assets/icons/misc/audio_light.svg?url'
+import audioDark from '@renderer/assets/icons/misc/audio_dark.svg?url'
+import blocksLight from '@renderer/assets/icons/misc/blocks_light.svg?url'
+import blocksDark from '@renderer/assets/icons/misc/blocks_dark.svg?url'
 import SettingsModal from '@renderer/components/supporting/SettingModal'
 import WifiIcon from '../icons/WifiIcon'
 import { useAppSelector } from '../../../../../store/hooks'
@@ -20,15 +29,22 @@ interface AIToolbarProps {
   onProjectNameChange?: (name: string) => void
   onNewProject?: () => void
   onOpenProject?: () => void
+  /** Modality artwork for the back button. Omitted → the plain back arrow. */
+  backImage?: 'gesture' | 'pose' | 'audio' | 'blocks'
 }
 
-export default function AIToolbar({ onSave, onBack, isTrained, projectName = '', onProjectNameChange, onNewProject, onOpenProject }: AIToolbarProps) {
+export default function AIToolbar({ onSave, onBack, isTrained, projectName = '', onProjectNameChange, onNewProject, onOpenProject, backImage }: AIToolbarProps) {
   // Settings was a dead decorative gear on the AI screens — they render their own
   // toolbar instead of the shared Navbar, so the modal wiring never came with it.
   // Mirror Navbar's self-contained pattern (state + click-outside + portal) here.
   const [showSettings, setShowSettings] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
   const themeMode = useAppSelector((state) => state.theme.mode)
+  const normalBackImage = !backImage
+    ? undefined
+    : themeMode === 'dark'
+      ? { gesture: gestureDark, pose: poseDark, audio: audioDark, blocks: blocksDark }[backImage]
+      : { gesture: gestureLight, pose: poseLight, audio: audioLight, blocks: blocksLight }[backImage]
 
   // The AI screens don't mount the home Navbar, which is what normally sets the
   // `dark` class on <html>. Sync it here so a direct load of /ai (or toggling the
@@ -58,7 +74,9 @@ export default function AIToolbar({ onSave, onBack, isTrained, projectName = '',
         onClick={onBack}
         className="bg-black relative z-20 rounded flex items-center justify-center w-15 h-15 cursor-pointer hover:opacity-80 transition-opacity"
       >
-        <BackIcon className="w-10 h-10" />
+        {normalBackImage
+          ? <BlockBackIcon className="w-10 h-10" normalImage={normalBackImage} />
+          : <BackIcon className="w-10 h-10" />}
       </div>
       <div className="flex flex-col justify-center w-full bg-[#36D3FF]">
         <div className="flex items-center justify-between w-full relative z-[999]">

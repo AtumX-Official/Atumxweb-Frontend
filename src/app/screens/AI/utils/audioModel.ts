@@ -1,6 +1,7 @@
 import * as tf from '@tensorflow/tfjs'
 import type { ClassRef } from './classifierBundle'
 import { bufferToBase64, smoothProbabilities } from './classifierBundle'
+import { createPredictionStabilizer } from './predictionStabilizer'
 
 export const MEL_BINS = 64
 export const TIME_FRAMES = 130
@@ -194,29 +195,22 @@ export interface DetectionParams {
   detectionCooldown: number // seconds
 }
 
-// Consecutive same-class frames required before a detection locks. Kept small and
-// DECOUPLED from the probability-smoothing window, so a larger smoothing window steadies
-// confidence without making detection sluggish.
-const STABILITY_FRAMES = 2
-
 /**
  * Stateful gate turning a per-frame probability vector into a stable, debounced
- * detection. A confident + stable + non-background frame always wins immediately (even
- * switching words); otherwise the last detection is briefly held to bridge the gap
- * between repeats instead of flickering to "Unknown".
+ * detection. Acceptance (confident + not the Background/Noise class) is handed to the
+ * shared prediction stabilizer, which applies hysteresis + switch-debounce + a confidence
+ * EMA so a word settles and the bar stays steady instead of flickering.
  */
 export function createAudioDetector() {
   const history: number[][] = [] // probability smoothing window
-  const predHistory: number[] = [] // recent argmax classes, for temporal stability
-  let last = { id: undefined as string | undefined, name: 'Unknown', conf: 0, time: 0 }
+  const stabilizer = createPredictionStabilizer()
 
   function reset(): void {
     history.length = 0
-    predHistory.length = 0
-    last = { id: undefined, name: 'Unknown', conf: 0, time: 0 }
+    stabilizer.reset()
   }
 
-  function resolve(probs: number[], classes: ClassRef[], params: DetectionParams, now: number): AudioPrediction {
+  function resolve(probs: number[], classes: ClassRef[], params: DetectionParams, _now: number): AudioPrediction {
     const smoothed = smoothProbabilities(history, probs, params.smoothingWindow)
     const probabilities = smoothed.map((p, i) => ({ name: classes[i]?.name, prob: p }))
     const maxIdx = smoothed.indexOf(Math.max(...smoothed))
@@ -225,27 +219,20 @@ export function createAudioDetector() {
     const isBackgroundOrNoise =
       winningClassName.toLowerCase().includes('background') || winningClassName.toLowerCase().includes('noise')
 
-    predHistory.push(maxIdx)
-    if (predHistory.length > STABILITY_FRAMES) predHistory.shift()
-    const isStable = predHistory.length >= STABILITY_FRAMES && predHistory.every((idx) => idx === maxIdx)
+    // Accept if confident and not Background/Noise; the stabilizer then debounces + holds.
+    // (Out-of-distribution audio is handled by the user's Background Noise class, excluded
+    // here — not an energy gate, which previously froze the confidence bar at 0.)
+    const accepted = smoothed[maxIdx] >= params.confidenceThreshold && !isBackgroundOrNoise
+    const st = stabilizer.update(smoothed, accepted ? maxIdx : null)
+    const cls = st.classIdx !== null ? classes[st.classIdx] : undefined
 
-    // Detection = confident enough + temporally stable + not the Background/Noise class.
-    // Out-of-distribution audio is handled by a user-recorded "Background Noise" class
-    // (excluded here) rather than an energy gate, which froze the confidence bar at 0.
-    const isDetected = smoothed[maxIdx] >= params.confidenceThreshold && isStable && !isBackgroundOrNoise
-
-    if (isDetected) {
-      last = { id: classes[maxIdx]?.id, name: winningClassName, conf: smoothed[maxIdx], time: now }
-      return { classId: last.id, className: winningClassName, confidence: smoothed[maxIdx], probabilities, isDetected: true }
+    return {
+      classId: cls?.id,
+      className: cls?.name ?? 'Unknown',
+      confidence: st.confidence,
+      probabilities,
+      isDetected: st.isDetected,
     }
-
-    // Nothing confident this frame — briefly hold the last detection to bridge the short
-    // gap between repeats of the same word; a different word takes over instantly above.
-    if (last.id && now - last.time < params.detectionCooldown * 1000) {
-      return { classId: last.id, className: last.name, confidence: last.conf, probabilities, isDetected: true }
-    }
-
-    return { classId: undefined, className: 'Unknown', confidence: 0.0, probabilities, isDetected: false }
   }
 
   return { resolve, reset }

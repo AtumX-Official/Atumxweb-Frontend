@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { GestureClass } from '../hooks/useGestureClassifier'
 import BlocksIcon from '../icons/blocksIcon'
 import PythonIcon from '../icons/pythonIcon'
@@ -16,6 +16,7 @@ import RightIcon from '../icons/rightIcon'
 import GreetIcon from '../icons/greetIcon'
 import HonkIcon from '../icons/honkIcon'
 import DanceIcon from '../icons/danceIcon'
+import { KIT_CONTROLS } from './kitControls'
 
 
 interface ControlsPanelProps {
@@ -26,6 +27,11 @@ interface ControlsPanelProps {
   onExportToBlockly?: (mode: 'blocks' | 'python' | 'c++') => void
   trainingStatus: string
   currentPage: string
+  /** Optional "watch it think" entry point. Pose/audio show the layers reveal
+   *  here; the hand screen has its own on the predict page, so it omits this. */
+  onViewLayers?: () => void
+  /** Export options that get a "Coming Soon" badge (e.g. ['python', 'c++']); they stay clickable */
+  comingSoonExports?: string[]
 }
 
 const CONTROL_OPTIONS = [
@@ -39,33 +45,36 @@ const CONTROL_OPTIONS = [
   { id: 'Dance', label: 'Dance', Icon: DanceIcon },
 ]
 
-type Tab = 'preview' | 'controls' 
+type Tab = 'preview' | 'controls'
 
 const controlOptions = [
   { id: "gaadi", Icon: WheelsIcon },
-  { id: "playmo",Icon: PlaymoIcon },
+  { id: "playmo", Icon: PlaymoIcon },
   { id: "rekka", Icon: RekkaIcon }
 ];
 
 const previewOptions = [
   { id: "blocks", Icon: BlocksIcon },
-  { id: "python",Icon: PythonIcon },
+  { id: "python", Icon: PythonIcon },
   { id: "c++", Icon: CppIcon }
 ]
 
-export default function ControlsPanel({ classes, classColors, defaultColors, onStart, onExportToBlockly, trainingStatus, currentPage }: ControlsPanelProps) {
+export default function ControlsPanel({ classes, classColors, defaultColors, onStart, onExportToBlockly, trainingStatus, currentPage, onViewLayers, comingSoonExports = [] }: ControlsPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>('controls')
   const [mappings, setMappings] = useState<Record<string, string>>({})
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [activeControl, setActiveControl] = useState('')
-  const isTrained  = trainingStatus === 'ready'
+  const isTrained = trainingStatus === 'ready'
   const inMainPage = currentPage === "main"
+
+  useEffect(() => {
+    if (isTrained) setActiveTab('preview')
+  }, [isTrained])
 
   const TABS: { key: Tab; label: React.ReactNode }[] = [
     {
       key: 'preview',
-      // PreviewIcon is drawn for the yellow (active) tab, Preview for the black one
-      label: activeTab === 'preview' ? <PreviewIcon /> : <Preview />,
+      label: activeTab === 'preview' ? <Preview /> : <PreviewIcon />,
     },
     {
       key: 'controls',
@@ -82,6 +91,9 @@ export default function ControlsPanel({ classes, classColors, defaultColors, onS
     return classColors[id] ?? defaultColors[idx % defaultColors.length]
   }
 
+  // The Controls tab swaps in whichever kit's UI is selected
+  const KitControls = KIT_CONTROLS[activeControl]
+
   return (
     <div className="flex flex-col items-start">
       {/* Toolbar */}
@@ -95,120 +107,137 @@ export default function ControlsPanel({ classes, classColors, defaultColors, onS
                 key={tab.key}
                 id={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                aria-pressed={isActive}
                 className={`relative flex items-center h-[48px] w-[160px] px-3 gap-2 rounded-t-lg transition-all
-                    ${i !== 0 ? "-ml-3" : ""}
+                    ${i !== 0 ? "-ml-3" : ""}   
                     ${isActive
-                    ? "bg-[#F6EC24] text-black z-10 border-2 border-b-0 border-black"
-                    : "bg-black text-[#F6EC24] hover:text-white"}
+                    ? `bg-[#F6EC24] text-black shadow-[inset_0_0_0_2px_#fff] after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-6 after:-translate-x-1/2 after:rounded-full after:bg-black after:content-[''] ${tab.key === 'preview' ? '[&>svg]:brightness-0' : ''}`
+                    : `bg-black text-[#F6EC24] ${tab.key === 'preview' ? '[&>svg]:[filter:brightness(0)_saturate(100%)_invert(91%)_sepia(97%)_saturate(655%)_hue-rotate(2deg)_brightness(101%)_contrast(93%)]' : ''}`}
                 `}
               >
                 {tab.label}
                 <span className="text-[13px] font-bold uppercase">
                   {tab.key}
                 </span>
-                {/* underline marks the active tab so it reads at a glance in both themes */}
-                {isActive && (
-                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-[5px] rounded-full bg-black" />
-                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="w-[clamp(320px,30vw,480px)] rounded-lg border-2 border-black bg-[#EDEDED] dark:bg-[#1f1f1f] text-black dark:text-white shadow-[2px_4px_4px_rgba(0,0,0,0.4)] overflow-visible">
+      <div className="w-[clamp(320px,30vw,480px)] rounded-lg border-2 border-black bg-[#EDEDED] dark:bg-[#1f1f1f] dark:text-white shadow-[2px_4px_4px_rgba(0,0,0,0.4)] overflow-visible">
 
-        { !isTrained && <div
-            className="flex flex-col h-[250px] text-lg justify-center items-center font-extrabold"
-            style={{ maxHeight: 'calc(100vh - 240px)' }}
-          >
-            <span>You must train a model</span>
-            <span>before previewing</span>
-          </div>
+        {!isTrained && <div
+          className="flex flex-col h-[250px] text-lg justify-center items-center font-extrabold"
+          style={{ maxHeight: 'calc(100vh - 240px)' }}
+        >
+          <span>You must train a model</span>
+          <span>before previewing</span>
+        </div>
         }
 
-        { isTrained && (activeTab == "controls") && <div
-            className="flex flex-col gap-3 p-3"
-            style={{ maxHeight: 'calc(100vh - 240px)' }}
-          >
+        {isTrained && (activeTab == "controls") && <div
+          className="flex flex-col gap-3 p-3"
+          style={{ maxHeight: 'calc(100vh - 240px)' }}
+        >
           <span className='flex justify-center font-extrabold pl-2 -mb-3 mt-2'>
             Select your kit:
           </span>
-            <div className="p-4 grid grid-cols-3 gap-3">
-              {controlOptions.map(({ id, Icon }) => {
-                const isActive = activeControl === id;
+          <div className="p-4 grid grid-cols-3 gap-3">
+            {controlOptions.map(({ id, Icon }) => {
+              const isActive = activeControl === id;
 
-                return (
-                  <div
-                    key={id}
-                    onClick={() => setActiveControl(id)}
-                    className={`
+              return (
+                <div
+                  key={id}
+                  onClick={() => setActiveControl(id)}
+                  className={`
                       cursor-pointer transition-all duration-200
                       rounded-xl px-1 pt-1
                       ${isActive
-                        ? "bg-[#2EED08] border-[#2EED08]"
-                        : "bg-black border-black"
-                      }
+                      ? "bg-[#2EED08] border-[#2EED08]"
+                      : "bg-black border-black"
+                    }
                     `}
-                  >
-                    <div className="bg-white rounded-lg flex items-center justify-center h-[80px]">
-                      <Icon  />
-                    </div>
-                    <div className="mt-1 text-center uppercase font-bold tracking-wide text-white text-sm">
-                      {id}
-                    </div>
+                >
+                  <div className="bg-white rounded-lg flex items-center justify-center h-[80px]">
+                    <Icon />
                   </div>
-                );
-              })}
-            </div>            
+                  <div className="mt-1 text-center uppercase font-bold tracking-wide text-white text-sm">
+                    {id}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
+          {/* Kit-specific controls: each kit brings its own action set */}
+          {KitControls && (
+            <KitControls
+              classes={classes}
+              mappings={mappings}
+              onMappingChange={(classId, actionId) =>
+                setMappings((prev) => ({ ...prev, [classId]: actionId }))
+              }
+              openDropdown={openDropdown}
+              setOpenDropdown={setOpenDropdown}
+              getColor={getColor}
+            />
+          )}
+        </div>
         }
 
-        { isTrained && (activeTab == "preview") && <div
-            className="flex flex-col gap-3 p-3"
-            style={{ maxHeight: 'calc(100vh - 240px)' }}
-          >
+        {isTrained && (activeTab == "preview") && <div
+          className="flex flex-col gap-3 p-3"
+          style={{ maxHeight: 'calc(100vh - 240px)' }}
+        >
           <span className='flex justify-center font-extrabold pl-2 -mb-3 mt-2'>
-              Test or export your trained model as:
-            </span>
-            <div className="p-4 grid grid-cols-3 gap-3">
-              {previewOptions.map(({ id, Icon }) => {
-                const isActive = activeControl === id;
+            Test or export your trained model as:
+          </span>
+          <div className="p-4 grid grid-cols-3 gap-3">
+            {previewOptions.map(({ id, Icon }) => {
+              const isActive = activeControl === id;
+              const comingSoon = comingSoonExports.includes(id);
 
-                return (
-                  <div
-                    key={id}
-                    onClick={() => {
-                      setActiveControl(id)
-                      if (id === 'blocks') {
-                        onExportToBlockly?.('blocks')
-                      }
-                    }}
-                    className={`
-                      cursor-pointer transition-all duration-200
+              return (
+                <div
+                  key={id}
+                  onClick={() => {
+                    setActiveControl(id)
+                    if (id === 'blocks') {
+                      onExportToBlockly?.('blocks')
+                    }
+                  }}
+                  title={comingSoon ? 'Coming Soon' : undefined}
+                  className={`
+                      relative cursor-pointer transition-all duration-200
                       rounded-xl px-1 pt-1
                       ${isActive
-                        ? "bg-[#2EED08] border-[#2EED08]"
-                        : "bg-black border-black"
-                      }
+                      ? "bg-[#2EED08] border-[#2EED08]"
+                      : "bg-black border-black"
+                    }
                     `}
-                  >
-                    <div className="bg-white rounded-lg flex items-center justify-center h-[80px]">
-                       <Icon />
-                    </div>
-                    <div className="text-center uppercase font-bold tracking-wide text-white text-sm">
-                      {id}
-                    </div>
+                >
+                  {/* Sits on the tile's top edge, above the icon box, so the icon stays fully visible */}
+                  {comingSoon && (
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 whitespace-nowrap rounded-full bg-black px-2 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-wide text-[#F6EC24] pointer-events-none">
+                      Coming Soon
+                    </span>
+                  )}
+                  <div className="bg-white rounded-lg flex items-center justify-center h-[80px]">
+                    <Icon />
                   </div>
-                );
-              })}
-            </div>
+                  <div className="text-center uppercase font-bold tracking-wide text-white text-sm">
+                    {id}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+        </div>
         }
 
         {/* Class mappings */}
-        { false && isTrained && !inMainPage && <div
+        {false && isTrained && !inMainPage && <div
           className="flex flex-col gap-3 p-3"
           style={{ maxHeight: 'calc(100vh - 240px)' }}
         >
@@ -268,7 +297,6 @@ export default function ControlsPanel({ classes, classColors, defaultColors, onS
                   </div>
                 </button>
 
-              
                 {/* Dropdown Menu */}
                 {openDropdown === cls.id && (
                   <div
@@ -308,20 +336,30 @@ export default function ControlsPanel({ classes, classColors, defaultColors, onS
             </div>
           ))}
         </div>}
-        
+
       </div>
 
       {/* Start button */}
-      <div className='w-full flex justify-center'>
-      <button
-        onClick={() => {
-          if (!isTrained) return
-          onStart?.()
-        }}
-        className={`${inMainPage ? "bg-[#39FF14]" : "bg-[#FF4945]" } mt-4 px-8 py-2 text-xl font-bold text-white rounded-md shadow-[2px_4px_4px_rgba(0,0,0,0.4)] hover:scale-105 transition`}
-      >
-        {inMainPage ? "START" : "STOP"}
-      </button>
+      <div className='w-full flex justify-center items-center gap-3'>
+        <button
+          onClick={() => {
+            if (!isTrained) return
+            onStart?.()
+          }}
+          className={`${inMainPage ? "bg-[#39FF14]" : "bg-[#FF4945]"} mt-4 px-8 py-2 text-xl font-bold text-white rounded-md shadow-[2px_4px_4px_rgba(0,0,0,0.4)] hover:scale-105 transition`}
+        >
+          {inMainPage ? "START" : "STOP"}
+        </button>
+
+        {onViewLayers && isTrained && (
+          <button
+            onClick={onViewLayers}
+            title="Watch your input travel through the model's layers"
+            className="mt-4 px-4 py-2 text-sm font-bold text-white bg-[#04050d] rounded-md shadow-[2px_4px_4px_rgba(0,0,0,0.4)] hover:scale-105 transition"
+          >
+            🔬 LAYERS
+          </button>
+        )}
       </div>
     </div>
   )
