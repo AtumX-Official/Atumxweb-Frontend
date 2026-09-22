@@ -8,10 +8,12 @@ import Wirelessconnected from '../../../assets/Wirelessconnected';
 import Games from '../../../assets/Game';
 import Kits from '../../../assets/Kits';
 import Settings from '../../../assets/Settings';
+import DroneSim from '../../../assets/DroneSim';
 import ComPortSelector from '../../../components/Comportselector';
 import { Connectivity } from '../../../components/supporting/Popups';
 import { disconnectSerial,sendSerialMessage,connectSerial, setOpen } from '../../../../../store/serialSlice';
-import { setConnected, setDisconnected, getWebSocket, connectWebSocket, sendWebSocketData,addWSMessageListener,removeWSMessageListener,setMode,setConnectionMode } from '../../../../../store/websocketSlice';
+import { getWebSocket, connectWebSocket, setConnectionMode, clearMode, disconnectWebSocket } from '../../../../../store/websocketSlice';
+import { useAppSelector } from '../../../../../store/hooks';
 import { setSelectedComPort } from '../../../../../store/comPortSlice';
 import { useRouter } from 'next/navigation';
 import { Tooltip } from '../../../components/Tooltip';
@@ -44,6 +46,9 @@ const TopBarRight: React.FC<TopBarRightProps> = ({ setShowKits }) => {
       const router = useRouter(); 
       const [showUnderDev, setShowUnderDev] = useState(false)
       const [showSettings, setShowSettings] = useState(false)
+      const selectedKit = useAppSelector((state) => state.kits.kit)
+      // Drone boards get the Drone Simulator slot instead of Control space.
+      const isDroneKit = selectedKit === 'rekka' || selectedKit === 'wingz'
       console.log("isConnected : ",isConnected)
       console.log("activeIcon : ",activeIcon)
       const handleUsbClick = async () => {
@@ -181,35 +186,50 @@ useEffect(() => {
 return(
 <div className="flex items-center gap-2">
 <div className=" relative flex items-center space-x-2">
-<div
-  className={`bg-black rounded-[8px] flex items-center justify-center
-    border border-transparent hover:border-[#F6EC24]
-    transition-all duration-300
-    ${
-      isConnected
-        ? "w-[50px] h-[50px]"
-        : "w-[50px] h-[50px]"
-    }`}
->
-  <button
-    onClick={handleUsbClick}
-    className="group relative flex items-center justify-center hover:scale-110 transition-transform duration-200"
-  >
-    <Usb
-      isConnected={isConnected}
-      className={`w-[20px] h-[35px] cursor-pointer ${
-        isConnected ? "text-green-400" : "text-white"
-      }`}
-    />
-
-    <Tooltip
-      text={isConnected ? "Disconnect USB" : "Connect USB"}
-      marginTop="mt-2"
-    />
-  </button>
-</div>
-
- 
+  {/* Connection pill (desktop layout): USB | link | Wi-Fi. Collapses to the USB
+      button once connected over USB, and is replaced by the Wi-Fi status icon
+      while connected over Wi-Fi. */}
+  {mode !== 'Wireless' && (
+    <div
+      className={`bg-black rounded-[8px] flex items-center justify-center transition-all duration-300
+        border border-transparent hover:border-[#F6EC24]
+        ${isConnected ? 'w-[50px] h-[50px]' : 'w-[175px] h-[45px]'}`}
+    >
+      <div className="pl-2 pr-2">
+        <button
+          onClick={handleUsbClick}
+          onMouseDown={(e) => e.preventDefault()}
+          className="group relative flex items-center justify-center hover:scale-110 transition-transform duration-200"
+        >
+          <Usb
+            isConnected={isConnected}
+            className={`w-[20px] h-[35px] cursor-pointer ${
+              isConnected ? "text-green-400" : "text-white"
+            }`}
+          />
+          <Tooltip
+            text={isConnected ? "Disconnect USB" : "Connect with USB"}
+            marginTop="mt-2"
+          />
+        </button>
+      </div>
+      {!isConnected && (
+        <>
+          <div className="ml-auto mr-auto">
+            <Wiredicon className="w-[40px] h-[40px] cursor-pointer" />
+          </div>
+          <button
+            onClick={handleWirelessClick}
+            onMouseDown={(e) => e.preventDefault()}
+            className="group relative pr-3 flex items-center justify-center hover:scale-110 transition-transform duration-200"
+          >
+            <Wirelessicon className="w-[35px] h-[25px]" />
+            <Tooltip text="Connect with WIFI" marginTop='mt-2' py='py-1' />
+          </button>
+        </>
+      )}
+    </div>
+  )}
 </div>
 
 {showConnectivity && <Connectivity />}  {/* Group 2: Wireless Connected (outside black box) */}
@@ -219,40 +239,37 @@ return(
         className="lg:w-[50px] lg:h-[46px]  cursor-pointer"
         status = {status}
         onClick={() => {
-          dispatch(setConnectionMode('Wireless')); // user clicked → sets mode
-          const ws = getWebSocket()
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.close(); // closes the websocket connection
-            dispatch(setDisconnected());
-            setShowConnectivity(true)  
-            console.log("WebSocket disconnected manually.");
-          }
-          dispatch(setMode("Wireless"));
-          //dispatch(setConnectionMode('Wireless'))
-          dispatch(setDisconnected());     // Redux: isConnected = false, mode reset
-          setActiveIcon('none');           // UI: go back to default black bg with icons
-        }
-        }
+          // Properly disconnect — stops auto-reconnect too
+          dispatch(disconnectWebSocket());
+          dispatch(clearMode());
+          setShowConnectivity(true);
+          setActiveIcon('none');
+          console.log("WebSocket disconnected manually.");
+        }}
       />
       <Tooltip text="Disconnect"/>
     </div>
   )}
- {mode == "Wireless" && (
-<button 
+  {isDroneKit ? (
+    // Drone Simulator is not implemented on the web yet — shown, but disabled.
+    <button
+      type="button"
+      disabled
+      aria-disabled="true"
+      className="group relative opacity-50 cursor-not-allowed"
+    >
+      <DroneSim className="lg:w-[50px] lg:h-[50px] pointer-events-none" />
+      <Tooltip text="Drone Simulator (coming soon)"/>
+    </button>
+  ) : (
+<button
   onClick={() => router.push('/rccar')}
   className="group relative hover:scale-110 transition-transform duration-200"
 >
   <Games className="lg:w-[50px] lg:h-[50px]  cusor-pointer" />
   <Tooltip text="Control space"/>
 </button>
- )}
-{/* <button 
-  className="group relative hover:scale-110 transition-transform duration-200"
-  onClick={() =>  navigate('/Mainlayout')}
->
-  <Kits className="lg:w-[50px] lg:h-[50px]  cusor-pointer" />
-  <Tooltip text="Help" />
-</button> */}
+  )}
 <button className="group relative hover:scale-110 transition-transform duration-200"
   onClick={() =>     setShowSettings(true)}
 >

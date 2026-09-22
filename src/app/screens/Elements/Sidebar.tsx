@@ -40,7 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     (state: RootState) => state.kits.category
   );
   var isRekka = false;
-  if (selectedKit == "rekka") {
+  if (selectedKit == "rekka" || selectedKit == "wingz") {
     isRekka = true;
   }
   const bgColor = themeMode === 'dark' ? 'black' : '#EAEAEA'
@@ -56,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Input, label: 'ACTUATORS', color: '#4787FF' },
     { icon: Display, label: 'DISPLAY', color: '#FF12A0' },
     { icon: Rekkaicon, label: 'REKKA', color: '#4787FF'}, 
+    { icon: WHEELZ, label: 'WINGZ', color: '#4787FF'},
     { icon: AIIcon, label: 'AI', color: '#7C3AED' },
   ];
 
@@ -84,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (selectedKit === 'snowflake') {
       filteredBaseIcons = filteredBaseIcons.filter(item => item.label !== 'DISPLAY');
     }
-    if (selectedKit === 'rekka') {
+    if (selectedKit === 'rekka' || selectedKit === 'wingz') {
       filteredBaseIcons = filteredBaseIcons.filter(
         item => item.label !== 'DISPLAY' && item.label !== 'ACTUATORS'
       );
@@ -92,6 +93,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // Show REKKA only when kit is rekka
     if (selectedKit !== 'rekka') {
       filteredBaseIcons = filteredBaseIcons.filter(item => item.label !== 'REKKA');
+    }
+    // Show WingZ only when kit is WingZ
+    if (selectedKit !== 'wingz') {
+      filteredBaseIcons = filteredBaseIcons.filter(item => item.label !== 'WINGZ');
     }
   
     // 🔹 TRIX mode
@@ -202,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       className="text-sm font-bold leading-none whitespace-nowrap transition-colors"
                       style={{ color: bgText }}
                     >
-                      {item.label}
+                      {item.label === 'WINGZ' ? 'WingZ' : item.label}
                     </span>
                   </div>
                 );

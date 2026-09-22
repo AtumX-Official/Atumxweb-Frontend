@@ -24,7 +24,11 @@ export const buildToolboxXml = (
   category?: string,
   variableToolboxXml?: string
 ): string => {
-  const kit = Kits[kitKey];
+  // WingZ is the desktop's name for the drone board: it reuses the REKKA kit
+  // and drone toolbox, so no separate block set is needed.
+  const kitAliasMap: Record<string, string> = { WINGZ: 'REKKA' };
+  const normalizedKitKey = kitKey?.toUpperCase() || '';
+  const kit = Kits[kitAliasMap[normalizedKitKey] || normalizedKitKey];
   if (!kit) return '<xml></xml>';
 
   // Helper: Removes <xml> tags to allow safe concatenation without registry errors
@@ -60,12 +64,14 @@ export const buildToolboxXml = (
       MATH: Maths,
       VARIABLE: Variables,
       DISPLAY: Displays,
-      REKKA: Drone
+      REKKA: Drone,
+      WINGZ: Drone
     };
 
     const categoryBlocks = CATEGORY_MAP[label];
     if (categoryBlocks) {
-      const blockKey = (kit[label as keyof typeof kit] as string | undefined) || 'DEFAULT';
+      const kitLabel = label === 'WINGZ' ? 'REKKA' : label;
+      const blockKey = (kit[kitLabel as keyof typeof kit] as string | undefined) || 'DEFAULT';
       requestedContent = categoryBlocks[blockKey] || categoryBlocks.DEFAULT || '';
     }
   }

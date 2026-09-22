@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   ],
 
   webpack(config) {
+    // pdfjs-dist (via @react-pdf-viewer, used by the Blockly manual viewer) has a
+    // Node-only code path that requires the native `canvas` package. It never runs
+    // in the browser, so resolve it to an empty module instead of failing the build.
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+
     // Find the default asset rule
     const fileLoaderRule = config.module.rules.find(
       (rule: any) => rule.test?.test?.(".svg")
