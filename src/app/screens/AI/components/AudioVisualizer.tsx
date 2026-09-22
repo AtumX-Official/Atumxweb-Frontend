@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { paintSpectrogram, SPECTROGRAM_LENGTH } from '../utils/spectrogramImage'
 
 interface AudioVisualizerProps {
   mode: 'waveform' | 'spectrogram'
@@ -121,7 +122,7 @@ export default function AudioVisualizer({
       draw()
     } else if (mode === 'spectrogram') {
       // ── Static Recorded Spectrogram [64 mels, 130 frames] ──
-      if (!spectrogramData || spectrogramData.length !== 64 * 130) {
+      if (!spectrogramData || spectrogramData.length !== SPECTROGRAM_LENGTH) {
         ctx.fillStyle = '#0f172a'
         ctx.fillRect(0, 0, width, height)
         ctx.fillStyle = '#ffffff'
@@ -130,61 +131,7 @@ export default function AudioVisualizer({
         return
       }
 
-      const N_MELS = 64
-      const MEL_FRAMES = 130
-
-      const cellWidth = width / MEL_FRAMES
-      const cellHeight = height / N_MELS
-
-      ctx.fillStyle = '#0f172a'
-      ctx.fillRect(0, 0, width, height)
-
-      // Draw each spectrogram element as a tiny rectangle
-      for (let mel = 0; mel < N_MELS; mel++) {
-        // Mel band 0 is low frequency, let's draw it at the bottom (y axis is inverted)
-        const y = height - (mel + 1) * cellHeight
-
-        for (let frame = 0; frame < MEL_FRAMES; frame++) {
-          const x = frame * cellWidth
-
-          // Index of log-mel value
-          const idx = mel * MEL_FRAMES + frame
-          const db = spectrogramData[idx] // value is negative, peaking at 0.0
-
-          // Map DB [-80, 0] to standard normalization [0, 1]
-          const norm = Math.max(0.0, Math.min(1.0, (db + 60.0) / 60.0))
-
-          // Hot cyber glow thermal scale: Black -> Dark Violet -> Cyan -> Neon Yellow
-          let color = ''
-          if (norm < 0.1) {
-            color = '#0f172a' // slate-900 (empty background)
-          } else if (norm < 0.4) {
-            // interpolation between black/violet and cyan
-            const ratio = (norm - 0.1) / 0.3
-            const r = Math.round(15 + ratio * 30)
-            const g = Math.round(23 + ratio * 150)
-            const b = Math.round(42 + ratio * 200)
-            color = `rgb(${r}, ${g}, ${b})`
-          } else if (norm < 0.8) {
-            // interpolation between cyan and hot pink/yellow
-            const ratio = (norm - 0.4) / 0.4
-            const r = Math.round(45 + ratio * 201)
-            const g = Math.round(173 + ratio * 63)
-            const b = Math.round(242 - ratio * 206)
-            color = `rgb(${r}, ${g}, ${b})`
-          } else {
-            // peak high energy: bright golden yellow
-            const ratio = (norm - 0.8) / 0.2
-            const r = 246
-            const g = 236
-            const b = Math.round(36 + ratio * 219)
-            color = `rgb(${r}, ${g}, ${b})`
-          }
-
-          ctx.fillStyle = color
-          ctx.fillRect(x, y, cellWidth + 0.5, cellHeight + 0.5) // slight overlap to avoid line seams
-        }
-      }
+      paintSpectrogram(ctx, spectrogramData, width, height)
     }
 
     return () => {

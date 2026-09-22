@@ -67,6 +67,18 @@ export function restoreSamples(
   return { samples, counts }
 }
 
+/** Restore per-class sample thumbnails (keyed by class id); classes without any map to []. */
+export function restoreThumbnails(
+  bundle: Pick<ModelBundle, 'thumbnails'>,
+  classes: ClassRef[]
+): Record<string, string[]> {
+  const thumbnails: Record<string, string[]> = {}
+  classes.forEach((c, i) => {
+    thumbnails[c.id] = (lookupByClass(bundle.thumbnails, c, i) ?? []).filter(Boolean)
+  })
+  return thumbnails
+}
+
 /** Restore per-class centroids (keyed by class id) from a saved bundle. */
 export function restoreCentroids(
   bundle: Pick<ModelBundle, 'centroids'>,

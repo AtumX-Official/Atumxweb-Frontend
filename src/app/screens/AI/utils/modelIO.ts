@@ -9,6 +9,8 @@ export interface ModelBundle {
   centroids?: Record<string, number[]>
   samples?: Record<string, number[][]>
   useFocusBox?: boolean
+  /** Small JPEGs for the class-card sample grid, keyed like `samples`. Display only. */
+  thumbnails?: Record<string, string[]>
 }
 
 function bufferToBase64(buffer: ArrayBuffer): string {
@@ -36,7 +38,8 @@ export async function saveModelToFile(
   samples?: Record<string, number[][]>,
   useFocusBox?: boolean,
   /** AI "language" → which Projects/ai/<Capitalized> folder to save into */
-  language: string = "handGesture"
+  language: string = "handGesture",
+  thumbnails?: Record<string, string[]>
 ): Promise<void> {
   let artifacts: tf.io.ModelArtifacts | undefined
 
@@ -58,6 +61,7 @@ export async function saveModelToFile(
     centroids,
     samples,
     useFocusBox,
+    thumbnails,
   }
 
   const safeProjectName = typeof projectName === 'string' && projectName ? projectName : 'gesture-model'
