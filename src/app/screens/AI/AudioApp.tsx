@@ -21,14 +21,10 @@ import { useAudioClassifier, type AudioClass, type Prediction } from './hooks/us
 import { generateMelSpectrogram } from './utils/audioDSP'
 import { spectrogramToDataURL } from './utils/spectrogramImage'
 import { uniqueClassName } from './utils/uniqueClassName'
+import { openProjectFile, projectNameFromFile } from './utils/projectFile'
 import HoldOnIcon from './icons/holdOn'
 import HoldOffIcon from './icons/holdOff'
 
-interface FileOpenResult {
-  success: boolean
-  data: string
-  fileName: string
-}
 
 const DEFAULT_CLASS_COLORS = ['#F6EC24', '#36D3FF', '#F6268B', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171']
 
@@ -301,10 +297,16 @@ export default function AudioApp() {
   // The classifier suppresses classes named "background"/"noise" from triggering,
   // so keeping this default gives kids a free catch-all for silence/noise.
   useEffect(() => {
-    handleAddClass('Class 1')
-    handleAddClass('Class 2')
-    handleAddClass('Background Noise')
-    setSelectedClassId('cls_1')
+    // Replace the list rather than appending: React Strict Mode runs this twice in
+    // dev, and appending turned "Class 1, Class 2" into four cards.
+    classIdCounter.current = 0
+    const initial = ['Class 1', 'Class 2', 'Background Noise'].map((name) => {
+      const id = `cls_${++classIdCounter.current}`
+      classifier.initClass(id)
+      return { id, name }
+    })
+    setClasses(initial)
+    setSelectedClassId(initial[0].id)
   }, [])
 
   function handleAddClass(name: string) {
@@ -477,8 +479,8 @@ export default function AudioApp() {
 
   const handleOpenProject = async () => {
     try {
-      const res = (await window.api?.file?.open?.('audioClassifier')) as FileOpenResult | undefined
-      if (!res || !res.success) return
+      const res = await openProjectFile('audioClassifier')
+      if (!res.success || !res.data) return
       const bundle = JSON.parse(res.data)
       const restoredClasses: AudioClass[] = await classifier.loadModel(bundle)
       setClasses(restoredClasses)
@@ -490,7 +492,7 @@ export default function AudioApp() {
       })
       setImages(loadedImages)
 
-      setProjectName(res.fileName.replace('.json', ''))
+      setProjectName(projectNameFromFile(res.fileName))
       if (restoredClasses.length > 0) {
         setSelectedClassId(restoredClasses[0].id)
       }

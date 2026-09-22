@@ -24,17 +24,13 @@ import BackendSelector from './components/BackendSelector'
 import { useBackendPreference } from './hooks/useBackendPreference'
 import LayersReveal, { POSE_LAYERS } from './components/LayersReveal'
 import { uniqueClassName } from './utils/uniqueClassName'
+import { openProjectFile, projectNameFromFile } from './utils/projectFile'
 
 const DEFAULT_CLASS_COLORS = ['#36D3FF', '#F6268B', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171', '#fbbf24']
 
 import { detectPoseInImage } from './utils/imageDetector'
 
 
-interface FileOpenResult {
-  success: boolean
-  data: string
-  fileName: string
-}
 
 interface LatestRef {
   classifier: ReturnType<typeof usePoseClassifier>
@@ -231,9 +227,16 @@ export default function PoseApp() {
   // Pre-initialize Class 1 and Class 2, but keep the initial view on the chooser
   // state until the user explicitly selects camera or upload.
   useEffect(() => {
-    handleAddClass('Class 1')
-    handleAddClass('Class 2')
-    setSelectedClassId('cls_1')
+    // Replace the list rather than appending: React Strict Mode runs this twice in
+    // dev, and appending turned "Class 1, Class 2" into four cards.
+    classIdCounter.current = 0
+    const initial = ['Class 1', 'Class 2'].map((name) => {
+      const id = `cls_${++classIdCounter.current}`
+      classifier.initClass(id)
+      return { id, name }
+    })
+    setClasses(initial)
+    setSelectedClassId(initial[0].id)
     setInputMode(null)
   }, [])
 
@@ -347,14 +350,14 @@ export default function PoseApp() {
 
   const handleOpenProject = async () => {
     try {
-      const res = (await window.api?.file?.open?.('poseClassifier')) as FileOpenResult | undefined
-      if (!res || !res.success) return
+      const res = await openProjectFile('poseClassifier')
+      if (!res.success || !res.data) return
       const bundle = JSON.parse(res.data)
       const restoredClasses = await classifier.loadModel(bundle)
       setClasses(restoredClasses)
       setImages(classifier.restoreImages(bundle, restoredClasses))
       setClassColors({})
-      setProjectName(res.fileName.replace('.json', ''))
+      setProjectName(projectNameFromFile(res.fileName))
       if (restoredClasses.length > 0) {
         setSelectedClassId(restoredClasses[0].id)
       }

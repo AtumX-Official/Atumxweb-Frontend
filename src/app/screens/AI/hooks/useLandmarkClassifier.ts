@@ -468,6 +468,8 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
     removeClassData,
     deleteSample,
     MIN_SAMPLES,
+    /** length of one sample vector — lets a screen tell which classifier a file belongs to */
+    featureDim,
     trainModel,
     cancelTraining,
     saveModel,

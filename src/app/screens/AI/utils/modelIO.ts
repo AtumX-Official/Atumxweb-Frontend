@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs'
+import { saveProjectFile } from './projectFile'
 
 export interface ModelBundle {
   version: number
@@ -65,7 +66,7 @@ export async function saveModelToFile(
   }
 
   const safeProjectName = typeof projectName === 'string' && projectName ? projectName : 'gesture-model'
-  window.api.file.save("", JSON.stringify(bundle), language, safeProjectName, "", "");
+  await saveProjectFile(language, safeProjectName, JSON.stringify(bundle))
 }
 
 export async function loadModelFromFile(

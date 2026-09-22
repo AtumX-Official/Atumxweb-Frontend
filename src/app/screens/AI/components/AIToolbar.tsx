@@ -65,9 +65,12 @@ export default function AIToolbar({ onSave, onBack, isTrained, projectName = '',
   }, [showSettings])
 
   return (
-    <div className="flex px-4 pt-6 pb-4 bg-[#36D3FF] w-screen items-end overflow-visible flex-shrink-0">
+    <div className="relative flex px-4 pt-6 pb-4 bg-[#36D3FF] w-screen items-end overflow-visible flex-shrink-0">
       <div
-        className="absolute inset-0 z-10 animate-moving-bg bg-repeat bg bg-center bg-contain pointer-events-none opacity-30"
+        // `fixed`, not `absolute`: the root is `relative` (to centre the project name),
+        // and bg-contain would shrink the pattern to the toolbar's height. Viewport-sized
+        // keeps the original tile scale; the page body (z-20) covers the rest.
+        className="fixed inset-0 z-10 animate-moving-bg bg-repeat bg bg-center bg-contain pointer-events-none opacity-30"
         style={{ backgroundImage: `url(${BackgroundImg})` }}
       />
       <div
@@ -99,18 +102,6 @@ export default function AIToolbar({ onSave, onBack, isTrained, projectName = '',
             </div>
           </div>
           
-          <div className='flex justify-right bg-white px-10 py-3 max-w-[400px] rounded-xl'>
-            <span className='font-bold text-sm'>
-              Project
-            </span>
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => onProjectNameChange?.(e.target.value)}
-              className="px-3 font-semibold text-sm text-black bg-transparent border-black focus:outline-none"
-              placeholder="Project Name"
-            />
-          </div>
 
           <div className="flex items-end gap-2">
             { isTrained && <div className="w-12 bg-black rounded border-2 flex items-center justify-center" style={{ height: 52 }}>
@@ -124,6 +115,24 @@ export default function AIToolbar({ onSave, onBack, isTrained, projectName = '',
               <Settings className="w-8 h-8 stroke-white" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Project name — centred on the whole toolbar, not between the icon groups
+          (they differ in width per screen, which pushed it off-centre). Same height
+          and bottom offset as the back button so it lines up vertically. */}
+      <div className="absolute inset-x-0 bottom-4 h-15 z-[999] flex items-center justify-center pointer-events-none">
+        <div className='pointer-events-auto flex bg-white px-10 py-3 w-[400px] max-w-[30vw] rounded-xl'>
+          <span className='font-bold text-sm text-black shrink-0'>
+            Project
+          </span>
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => onProjectNameChange?.(e.target.value)}
+            className="min-w-0 flex-1 px-3 font-semibold text-sm text-black bg-transparent border-black focus:outline-none"
+            placeholder="Project Name"
+          />
         </div>
       </div>
 

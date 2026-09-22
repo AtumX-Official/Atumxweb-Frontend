@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as tf from '@tensorflow/tfjs'
 import { ensureTfBackend } from '../utils/tfBackend'
+import { saveProjectFile } from '../utils/projectFile'
 import type { Notice } from './useNotice'
 import { fitWithEarlyStopping } from '../utils/trainLoop'
 import { computeClassWeights, modelFromBundle, restoreSamples } from '../utils/classifierBundle'
@@ -222,7 +223,7 @@ export function useAudioClassifier() {
     )
 
     try {
-      const res = await window.api.file.save('', json, 'audioClassifier', name, '', '')
+      const res = await saveProjectFile('audioClassifier', name, json)
       // file.save resolves with { success, error } — it does NOT throw on a cancelled
       // dialog, so only mark saved when it actually wrote a file.
       if (res && (res as { success?: boolean }).success) setIsSavedToDisk(true)
