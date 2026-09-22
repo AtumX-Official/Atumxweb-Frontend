@@ -276,7 +276,7 @@ const dropdownValues = useMemo(() => {
     {/* Top Bar */}
     
       <div className={`fixed top-0 left-0 w-full h-25 bg-[#FFDE21] px-4 ${bgyellow}`}>
-      <div className="absolute inset-0 z-10 animate-moving-bg bg-repeat bg-center bg-[length:700px] pointer-events-none opacity-30"
+      <div className="absolute inset-0 z-10 bg-repeat bg-center bg-[length:700px] pointer-events-none opacity-30"
   style={{ backgroundImage: `url(${BackgroundImg})` }}
 />
 <div className="relative z-10 flex items-center h-full mt-2">

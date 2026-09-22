@@ -759,7 +759,7 @@ const CppScaffold = forwardRef<CppScaffoldHandle, CppScaffoldProps>(function Cpp
   return (
     <>
       <div
-        className="absolute inset-0 z-10 animate-moving-bg bg-repeat bg bg-center bg-contain pointer-events-none opacity-30"
+        className="absolute inset-0 z-10 bg-repeat bg bg-center bg-contain pointer-events-none opacity-30"
         style={{ backgroundImage: `url(${BackgroundImg})` }}
       />
       

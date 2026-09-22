@@ -7,7 +7,7 @@ import type { KitControlsProps } from './types'
 export const KIT_CONTROLS: Record<string, React.ComponentType<KitControlsProps>> = {
   gaadi: GaadiControls,
   playmo: PlaymoControls,
-  rekka: RekkaControls
+  wingz: RekkaControls
 }
 
 export type { KitControlsProps }

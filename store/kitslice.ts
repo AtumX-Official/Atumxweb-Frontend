@@ -5,6 +5,11 @@ export interface KitsState {
   category: string | null;
 }
 
+// REKKA and WingZ are the same drone board; WingZ is the only name we use now.
+// Older saved projects may still say "rekka", so fold it in here — every path that
+// sets the kit goes through these reducers.
+const normalizeKit = (kit: string) => (kit?.toLowerCase() === "rekka" ? "wingz" : kit);
+
 const initialState: KitsState = {
   kit: "Default",
   category: null,
@@ -16,7 +21,7 @@ const kitsSlice = createSlice({
   reducers: {
     // Select kit ONLY
     setKit: (state, action: PayloadAction<string>) => {
-      state.kit = action.payload;
+      state.kit = normalizeKit(action.payload);
 
       // Snowflake never has category
       if (action.payload === "snowflake") {
@@ -39,7 +44,7 @@ const kitsSlice = createSlice({
       state,
       action: PayloadAction<{ kit: string; category?: string }>
     ) => {
-      state.kit = action.payload.kit;
+      state.kit = normalizeKit(action.payload.kit);
 
       if (
         (action.payload.kit === "subo" ||

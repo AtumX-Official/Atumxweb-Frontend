@@ -205,6 +205,17 @@ export function useAudioClassifier() {
 
   // ── Persistence ──
 
+  /** The trained project as JSON (what Save writes), or null when untrained. */
+  const serializeProject = useCallback(async (): Promise<string | null> => {
+    if (!modelRef.current || trainingStatus !== 'ready') return null
+    return serializeAudioBundle(
+      modelRef.current,
+      classesRef.current.map((c) => c.name),
+      samplesRef.current,
+      classesRef.current.map((c) => c.id)
+    )
+  }, [trainingStatus])
+
   const saveModel = useCallback(async (projectName?: string) => {
     if (!modelRef.current || trainingStatus !== 'ready') {
       setNotice({
@@ -314,6 +325,7 @@ export function useAudioClassifier() {
     trainedClasses,
     cancelTraining,
     saveModel,
+    serializeProject,
     loadModel,
     resetModel,
     trainingStatus,

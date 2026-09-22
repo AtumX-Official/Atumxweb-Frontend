@@ -22,6 +22,7 @@ import modelready from './icons/handpng.png'
 import { uniqueClassName } from './utils/uniqueClassName'
 import { DOTTED_BG, PANEL } from './utils/themeClasses'
 import { openProjectFile, projectNameFromFile } from './utils/projectFile'
+import { blocksUrlFrom, clearAiSnapshot, peekAiSnapshot, stashAiSnapshot } from './utils/blocksHandoff'
 import type { ModelBundle } from './utils/modelIO'
 type Page = 'main' | 'blocky' | 'predict'
 
@@ -273,6 +274,14 @@ export default function AIApp() {
   // Start with Class 1 selected. The camera is NOT opened automatically — the
   // user picks camera or upload from a class card first.
   useEffect(() => {
+    // Coming back from Blocks: restore the project that was open instead.
+    const snap = peekAiSnapshot('/ai')
+    if (snap) {
+      restoreBundle(JSON.parse(snap.json) as ModelBundle, snap.projectName, snap.colorsByName)
+        .then(() => clearAiSnapshot('/ai'))
+        .catch((err) => console.error('Failed to restore project after Blocks:', err))
+      return
+    }
     // Replace the list rather than appending: React Strict Mode runs this twice in
     // dev, and appending turned "Class 1, Class 2" into four cards.
     classIdCounter.current = 0
@@ -297,11 +306,20 @@ export default function AIApp() {
         await classifier.saveModel(projectName || 'gesture-model')
       }
       await classifier.exportToBlockly(projectName || 'gesture-model')
-      router.push('/blocks')
+      // Snapshot the project so Blocks' back button returns to it intact.
+      const bundle = await classifier.serializeProject(images)
+      if (bundle) {
+        stashAiSnapshot('/ai', {
+          json: JSON.stringify(bundle),
+          projectName,
+          colorsByName: Object.fromEntries(classes.filter((c) => classColors[c.id]).map((c) => [c.name, classColors[c.id]])),
+        })
+      }
+      router.push(blocksUrlFrom('/ai'))
     } catch (err) {
       console.error('Failed to export gesture model to Blockly:', err)
     }
-  }, [classifier, projectName, router])
+  }, [classifier, projectName, router, images, classes, classColors])
 
   latestRef.current = { classifier, setPrediction, addImage, recorder }
 
@@ -396,28 +414,35 @@ export default function AIApp() {
     return null
   }
 
+  /** Load a project bundle into the page (Open, and the return trip from Blocks). */
+  async function restoreBundle(bundle: ModelBundle, name: string, colorsByName?: Record<string, string>) {
+    const mode = bundleHandMode(bundle) ?? handMode
+    const target = mode === 2 ? classifierTwo : classifierSingle
+    if (mode !== handMode) {
+      // Switch to the file's hand mode; the other classifier is left empty.
+      stopCountdownRecord()
+      const other = mode === 2 ? classifierSingle : classifierTwo
+      other.resetModel(); other.clearSamples()
+      setHandMode(mode)
+    }
+    const restoredClasses = await target.loadModel(bundle)
+    classIdCounter.current = restoredClasses.length
+    setClasses(restoredClasses)
+    setImages(target.restoreImages(bundle, restoredClasses))
+    setClassColors(Object.fromEntries(
+      restoredClasses.filter((c) => colorsByName?.[c.name]).map((c) => [c.id, colorsByName![c.name]])
+    ))
+    setDisabledClassIds(new Set())
+    setPrediction(null)
+    setProjectName(name)
+    setSelectedClassId(restoredClasses[0]?.id ?? null)
+  }
+
   const handleOpenProject = async () => {
     try {
       const res = await openProjectFile(handMode === 2 ? 'handGesture2H' : 'handGesture')
       if (!res.success || !res.data) return
-      const bundle = JSON.parse(res.data) as ModelBundle
-      const mode = bundleHandMode(bundle) ?? handMode
-      const target = mode === 2 ? classifierTwo : classifierSingle
-      if (mode !== handMode) {
-        // Switch to the file's hand mode; the other classifier is left empty.
-        stopCountdownRecord()
-        const other = mode === 2 ? classifierSingle : classifierTwo
-        other.resetModel(); other.clearSamples()
-        setHandMode(mode)
-      }
-      const restoredClasses = await target.loadModel(bundle)
-      classIdCounter.current = restoredClasses.length
-      setClasses(restoredClasses)
-      setImages(target.restoreImages(bundle, restoredClasses))
-      setClassColors({})
-      setPrediction(null)
-      setProjectName(projectNameFromFile(res.fileName))
-      setSelectedClassId(restoredClasses[0]?.id ?? null)
+      await restoreBundle(JSON.parse(res.data) as ModelBundle, projectNameFromFile(res.fileName))
     } catch (err) {
       console.error('Failed to load project:', err)
       alert('Failed to load project: ' + (err instanceof Error ? err.message : String(err)))

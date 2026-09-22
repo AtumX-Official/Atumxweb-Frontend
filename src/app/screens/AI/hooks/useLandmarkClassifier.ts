@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as tf from '@tensorflow/tfjs'
-import { saveModelToFile, type ModelBundle } from '../utils/modelIO'
+import { buildModelBundle, type ModelBundle } from '../utils/modelIO'
+import { saveProjectFile } from '../utils/projectFile'
 import { exportModelToBlockly } from '../utils/blocklyExporter'
 import { ensureTfBackend } from '../utils/tfBackend'
 import { fitWithEarlyStopping } from '../utils/trainLoop'
@@ -277,6 +278,29 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
 
   // ── Persistence ──────────────────────────────────────────────────────────────
 
+  /** The trained model + training data as a project bundle (what Save writes), or
+   *  null when there's no trained model. `images` become the saved thumbnails. */
+  const serializeProject = useCallback(async (images?: Record<string, string[]>): Promise<ModelBundle | null> => {
+    if (!modelRef.current || trainingStatus !== 'ready') return null
+    const samples: Record<string, number[][]> = {}
+    const centroids: Record<string, number[]> = {}
+    const thumbnails: Record<string, string[]> = {}
+    for (const c of classesRef.current) {
+      const key = cfg.save.keyBy === 'name' ? c.name : c.id
+      samples[key] = (samplesRef.current[c.id] || []).map((arr) => Array.from(arr))
+      if (centroidsRef.current[c.id]) centroids[key] = centroidsRef.current[c.id]
+      if (images?.[c.id]?.length) thumbnails[key] = await shrinkImages(images[c.id])
+    }
+    return buildModelBundle(
+      modelRef.current,
+      classesRef.current.map((c) => c.name),
+      centroids,
+      samples,
+      cfg.save.includeFocusBox ? useFocusBox : undefined,
+      Object.keys(thumbnails).length ? thumbnails : undefined
+    )
+  }, [cfg, trainingStatus, useFocusBox])
+
   /** `images` is the screen's class-card pictures (by class id), saved as thumbnails. */
   const saveModel = useCallback(async (projectName?: string, images?: Record<string, string[]>) => {
     if (!modelRef.current || trainingStatus !== 'ready') {
@@ -288,29 +312,11 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
       return
     }
     const name = typeof projectName === 'string' && projectName ? projectName : cfg.save.defaultName
-
-    const samples: Record<string, number[][]> = {}
-    const centroids: Record<string, number[]> = {}
-    const thumbnails: Record<string, string[]> = {}
-    for (const c of classesRef.current) {
-      const key = cfg.save.keyBy === 'name' ? c.name : c.id
-      samples[key] = (samplesRef.current[c.id] || []).map((arr) => Array.from(arr))
-      if (centroidsRef.current[c.id]) centroids[key] = centroidsRef.current[c.id]
-      if (images?.[c.id]?.length) thumbnails[key] = await shrinkImages(images[c.id])
-    }
-
-    await saveModelToFile(
-      modelRef.current,
-      classesRef.current.map((c) => c.name),
-      name,
-      centroids,
-      samples,
-      cfg.save.includeFocusBox ? useFocusBox : undefined,
-      cfg.save.language,
-      Object.keys(thumbnails).length ? thumbnails : undefined
-    )
+    const bundle = await serializeProject(images)
+    if (!bundle) return
+    await saveProjectFile(cfg.save.language, name, JSON.stringify(bundle))
     setIsSavedToDisk(true)
-  }, [cfg, trainingStatus, useFocusBox])
+  }, [cfg, trainingStatus, serializeProject])
 
   const loadModel = useCallback(async (bundle: ModelBundle) => {
     await ensureTfBackend()
@@ -473,6 +479,7 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
     trainModel,
     cancelTraining,
     saveModel,
+    serializeProject,
     loadModel,
     restoreImages,
     resetModel,

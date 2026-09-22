@@ -31,17 +31,15 @@ function base64ToBuffer(b64: string): ArrayBuffer {
   return bytes.buffer
 }
 
-export async function saveModelToFile(
+/** Serialize a trained model + its training data into the project-file bundle. */
+export async function buildModelBundle(
   model: tf.LayersModel,
   classNames: string[],
-  projectName: any = "gesture-model",
   centroids?: Record<string, number[]>,
   samples?: Record<string, number[][]>,
   useFocusBox?: boolean,
-  /** AI "language" → which Projects/ai/<Capitalized> folder to save into */
-  language: string = "handGesture",
   thumbnails?: Record<string, string[]>
-): Promise<void> {
+): Promise<ModelBundle> {
   let artifacts: tf.io.ModelArtifacts | undefined
 
   await model.save(
@@ -53,7 +51,7 @@ export async function saveModelToFile(
 
   if (!artifacts) throw new Error('Failed to serialize model')
 
-  const bundle: ModelBundle = {
+  return {
     version: 1,
     classNames,
     modelTopology: artifacts.modelTopology as object,
@@ -64,7 +62,20 @@ export async function saveModelToFile(
     useFocusBox,
     thumbnails,
   }
+}
 
+export async function saveModelToFile(
+  model: tf.LayersModel,
+  classNames: string[],
+  projectName: any = "gesture-model",
+  centroids?: Record<string, number[]>,
+  samples?: Record<string, number[][]>,
+  useFocusBox?: boolean,
+  /** AI "language" → which Projects/ai/<Capitalized> folder to save into */
+  language: string = "handGesture",
+  thumbnails?: Record<string, string[]>
+): Promise<void> {
+  const bundle = await buildModelBundle(model, classNames, centroids, samples, useFocusBox, thumbnails)
   const safeProjectName = typeof projectName === 'string' && projectName ? projectName : 'gesture-model'
   await saveProjectFile(language, safeProjectName, JSON.stringify(bundle))
 }

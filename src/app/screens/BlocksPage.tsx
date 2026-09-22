@@ -13,6 +13,7 @@ import { DndContext } from '@dnd-kit/core'
 import Header from '../components/Header'
 import Sidebar from './Elements/Sidebar'
 import TopLeftBar from './Elements/Topbar/Topleft'
+import { blocksExitRoute } from './AI/utils/blocksHandoff'
 import TopBarRight from './Elements/Topbar/TopRightBar'
 import TopBarCenter from './Elements/Topbar/TopCenter'
 import Models, { AddBlocks } from './Models'
@@ -290,7 +291,7 @@ useEffect(() => {
         }
       >
            <div
-  className="absolute inset-0 z-10 animate-moving-bg bg-repeat bg-center bg-contain pointer-events-none opacity-30"
+  className="absolute inset-0 z-10 bg-repeat bg-center bg-contain pointer-events-none opacity-30"
   style={{ backgroundImage: `url(${BackgroundImg})` }}
 />
         <div className={`w-full h-screen flex flex-col pt-6 ${bgyellow}`}>
@@ -359,6 +360,7 @@ useEffect(() => {
                       router,
                       projectName,
                       selectedCategory: selectedCategory ?? "",
+                      exitTo: blocksExitRoute(),
                     });
                   }}
                 />

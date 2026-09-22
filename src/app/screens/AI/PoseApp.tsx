@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import PoseTracker, { type Landmark, type PoseTrackerHandle } from './components/PoseTracker'
 import TrainingPanel from './components/TrainingPanel'
@@ -25,6 +25,8 @@ import { useBackendPreference } from './hooks/useBackendPreference'
 import LayersReveal, { POSE_LAYERS } from './components/LayersReveal'
 import { uniqueClassName } from './utils/uniqueClassName'
 import { openProjectFile, projectNameFromFile } from './utils/projectFile'
+import { blocksUrlFrom, clearAiSnapshot, peekAiSnapshot, stashAiSnapshot } from './utils/blocksHandoff'
+import type { ModelBundle } from './utils/modelIO'
 
 const DEFAULT_CLASS_COLORS = ['#36D3FF', '#F6268B', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171', '#fbbf24']
 
@@ -117,6 +119,11 @@ export default function PoseApp() {
   disabledRef.current = disabledIds
   const recordTargetId = selectedClassId && !disabledIds.includes(selectedClassId) ? selectedClassId : null
   const allClassesDisabled = classes.length > 0 && classes.every((c) => disabledIds.includes(c.id))
+  // TrainingPanel is controlled: it reads the disabled set and asks us to toggle.
+  const disabledClassIds = useMemo(() => new Set(disabledIds), [disabledIds])
+  const handleToggleClassEnabled = useCallback((id: string) => {
+    setDisabledIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }, [])
   const selectedClass = classes.find((c) => c.id === selectedClassId) ?? null
   const selectedColor = selectedClassId
     ? (classColors[selectedClassId] ?? DEFAULT_CLASS_COLORS[classes.findIndex((c) => c.id === selectedClassId) % DEFAULT_CLASS_COLORS.length])
@@ -163,6 +170,7 @@ export default function PoseApp() {
 
   function handleDeleteClass(id: string) {
     classifier.removeClassData(id)
+    setDisabledIds((prev) => prev.filter((x) => x !== id))
     setClasses((prev) => prev.filter((c) => c.id !== id))
     setImages((prev) => { const n = { ...prev }; delete n[id]; return n })
     setClassColors((prev) => { const n = { ...prev }; delete n[id]; return n })
@@ -227,6 +235,15 @@ export default function PoseApp() {
   // Pre-initialize Class 1 and Class 2, but keep the initial view on the chooser
   // state until the user explicitly selects camera or upload.
   useEffect(() => {
+    // Coming back from Blocks: restore the project that was open instead.
+    const snap = peekAiSnapshot('/pose')
+    if (snap) {
+      setInputMode(null)
+      restoreBundle(JSON.parse(snap.json), snap.projectName, snap.colorsByName)
+        .then(() => clearAiSnapshot('/pose'))
+        .catch((err) => console.error('Failed to restore project after Blocks:', err))
+      return
+    }
     // Replace the list rather than appending: React Strict Mode runs this twice in
     // dev, and appending turned "Class 1, Class 2" into four cards.
     classIdCounter.current = 0
@@ -246,11 +263,20 @@ export default function PoseApp() {
         await saveProject()
       }
       await classifier.exportToBlockly(projectName || 'pose-model')
-      router.push('/blocks')
+      // Snapshot the project so Blocks' back button returns to it intact.
+      const bundle = await classifier.serializeProject(imagesRef.current)
+      if (bundle) {
+        stashAiSnapshot('/pose', {
+          json: JSON.stringify(bundle),
+          projectName,
+          colorsByName: Object.fromEntries(classes.filter((c) => classColors[c.id]).map((c) => [c.name, classColors[c.id]])),
+        })
+      }
+      router.push(blocksUrlFrom('/pose'))
     } catch (err) {
       console.error('Failed to export pose model to Blockly:', err)
     }
-  }, [classifier, projectName, router])
+  }, [classifier, projectName, router, classes, classColors])
 
   latestRef.current = { classifier, setPrediction, addImage, isTesting, recorder }
 
@@ -348,19 +374,25 @@ export default function PoseApp() {
     setInputMode('camera')
   }
 
+  /** Load a project bundle into the page (Open, and the return trip from Blocks). */
+  async function restoreBundle(bundle: ModelBundle, name: string, colorsByName?: Record<string, string>) {
+    const restoredClasses = await classifier.loadModel(bundle)
+    classIdCounter.current = restoredClasses.length
+    setClasses(restoredClasses)
+    setImages(classifier.restoreImages(bundle, restoredClasses))
+    setClassColors(Object.fromEntries(
+      restoredClasses.filter((c) => colorsByName?.[c.name]).map((c) => [c.id, colorsByName![c.name]])
+    ))
+    setDisabledIds([])
+    setProjectName(name)
+    setSelectedClassId(restoredClasses[0]?.id ?? null)
+  }
+
   const handleOpenProject = async () => {
     try {
       const res = await openProjectFile('poseClassifier')
       if (!res.success || !res.data) return
-      const bundle = JSON.parse(res.data)
-      const restoredClasses = await classifier.loadModel(bundle)
-      setClasses(restoredClasses)
-      setImages(classifier.restoreImages(bundle, restoredClasses))
-      setClassColors({})
-      setProjectName(projectNameFromFile(res.fileName))
-      if (restoredClasses.length > 0) {
-        setSelectedClassId(restoredClasses[0].id)
-      }
+      await restoreBundle(JSON.parse(res.data), projectNameFromFile(res.fileName))
     } catch (err) {
       console.error('Failed to load project:', err)
       showNotice({
@@ -423,6 +455,7 @@ export default function PoseApp() {
       {!isFullscreen && (
         <AIToolbar
           backImage="pose"
+          centerProjectName
           onBack={() => router.push('/')}
           onSave={saveProject}
           isTrained={classifier.modelReady}
@@ -768,7 +801,8 @@ export default function PoseApp() {
             onDeleteSample={handleDeleteSample}
             onUploadImage={handleUploadImage}
             onSelectClass={handleSelectClass}
-            onDisabledChange={setDisabledIds}
+            disabledClassIds={disabledClassIds}
+            onToggleClassEnabled={handleToggleClassEnabled}
             onChangeColor={handleChangeColor}
             onActivateCamera={(id) => {
               handleSelectClass(id)

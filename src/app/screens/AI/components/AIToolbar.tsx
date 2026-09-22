@@ -110,7 +110,7 @@ export default function AIToolbar({
         // `fixed`, not `absolute`: the root is `relative` (to centre the project name),
         // and bg-contain would shrink the pattern to the toolbar's height. Viewport-sized
         // keeps the original tile scale; the page body (z-20) covers the rest.
-        className="fixed inset-0 z-10 animate-moving-bg bg-repeat bg bg-center bg-contain pointer-events-none opacity-30"
+        className="fixed inset-0 z-10 bg-repeat bg bg-center bg-contain pointer-events-none opacity-30"
         style={{ backgroundImage: `url(${BackgroundImg})` }}
       />
       <div

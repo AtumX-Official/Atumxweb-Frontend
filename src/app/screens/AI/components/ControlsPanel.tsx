@@ -30,7 +30,7 @@ interface ControlsPanelProps {
   /** Optional "watch it think" entry point. Pose/audio show the layers reveal
    *  here; the hand screen has its own on the predict page, so it omits this. */
   onViewLayers?: () => void
-  /** Export options that get a "Coming Soon" badge (e.g. ['python', 'c++']); they stay clickable */
+  /** Export options that get a "Coming Soon" badge; they stay clickable. Defaults to Python and C++ on every AI screen. */
   comingSoonExports?: string[]
 }
 
@@ -50,7 +50,7 @@ type Tab = 'preview' | 'controls'
 const controlOptions = [
   { id: "gaadi", Icon: WheelsIcon },
   { id: "playmo", Icon: PlaymoIcon },
-  { id: "rekka", Icon: RekkaIcon }
+  { id: "wingz", Icon: RekkaIcon }
 ];
 
 const previewOptions = [
@@ -59,7 +59,7 @@ const previewOptions = [
   { id: "c++", Icon: CppIcon }
 ]
 
-export default function ControlsPanel({ classes, classColors, defaultColors, onStart, onExportToBlockly, trainingStatus, currentPage, onViewLayers, comingSoonExports = [] }: ControlsPanelProps) {
+export default function ControlsPanel({ classes, classColors, defaultColors, onStart, onExportToBlockly, trainingStatus, currentPage, onViewLayers, comingSoonExports = ['python', 'c++'] }: ControlsPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>('controls')
   const [mappings, setMappings] = useState<Record<string, string>>({})
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)

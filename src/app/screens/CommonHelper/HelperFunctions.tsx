@@ -442,6 +442,7 @@ export const handleExitApp = async ({
   setOutput,
   router,
   projectName,
+  exitTo = "/",
 }: {
   workspaceRef: React.MutableRefObject<Blockly.WorkspaceSvg | null>;
   fileHandle: FileSystemFileHandle | null;
@@ -452,6 +453,8 @@ export const handleExitApp = async ({
   setOutput: (msg: string) => void;
   router: any;
   projectName: string;
+  /** Where to go on exit — home by default, or the AI screen Blocks was opened from. */
+  exitTo?: string;
 }) => {
   const workspace = workspaceRef.current;
 
@@ -460,7 +463,7 @@ export const handleExitApp = async ({
 
   // Nothing to save → go to home page
   if (!hasBlocks || !unsavedChanges) {
-    router.push("/");
+    router.push(exitTo);
     return;
   }
 
@@ -480,7 +483,7 @@ export const handleExitApp = async ({
 
   // User chose NO
   if (!res.yes) {
-    router.push("/");
+    router.push(exitTo);
     return;
   }
 
@@ -534,8 +537,8 @@ export const handleExitApp = async ({
 
     showSavePopup();
 
-    // Go to home page after successful save
-    router.push("/");
+    // Leave after a successful save
+    router.push(exitTo);
   } catch (err: any) {
     // User cancelled the save dialog
     if (err?.name === "AbortError") {

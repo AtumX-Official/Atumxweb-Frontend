@@ -20,18 +20,15 @@ const Models: React.FC = () => {
     // { id: "cayo", label: "CAYO", Icon: Cayo },
     // { id: "snowflake", label: "SNOWFLAKE", Icon: Snowflake },
     { id: "subo", label: "SUBO", Icon: Subu },
-    { id: "rekka", label: "REKKA", Icon: Rekka },
     { id: "wingz", label: "WingZ", Icon: Rekka },
     {id: "stemrobo", label: "STEMROBO", Icon: DemoBoard}
   ]
 
+  // Clicking the selected board keeps it selected. It used to toggle back to
+  // "Default" (No Kit), which left every block category empty.
   const handleKitClick = (id: string) => {
-    if (activeModel === id) {
-      dispatch(setKit("Default"));
-    } else {
-      dispatch(setKit(id));
-    }
-  
+    dispatch(setKit(id));
+
     dispatch(setCategory(null));
   };
 
@@ -52,7 +49,7 @@ const Models: React.FC = () => {
 
             {/* MASKED SVG BACKGROUND */}
             <div
-              className="absolute inset-0 z-10 animate-moving-bg bg-repeat bg-center bg-contain pointer-events-none opacity-30"
+              className="absolute inset-0 z-10 bg-repeat bg-center bg-contain pointer-events-none opacity-30"
               style={{
                 backgroundImage: `url(${BackgroundImg})`,
               }}
@@ -164,7 +161,7 @@ export const AddBlocks: React.FC<TopLeftBarProps> = ({
       >
         <div className="relative w-[700px] h-[520px] rounded-[40px] overflow-hidden bg-[#EAEAEA]">
           <div
-            className="absolute inset-0 z-10 animate-moving-bg bg-repeat bg-center bg-contain pointer-events-none opacity-30"
+            className="absolute inset-0 z-10 bg-repeat bg-center bg-contain pointer-events-none opacity-30"
             style={{
               backgroundImage: `url(${BackgroundImg})`,
             }}

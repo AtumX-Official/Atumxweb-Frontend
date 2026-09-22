@@ -48,7 +48,7 @@ const TopBarRight: React.FC<TopBarRightProps> = ({ setShowKits }) => {
       const [showSettings, setShowSettings] = useState(false)
       const selectedKit = useAppSelector((state) => state.kits.kit)
       // Drone boards get the Drone Simulator slot instead of Control space.
-      const isDroneKit = selectedKit === 'rekka' || selectedKit === 'wingz'
+      const isDroneKit = selectedKit === 'wingz'
       console.log("isConnected : ",isConnected)
       console.log("activeIcon : ",activeIcon)
       const handleUsbClick = async () => {

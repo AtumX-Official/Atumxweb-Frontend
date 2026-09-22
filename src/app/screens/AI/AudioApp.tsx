@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AIToolbar from './components/AIToolbar'
 import ProjectPopup from './components/ProjectPopup'
@@ -22,6 +22,7 @@ import { generateMelSpectrogram } from './utils/audioDSP'
 import { spectrogramToDataURL } from './utils/spectrogramImage'
 import { uniqueClassName } from './utils/uniqueClassName'
 import { openProjectFile, projectNameFromFile } from './utils/projectFile'
+import { blocksUrlFrom, clearAiSnapshot, peekAiSnapshot, stashAiSnapshot } from './utils/blocksHandoff'
 import HoldOnIcon from './icons/holdOn'
 import HoldOffIcon from './icons/holdOff'
 
@@ -142,6 +143,11 @@ export default function AudioApp() {
   disabledRef.current = disabledIds
   const recordTargetId = selectedClassId && !disabledIds.includes(selectedClassId) ? selectedClassId : null
   const allClassesDisabled = classes.length > 0 && classes.every((c) => disabledIds.includes(c.id))
+  // TrainingPanel is controlled: it reads the disabled set and asks us to toggle.
+  const disabledClassIds = useMemo(() => new Set(disabledIds), [disabledIds])
+  const handleToggleClassEnabled = useCallback((id: string) => {
+    setDisabledIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }, [])
   const selectedClass = classes.find((c) => c.id === selectedClassId) ?? null
   const selectedColor = selectedClassId
     ? (classColors[selectedClassId] ?? DEFAULT_CLASS_COLORS[classes.findIndex((c) => c.id === selectedClassId) % DEFAULT_CLASS_COLORS.length])
@@ -297,6 +303,14 @@ export default function AudioApp() {
   // The classifier suppresses classes named "background"/"noise" from triggering,
   // so keeping this default gives kids a free catch-all for silence/noise.
   useEffect(() => {
+    // Coming back from Blocks: restore the project that was open instead.
+    const snap = peekAiSnapshot('/audio')
+    if (snap) {
+      restoreBundle(JSON.parse(snap.json), snap.projectName, snap.colorsByName)
+        .then(() => clearAiSnapshot('/audio'))
+        .catch((err) => console.error('Failed to restore project after Blocks:', err))
+      return
+    }
     // Replace the list rather than appending: React Strict Mode runs this twice in
     // dev, and appending turned "Class 1, Class 2" into four cards.
     classIdCounter.current = 0
@@ -319,6 +333,7 @@ export default function AudioApp() {
 
   function handleDeleteClass(id: string) {
     classifier.removeClassData(id)
+    setDisabledIds((prev) => prev.filter((x) => x !== id))
     setClasses((prev) => prev.filter((c) => c.id !== id))
     setImages((prev) => { const n = { ...prev }; delete n[id]; return n })
     setClassColors((prev) => { const n = { ...prev }; delete n[id]; return n })
@@ -477,25 +492,31 @@ export default function AudioApp() {
     setSelectedClassId(id1)
   }
 
+  /** Load a project bundle into the page (Open, and the return trip from Blocks). */
+  async function restoreBundle(bundle: unknown, name: string, colorsByName?: Record<string, string>) {
+    const restoredClasses: AudioClass[] = await classifier.loadModel(bundle)
+    classIdCounter.current = restoredClasses.length
+    setClasses(restoredClasses)
+
+    // Repaint the thumbnails from the restored spectrograms
+    const loadedImages: Record<string, string[]> = {}
+    restoredClasses.forEach((c: AudioClass) => {
+      loadedImages[c.id] = (classifier.samplesRef.current[c.id] || []).map((s) => spectrogramToDataURL(s))
+    })
+    setImages(loadedImages)
+    setClassColors(Object.fromEntries(
+      restoredClasses.filter((c) => colorsByName?.[c.name]).map((c) => [c.id, colorsByName![c.name]])
+    ))
+    setDisabledIds([])
+    setProjectName(name)
+    setSelectedClassId(restoredClasses[0]?.id ?? null)
+  }
+
   const handleOpenProject = async () => {
     try {
       const res = await openProjectFile('audioClassifier')
       if (!res.success || !res.data) return
-      const bundle = JSON.parse(res.data)
-      const restoredClasses: AudioClass[] = await classifier.loadModel(bundle)
-      setClasses(restoredClasses)
-
-      // Repaint the thumbnails from the restored spectrograms
-      const loadedImages: Record<string, string[]> = {}
-      restoredClasses.forEach((c: AudioClass) => {
-        loadedImages[c.id] = (classifier.samplesRef.current[c.id] || []).map((s) => spectrogramToDataURL(s))
-      })
-      setImages(loadedImages)
-
-      setProjectName(projectNameFromFile(res.fileName))
-      if (restoredClasses.length > 0) {
-        setSelectedClassId(restoredClasses[0].id)
-      }
+      await restoreBundle(JSON.parse(res.data), projectNameFromFile(res.fileName))
     } catch (err) {
       console.error('Failed to load audio project:', err)
       showNotice({
@@ -511,12 +532,20 @@ export default function AudioApp() {
       if (!classifier.isSavedToDisk) {
         await classifier.saveModel(projectName || 'audio-model')
       }
-      // Simulate exporting blocks to blockly editor
-      router.push('/blocks')
+      // Snapshot the project so Blocks' back button returns to it intact.
+      const json = await classifier.serializeProject()
+      if (json) {
+        stashAiSnapshot('/audio', {
+          json,
+          projectName,
+          colorsByName: Object.fromEntries(classes.filter((c) => classColors[c.id]).map((c) => [c.name, classColors[c.id]])),
+        })
+      }
+      router.push(blocksUrlFrom('/audio'))
     } catch (err) {
       console.error('Failed to export audio model:', err)
     }
-  }, [classifier, projectName, router])
+  }, [classifier, projectName, router, classes, classColors])
 
   // Real-Time prediction sliding window loop
   useEffect(() => {
@@ -611,6 +640,7 @@ export default function AudioApp() {
     <div className="flex flex-col h-screen overflow-hidden">
       <AIToolbar
         backImage="audio"
+        centerProjectName
         onBack={() => router.push('/')}
         onSave={() => classifier.saveModel(projectName || 'audio-model')}
         isTrained={classifier.modelReady}
@@ -993,7 +1023,8 @@ export default function AudioApp() {
             onDeleteSample={handleDeleteSample}
             onUploadImage={(id, file) => { handleSelectClass(id); void handleUploadAudio(id, file) }}
             onSelectClass={handleSelectClass}
-            onDisabledChange={setDisabledIds}
+            disabledClassIds={disabledClassIds}
+            onToggleClassEnabled={handleToggleClassEnabled}
             onChangeColor={handleChangeColor}
             onActivateCamera={(id) => {
               handleSelectClass(id)

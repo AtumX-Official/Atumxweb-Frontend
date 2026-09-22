@@ -15,7 +15,6 @@ import Walker from '../../assets/Walker';
 import Gripper from '../../assets/Gripper';
 import Display from '../../assets/Displayicon';
 import WHEELZ from '../../assets/Wheelz'
-import Rekkaicon from '../../assets/Rekka';
 import Playmoicon from '../../assets/Playmo';
 import AIIcon from '../../assets/AIIcon';
 interface SidebarProps {
@@ -39,10 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const selectedCategory = useSelector(
     (state: RootState) => state.kits.category
   );
-  var isRekka = false;
-  if (selectedKit == "rekka" || selectedKit == "wingz") {
-    isRekka = true;
-  }
+  // WingZ (formerly also listed as REKKA) is the drone board.
+  const isRekka = selectedKit === "wingz";
   const bgColor = themeMode === 'dark' ? 'black' : '#EAEAEA'
   const bgText = themeMode === 'dark' ? 'white' : 'black'
   const baseIconData = [
@@ -55,7 +52,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Sensor, label: 'SENSOR', color: '#9F7826' },
     { icon: Input, label: 'ACTUATORS', color: '#4787FF' },
     { icon: Display, label: 'DISPLAY', color: '#FF12A0' },
-    { icon: Rekkaicon, label: 'REKKA', color: '#4787FF'}, 
     { icon: WHEELZ, label: 'WINGZ', color: '#4787FF'},
     { icon: AIIcon, label: 'AI', color: '#7C3AED' },
   ];
@@ -85,14 +81,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (selectedKit === 'snowflake') {
       filteredBaseIcons = filteredBaseIcons.filter(item => item.label !== 'DISPLAY');
     }
-    if (selectedKit === 'rekka' || selectedKit === 'wingz') {
+    if (selectedKit === 'wingz') {
       filteredBaseIcons = filteredBaseIcons.filter(
         item => item.label !== 'DISPLAY' && item.label !== 'ACTUATORS'
       );
-    }
-    // Show REKKA only when kit is rekka
-    if (selectedKit !== 'rekka') {
-      filteredBaseIcons = filteredBaseIcons.filter(item => item.label !== 'REKKA');
     }
     // Show WingZ only when kit is WingZ
     if (selectedKit !== 'wingz') {
