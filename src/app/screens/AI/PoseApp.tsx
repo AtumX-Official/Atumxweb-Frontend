@@ -15,6 +15,7 @@ import LayersReveal, { POSE_LAYERS } from './components/LayersReveal'
 import { uniqueClassName } from './utils/uniqueClassName'
 import { POSE_FEATURE_DIM } from './utils/normalizeLandmarks'
 import { useRouter } from 'next/navigation'
+import { useAppSelector } from '../../../../store/hooks'
 
 const DEFAULT_CLASS_COLORS = ['#36D3FF', '#F6268B', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171', '#fbbf24']
 
@@ -34,6 +35,7 @@ interface LatestRef {
 
 export default function PoseApp() {
   const router = useRouter()
+  const isDark = useAppSelector((s) => s.theme.mode) === 'dark'
   const classifier = usePoseClassifier()
   // Capability-based backend routing (GPU→JS, no-GPU→Python) with manual override.
   const { capability, preference, setPreference, backend, labelFor } = useBackendPreference()
@@ -276,7 +278,7 @@ export default function PoseApp() {
   const clampedOffset = Math.min(thumbOffset, maxThumb)
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden text-slate-800 bg-[#f3f4f6]">
+    <div className="flex flex-col h-screen overflow-hidden text-slate-800 bg-[#f3f4f6] dark:text-white dark:bg-[#151515]">
       <AIToolbar
         onBack={() => router.push('/')}
         onSave={() => classifier.saveModel(projectName || 'pose-model')}
@@ -310,16 +312,16 @@ export default function PoseApp() {
       <main
         className="flex-1 flex relative z-20 justify-center items-stretch gap-6 p-6 overflow-hidden"
         style={{
-          backgroundColor: '#efefef',
-          backgroundImage: 'radial-gradient(circle, #d0d0d0 1.5px, transparent 1.5px)',
+          backgroundColor: isDark ? '#151515' : '#efefef',
+          backgroundImage: `radial-gradient(circle, ${isDark ? '#3a3a3a' : '#d0d0d0'} 1.5px, transparent 1.5px)`,
           backgroundSize: '20px 20px'
         }}
       >
 
         {/* COLUMN 1: Pose Classes list (Left Card) */}
         <div className="flex flex-col w-[320px] shrink-0 gap-4 mx-auto min-h-0">
-          <div className="flex-1 min-h-0 bg-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="text-xl font-black border-b-2 border-slate-100 pb-3 mb-4 tracking-wider flex items-center justify-between">
+          <div className="flex-1 min-h-0 bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h2 className="text-xl font-black border-b-2 border-slate-100 dark:border-[#4c4c4c] pb-3 mb-4 tracking-wider flex items-center justify-between">
               <span>POSE CLASSES</span>
               <button
                 onClick={() => handleAddClass(`Class ${classes.length + 1}`)}
@@ -339,7 +341,7 @@ export default function PoseApp() {
                   <div
                     key={cls.id}
                     onClick={() => handleSelectClass(cls.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${isSelected ? 'border-black bg-slate-50' : 'border-slate-200 hover:border-slate-400 bg-white'
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${isSelected ? 'border-black bg-slate-50 dark:border-white dark:bg-[#2a2a2a]' : 'border-slate-200 hover:border-slate-400 bg-white dark:border-[#4c4c4c] dark:hover:border-slate-400 dark:bg-[#1f1f1f]'
                       }`}
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -351,7 +353,7 @@ export default function PoseApp() {
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => handleRenameClass(cls.id, e.target.value)}
                           onBlur={() => handleCommitClassName(cls.id)}
-                          className="font-bold text-sm bg-transparent outline-none border-b border-transparent focus:border-slate-500 w-28"
+                          className="font-bold text-sm bg-transparent outline-none border-b border-transparent focus:border-slate-500 dark:text-white w-28"
                         />
                       </div>
                       <button
@@ -365,8 +367,8 @@ export default function PoseApp() {
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
-                      <span className="font-mono">{count} Pose Samples</span>
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
+                      <span className="font-mono">{count > classifier.MIN_SAMPLES ? `${classifier.MIN_SAMPLES}+` : count} Pose Samples</span>
                       {count > 0 && (
                         <button
                           onClick={(e) => {
@@ -388,7 +390,7 @@ export default function PoseApp() {
                           handleSelectClass(cls.id)
                           document.getElementById(`file-input-${cls.id}`)?.click()
                         }}
-                        className="bg-slate-100 hover:bg-slate-200 text-[0.7rem] font-bold py-1.5 rounded-md border border-slate-300 transition-colors"
+                        className="bg-slate-100 hover:bg-slate-200 dark:bg-[#2a2a2a] dark:hover:bg-[#333333] dark:text-white dark:border-[#4c4c4c] text-[0.7rem] font-bold py-1.5 rounded-md border border-slate-300 transition-colors"
                       >
                         📁 Upload
                       </button>
@@ -398,7 +400,7 @@ export default function PoseApp() {
                           handleSelectClass(cls.id)
                           setIsTesting(false)
                         }}
-                        className="bg-[#36D3FF] hover:bg-[#20bdff] text-[0.7rem] font-bold py-1.5 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        className="bg-[#36D3FF] hover:bg-[#20bdff] text-[0.7rem] font-bold dark:text-black py-1.5 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
                       >
                         🎥 Webcam
                       </button>
@@ -438,10 +440,10 @@ export default function PoseApp() {
         <div className="flex-1 flex flex-col gap-4 max-w-xl mx-auto">
 
           {/* Webcam stream card */}
-          <div className="bg-white rounded-2xl border-2 border-black p-4 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+          <div className="bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-4 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
             <div className="flex items-center justify-between mb-3.5">
               <span
-                className="px-4 py-1 rounded-full text-xs font-black border border-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                className="px-4 py-1 rounded-full text-xs font-black dark:text-black border border-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                 style={{ backgroundColor: selectedClass ? selectedColor : '#e2e8f0' }}
               >
                 {selectedClass ? `${selectedClass.name} Preview` : 'Camera Preview'}
@@ -512,7 +514,7 @@ export default function PoseApp() {
                 )
               ) : (
                 /* Shared settings panel (uniform across hand + pose) */
-                <div className="absolute inset-0 bg-white p-5 overflow-y-auto">
+                <div className="absolute inset-0 bg-white dark:bg-[#1f1f1f] p-5 overflow-y-auto">
                   <RecordingSettings
                     fps={fps}
                     onFps={setFps}
@@ -583,7 +585,7 @@ export default function PoseApp() {
                   {Array.from({ length: 5 }).map((_, idx) => {
                     const img = selectedImages[clampedOffset + idx]
                     return (
-                      <div key={idx} className="w-[88px] h-[52px] rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                      <div key={idx} className="w-[88px] h-[52px] rounded-lg overflow-hidden border border-slate-200 bg-slate-100 dark:border-[#4c4c4c] dark:bg-[#2a2a2a] shrink-0">
                         {img && <img src={img} className="w-full h-full object-cover" />}
                       </div>
                     )
@@ -613,12 +615,12 @@ export default function PoseApp() {
           </div>
 
           {/* Model toggle and Training Card */}
-          <div className="bg-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-4">
+          <div className="bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-4">
 
 
             {/* Error alerts if any */}
             {classifier.trainError && (
-              <div className="bg-red-50 border-2 border-red-200 text-red-700 text-xs font-bold p-3 rounded-xl leading-relaxed">
+              <div className="bg-red-50 border-2 border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-800 dark:text-red-300 text-xs font-bold p-3 rounded-xl leading-relaxed">
                 ⚠️ {classifier.trainError}
               </div>
             )}
@@ -645,15 +647,15 @@ export default function PoseApp() {
 
         {/* COLUMN 3: Testing Panel (Right Column Card) */}
         <div className="flex flex-col w-[320px] shrink-0 gap-4 mx-auto">
-          <div className="flex-1 bg-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="text-xl font-black border-b-2 border-slate-100 pb-3 mb-4 tracking-wider uppercase">
+          <div className="flex-1 bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h2 className="text-xl font-black border-b-2 border-slate-100 dark:border-[#4c4c4c] pb-3 mb-4 tracking-wider uppercase">
               Testing Workspace
             </h2>
 
             {!isTrained ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
                 <span className="text-4xl mb-4">🤖</span>
-                <p className="text-sm font-semibold text-slate-500 leading-relaxed">
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
                   You must collect pose landmarks and **Train a Model** on the left before you can test it here.
                 </p>
               </div>
@@ -690,13 +692,13 @@ export default function PoseApp() {
                 {isTesting && prediction && (() => {
                   const confVal = prediction.className ? Math.round(prediction.confidence * 100) : 0
                   return (
-                    <div className="mt-4 border-2 border-black rounded-xl p-4 bg-slate-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="mt-4 border-2 border-black rounded-xl p-4 bg-slate-50 dark:bg-[#2a2a2a] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                       <span className="text-[0.62rem] text-slate-400 font-bold uppercase tracking-widest">Active Output Class</span>
-                      <div className="text-lg font-black text-slate-800 mb-3">{prediction.className || 'Undetected'}</div>
+                      <div className="text-lg font-black text-slate-800 dark:text-white mb-3">{prediction.className || 'Undetected'}</div>
 
                       <span className="text-[0.62rem] text-slate-400 font-bold uppercase tracking-widest">Prediction Confidence</span>
                       <div className="flex items-center gap-3 mt-1.5">
-                        <div className="flex-1 h-3.5 bg-slate-200 rounded-full border border-slate-300 overflow-hidden">
+                        <div className="flex-1 h-3.5 bg-slate-200 rounded-full border border-slate-300 dark:bg-[#151515] dark:border-[#4c4c4c] overflow-hidden">
                           <div
                             className="h-full bg-[#36D3FF] transition-[width] duration-150"
                             style={{ width: `${confVal}%` }}

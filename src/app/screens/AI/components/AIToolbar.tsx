@@ -10,6 +10,7 @@ import Savedtokit from '@renderer/assets/icons/common/Savetokit'
 import BackIcon from '@renderer/assets/icons/common/Backicon'
 import SettingsModal from '@renderer/components/supporting/SettingModal'
 import WifiIcon from '../icons/WifiIcon'
+import { useAppSelector } from '../../../../../store/hooks'
 
 interface AIToolbarProps {
   onSave: () => void
@@ -27,6 +28,14 @@ export default function AIToolbar({ onSave, onBack, isTrained, projectName = '',
   // Mirror Navbar's self-contained pattern (state + click-outside + portal) here.
   const [showSettings, setShowSettings] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
+  const themeMode = useAppSelector((state) => state.theme.mode)
+
+  // The AI screens don't mount the home Navbar, which is what normally sets the
+  // `dark` class on <html>. Sync it here so a direct load of /ai (or toggling the
+  // theme from this toolbar's Settings) still drives the `dark:` styles.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', themeMode === 'dark')
+  }, [themeMode])
 
   useEffect(() => {
     if (!showSettings) return

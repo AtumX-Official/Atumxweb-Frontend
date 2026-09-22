@@ -20,6 +20,7 @@ import trainmodel from './icons/trainhand.gif'
 import trainsucessgif from './icons/readyhandgif.gif'
 import modelready from './icons/handpng.png'
 import { uniqueClassName } from './utils/uniqueClassName'
+import { DOTTED_BG, PANEL } from './utils/themeClasses'
 type Page = 'main' | 'blocky' | 'predict'
 
 const DEFAULT_CLASS_COLORS = ['#a3e635', '#f472b6', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171', '#fbbf24']
@@ -219,7 +220,7 @@ export default function AIApp() {
     target.initClass(id1); target.initClass(id2)
     setClasses([{ id: id1, name: 'Class 1' }, { id: id2, name: 'Class 2' }])
     setSelectedClassId(id1)
-    setInputMode('camera')
+    // keep whatever input (camera / upload / none) the user already picked
   }
 
   function toggleFullscreen() {
@@ -239,9 +240,9 @@ export default function AIApp() {
     handleAddClass('Class 1')
     handleAddClass('Class 2')
     // handleAddClass selects each class as it's added, so Class 2 ends up selected.
-    // Select Class 1 (the first id) and auto-load the camera — matching 2-hand.
+    // Select Class 1 (the first id). The camera is NOT opened automatically — the
+    // user picks camera or upload from a class card first.
     setSelectedClassId('cls_1')
-    setInputMode('camera')
   }, [])
 
   useEffect(() => {
@@ -479,32 +480,13 @@ export default function AIApp() {
 )}
 </div></div>)}
       <main
-        className="flex-1 flex relative z-20 justify-center items-center gap-6 p-6 overflow-hidden"
-        style={{
-          backgroundColor: '#efefef',
-          backgroundImage: 'radial-gradient(circle, #c0c0c0 1.5px, transparent 1.5px)',
-          backgroundSize: '20px 20px',
-        }}
+        className={`flex-1 flex relative z-20 justify-center items-center gap-6 p-6 overflow-hidden ${DOTTED_BG}`}
       >
         {/* Left: camera panel*/}
         <div className="flex justify-center items-center w-[clamp(320px,30vw,480px)] shrink-0 mx-auto">
           <div className="w-[clamp(320px,30vw,480px)] flex flex-col">
 
             {!showSettings ? (<>
-
-              {/* 1-hand / 2-hand toggle */}
-              <div className="w-[clamp(240px,21vw,340px)] flex mb-3 rounded-lg overflow-hidden border-2 border-black">
-                <button
-                  onClick={() => handleSetHandMode(1)}
-                  className={`flex-1 py-2 text-sm font-extrabold transition-colors ${handMode === 1 ? 'bg-black text-[#F6EC24]' : 'bg-[#F6EC24] text-black'}`}>
-                  ✋ 1 HAND
-                </button>
-                <button
-                  onClick={() => handleSetHandMode(2)}
-                  className={`flex-1 py-2 text-sm font-extrabold transition-colors ${handMode === 2 ? 'bg-black text-[#F6EC24]' : 'bg-[#F6EC24] text-black'}`}>
-                  🙌 2 HANDS
-                </button>
-              </div>
 
               {/*Class Label*/}
               <div
@@ -515,7 +497,7 @@ export default function AIApp() {
 
               {/* Camera Card */}
               <div
-                className="w-full bg-white border-2 border-black rounded-tr-xl rounded-br-xl rounded-bl-xl p-3">
+                className={`w-full ${PANEL} border-2 border-black rounded-tr-xl rounded-br-xl rounded-bl-xl p-3`}>
                 {/* Video / Upload zone */}
                 <div
                   ref={camStageRef}
@@ -538,6 +520,13 @@ export default function AIApp() {
                       idle={!isCapturing}
                       onLightingWarn={setLightingWarnActive}
                     />
+                  ) : inputMode === null ? (
+                    // Nothing chosen yet — ask for camera or upload (via the class card buttons)
+                    <div className="w-full h-full bg-[#F6EC24] flex items-center justify-center select-none">
+                      <span className="font-bold text-center text-black leading-tight">
+                        Select camera or<br />upload files.
+                      </span>
+                    </div>
                   ) : (
                     <div
                       onClick={() => fileInputRef.current?.click()}
@@ -648,7 +637,7 @@ export default function AIApp() {
             </>
 
             ) : (<>
-              <div className="w-full min-h-[19vw] bg-white border-2 border-black rounded-xl p-4 flex flex-col">
+              <div className={`w-full min-h-[19vw] ${PANEL} border-2 border-black rounded-xl p-4 flex flex-col`}>
 
                 <RecordingSettings
                   fps={fps}
@@ -723,6 +712,8 @@ export default function AIApp() {
                       mode={hold ? 'hold' : 'auto'}
                       onModeChange={(m) => setHold(m === 'hold')}
                       showModeSwitch={!(isCapturing || countdown !== null)}
+                      handMode={handMode}
+                      onHandModeChange={isCapturing || countdown !== null ? undefined : handleSetHandMode}
                       onOpenSettings={() => setShowSettings(true)}
                     />
                   )}

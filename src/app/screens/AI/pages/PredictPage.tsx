@@ -7,6 +7,7 @@ import { detectHandInImage } from '../utils/imageDetector'
 import type { GestureClass, Prediction } from '../hooks/useGestureClassifier'
 import CameraIcon from '../icons/cameraIcon'
 import UploadIcon from '../icons/uploadIcon'
+import { DOTTED_BG, PANEL } from '../utils/themeClasses'
 
 
 interface PredictPageProps {
@@ -29,12 +30,6 @@ interface PredictPageProps {
   liveHandsRef?: React.MutableRefObject<{ x: number; y: number; z?: number }[][]>
   sampleCounts?: Record<string, number>
   trainAccuracy?: number | null
-}
-
-const DOTTED_BG = {
-  backgroundColor: '#efefef',
-  backgroundImage: 'radial-gradient(circle, #c0c0c0 1.5px, transparent 1.5px)',
-  backgroundSize: '20px 20px',
 }
 
 type InputMode = 'camera' | 'upload'
@@ -110,7 +105,7 @@ export default function PredictPage({
     <div className="flex flex-col h-screen overflow-hidden">
       <AIToolbar onSave={onSave} onBack={onBack} isTrained={true} />
 
-      <main className="flex-1 relative z-20 flex gap-6 p-6 items-center justify-center overflow-auto" style={DOTTED_BG}>
+      <main className={`flex-1 relative z-20 flex gap-6 p-6 items-center justify-center overflow-auto ${DOTTED_BG}`}>
 
         {/* ── Left: UPLOAD panel ────────────────────────────────────────── */}
         <div className="flex justify-center items-center w-[clamp(320px,30vw,480px)] shrink-0 mx-auto">
@@ -122,7 +117,7 @@ export default function PredictPage({
             </div>
 
             {/* Camera feed — always mounted so camera stays warm, hidden in upload mode */}
-            <div className="w-full bg-white border-2 border-black rounded-tr-xl rounded-br-xl rounded-bl-xl p-3">
+            <div className={`w-full ${PANEL} border-2 border-black rounded-tr-xl rounded-br-xl rounded-bl-xl p-3`}>
               <div className="w-full aspect-video mx-auto rounded-lg overflow-hidden bg-black">
                 <div className={mode === 'camera' ? '' : 'hidden'}>
                   <HandTracker
@@ -189,7 +184,7 @@ export default function PredictPage({
               </div>
 
               {/* Divider */}
-              <div className="h-px bg-gray-200" />
+              <div className="h-px bg-gray-200 dark:bg-[#4c4c4c]" />
 
               {/* Mode buttons */}
               <div className="flex items-center justify-center gap-4 pt-4">
@@ -236,7 +231,7 @@ export default function PredictPage({
         {/* ── Middle: confidence bars ────────────────────────────────────── */}
         <div className="w-[25vw] shrink-0  w-[clamp(300px,28vw,450px)] mx-auto">
           {classes.length === 0 && (
-            <div className="text-center text-gray-400 text-sm py-12 bg-white rounded-2xl border-2 border-gray-100 shadow-sm">
+            <div className="text-center text-gray-400 text-sm py-12 bg-white dark:bg-[#1f1f1f] rounded-2xl border-2 border-gray-100 dark:border-[#4c4c4c] shadow-sm">
               Train a model first
             </div>
           )}
@@ -246,16 +241,16 @@ export default function PredictPage({
             return (
               <div
                 key={cls.id}
-                className="bg-white rounded-lg px-2 py-2 border-2 shadow-2xl mb-2"
+                className="bg-white dark:bg-[#1f1f1f] rounded-lg px-2 py-2 border-2 dark:border-[#4c4c4c] shadow-2xl mb-2"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <span className="font-black text-xl text-black leading-tight">{cls.name}</span>
+                  <span className="font-black text-xl text-black dark:text-white leading-tight">{cls.name}</span>
                   <div className="text-right shrink-0">
-                    <div className="text-2xl text-black leading-none">{conf}%</div>
-                    <div className="text-[0.70rem] text-gray-500 tracking-[0.18em] mt-0.5">CONFIDENCE</div>
+                    <div className="text-2xl text-black dark:text-white leading-none">{conf}%</div>
+                    <div className="text-[0.70rem] text-gray-500 dark:text-gray-400 tracking-[0.18em] mt-0.5">CONFIDENCE</div>
                   </div>
                 </div>
-                <div className="h-3 bg-gray-100  overflow-hidden mt-3">
+                <div className="h-3 bg-gray-100 dark:bg-[#2a2a2a] overflow-hidden mt-3">
                   <div
                     className="h-full "
                     style={{ width: `${conf}%`, background: color, transition: 'width 0.12s ease' }}

@@ -12,6 +12,7 @@ import { uniqueClassName } from './utils/uniqueClassName'
 import MenuIcon from './icons/menuIcon'
 import HoldOnIcon from './icons/holdOn'
 import HoldOffIcon from './icons/holdOff'
+import { useAppSelector } from '../../../../store/hooks'
 
 const DEFAULT_CLASS_COLORS = ['#F6EC24', '#36D3FF', '#F6268B', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171']
 
@@ -32,6 +33,7 @@ interface FileOpenResult {
 
 export default function AudioApp() {
   const router = useRouter()
+  const isDark = useAppSelector((s) => s.theme.mode) === 'dark'
   const classifier = useAudioClassifier()
 
   const [classes, setClasses] = useState<AudioClass[]>(() => [
@@ -590,7 +592,7 @@ export default function AudioApp() {
   const clampedOffset = Math.min(thumbOffset, maxThumb)
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden text-slate-800 bg-[#f3f4f6]">
+    <div className="flex flex-col h-screen overflow-hidden text-slate-800 bg-[#f3f4f6] dark:text-white dark:bg-[#151515]">
       <AIToolbar
         onBack={() => router.push('/')}
         onSave={() => classifier.saveModel(projectName || 'audio-model')}
@@ -624,15 +626,15 @@ export default function AudioApp() {
       <main
         className="flex-1 flex relative z-20 justify-center items-stretch gap-6 p-6 overflow-hidden"
         style={{
-          backgroundColor: '#efefef',
-          backgroundImage: 'radial-gradient(circle, #d0d0d0 1.5px, transparent 1.5px)',
+          backgroundColor: isDark ? '#151515' : '#efefef',
+          backgroundImage: `radial-gradient(circle, ${isDark ? '#3a3a3a' : '#d0d0d0'} 1.5px, transparent 1.5px)`,
           backgroundSize: '20px 20px'
         }}
       >
         {/* COLUMN 1: Audio Classes Panel (Left) */}
         <div className="flex flex-col w-[320px] shrink-0 gap-4 min-h-0">
-          <div className="flex-1 min-h-0 bg-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="text-xl font-black border-b-2 border-slate-100 pb-3 mb-4 tracking-wider flex items-center justify-between">
+          <div className="flex-1 min-h-0 bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h2 className="text-xl font-black border-b-2 border-slate-100 dark:border-[#4c4c4c] pb-3 mb-4 tracking-wider flex items-center justify-between">
               <span>WORD CLASSES</span>
               <button
                 onClick={() => handleAddClass(`Class ${classes.length + 1}`)}
@@ -653,7 +655,7 @@ export default function AudioApp() {
                     key={cls.id}
                     onClick={() => handleSelectClass(cls.id)}
                     className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                      isSelected ? 'border-black bg-slate-50' : 'border-slate-200 hover:border-slate-400 bg-white'
+                      isSelected ? 'border-black bg-slate-50 dark:border-white dark:bg-[#2a2a2a]' : 'border-slate-200 hover:border-slate-400 bg-white dark:border-[#4c4c4c] dark:hover:border-slate-400 dark:bg-[#1f1f1f]'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -665,7 +667,7 @@ export default function AudioApp() {
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => handleRenameClass(cls.id, e.target.value)}
                           onBlur={() => handleCommitClassName(cls.id)}
-                          className="font-bold text-sm bg-transparent outline-none border-b border-transparent focus:border-slate-500 w-36"
+                          className="font-bold text-sm bg-transparent outline-none border-b border-transparent focus:border-slate-500 dark:text-white w-36"
                         />
                       </div>
                       <button
@@ -679,7 +681,7 @@ export default function AudioApp() {
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
                       <span className="font-mono">{count} Voice Samples</span>
                       {count > 0 && (
                         <button
@@ -703,7 +705,7 @@ export default function AudioApp() {
                           setPrediction(null)
                           void startRecording()
                         }}
-                        className="bg-[#F6EC24] hover:bg-yellow-300 text-[0.7rem] font-bold py-1.5 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-1"
+                        className="bg-[#F6EC24] hover:bg-yellow-300 text-[0.7rem] font-bold dark:text-black py-1.5 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-1"
                       >
                         🎙️ Record Sample
                       </button>
@@ -718,10 +720,10 @@ export default function AudioApp() {
         {/* COLUMN 2: Audio Preview & Record Bay (Center) */}
         <div className="w-[clamp(340px,42vw,36rem)] shrink-0 min-h-0 flex flex-col gap-4 overflow-y-auto pr-1">
           {/* Waveform/Microphone Stream Card */}
-          <div className="bg-white rounded-2xl border-2 border-black p-4 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden shrink-0">
+          <div className="bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-4 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden shrink-0">
             <div className="flex items-center justify-between mb-3.5">
               <span
-                className="px-4 py-1 rounded-full text-xs font-black border border-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                className="px-4 py-1 rounded-full text-xs font-black dark:text-black border border-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                 style={{ backgroundColor: selectedClass ? selectedColor : '#e2e8f0' }}
               >
                 {selectedClass ? `${selectedClass.name} Feed` : 'Microphone Stream'}
@@ -729,14 +731,14 @@ export default function AudioApp() {
 
               <div className="flex items-center gap-2">
                 {micError && (
-                  <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2.5 py-1 rounded-md border border-red-200">
+                  <span className="text-[10px] text-red-500 font-bold bg-red-50 dark:bg-red-950/40 dark:border-red-800 dark:text-red-300 px-2.5 py-1 rounded-md border border-red-200">
                     ⚠️ Mic Error
                   </span>
                 )}
                 {selectedClassId && (
                   <button
                     onClick={() => setShowSettings(!showSettings)}
-                    className="bg-slate-100 hover:bg-slate-200 border border-slate-300 p-1.5 rounded-lg flex items-center justify-center transition-colors"
+                    className="bg-slate-100 hover:bg-slate-200 border border-slate-300 dark:bg-[#2a2a2a] dark:hover:bg-[#333333] dark:border-[#4c4c4c] p-1.5 rounded-lg flex items-center justify-center transition-colors"
                   >
                     <MenuIcon />
                   </button>
@@ -789,10 +791,10 @@ export default function AudioApp() {
                 </div>
               ) : (
                 /* Capture settings inside center card */
-                <div className="absolute inset-0 bg-white p-5 flex flex-col overflow-y-auto z-30">
-                  <div className="flex justify-between items-center border-b border-slate-200 pb-2 mb-4">
-                    <span className="font-black text-sm uppercase tracking-wider text-slate-600">Recording Options</span>
-                    <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-black font-black">✕</button>
+                <div className="absolute inset-0 bg-white dark:bg-[#1f1f1f] dark:text-white p-5 flex flex-col overflow-y-auto z-30">
+                  <div className="flex justify-between items-center border-b border-slate-200 dark:border-[#4c4c4c] pb-2 mb-4">
+                    <span className="font-black text-sm uppercase tracking-wider text-slate-600 dark:text-slate-300">Recording Options</span>
+                    <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-black dark:hover:text-white font-black">✕</button>
                   </div>
 
                   <div className="space-y-4 flex-1">
@@ -814,15 +816,15 @@ export default function AudioApp() {
                         type="number"
                         value={delay}
                         onChange={(e) => setDelay(Math.max(0, Number(e.target.value) || 0))}
-                        className="w-16 bg-[#F6EC24] border-2 border-black text-center font-bold outline-none rounded"
+                        className="w-16 bg-[#F6EC24] dark:text-black border-2 border-black text-center font-bold outline-none rounded"
                         min={0}
                       />
                     </div>
 
-                    <div className="border-t border-slate-200 pt-3.5 flex flex-col gap-1.5">
+                    <div className="border-t border-slate-200 dark:border-[#4c4c4c] pt-3.5 flex flex-col gap-1.5">
                       <div className="flex justify-between items-center text-sm">
                         <span className="font-bold">Confidence Threshold</span>
-                        <span className="font-mono font-bold bg-[#F6EC24] px-2 py-0.5 rounded border border-black text-xs">
+                        <span className="font-mono font-bold bg-[#F6EC24] dark:text-black px-2 py-0.5 rounded border border-black text-xs">
                           {classifier.confidenceThreshold.toFixed(2)}
                         </span>
                       </div>
@@ -833,25 +835,25 @@ export default function AudioApp() {
                         step={0.01}
                         value={classifier.confidenceThreshold}
                         onChange={(e) => classifier.setConfidenceThreshold(Number(e.target.value))}
-                        className="w-full cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none accent-black"
+                        className="w-full cursor-pointer h-1.5 bg-slate-200 dark:bg-[#2a2a2a] rounded-lg appearance-none accent-black"
                       />
                       <span className="text-[10px] font-semibold">
                         {classifier.confidenceThreshold < 0.75 ? (
                           <span className="text-red-500">⚠️ Very Low (Prone to false triggers)</span>
                         ) : classifier.confidenceThreshold <= 0.82 ? (
-                          <span className="text-green-600">🏠 Quiet Room (High sensitivity)</span>
+                          <span className="text-green-600 dark:text-green-400">🏠 Quiet Room (High sensitivity)</span>
                         ) : classifier.confidenceThreshold <= 0.89 ? (
-                          <span className="text-blue-600">✨ Normal (Recommended)</span>
+                          <span className="text-blue-600 dark:text-blue-400">✨ Normal (Recommended)</span>
                         ) : (
-                          <span className="text-purple-600">🔊 Noisy Room (Highly strict)</span>
+                          <span className="text-purple-600 dark:text-purple-400">🔊 Noisy Room (Highly strict)</span>
                         )}
                       </span>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-3.5 flex flex-col gap-1.5">
+                    <div className="border-t border-slate-200 dark:border-[#4c4c4c] pt-3.5 flex flex-col gap-1.5">
                       <div className="flex justify-between items-center text-sm">
                         <span className="font-bold">RMS Silence Gate (VAD)</span>
-                        <span className="font-mono font-bold bg-[#F6EC24] px-2 py-0.5 rounded border border-black text-xs">
+                        <span className="font-mono font-bold bg-[#F6EC24] dark:text-black px-2 py-0.5 rounded border border-black text-xs">
                           {rmsThreshold.toFixed(3)}
                         </span>
                       </div>
@@ -862,23 +864,23 @@ export default function AudioApp() {
                         step={0.001}
                         value={rmsThreshold}
                         onChange={(e) => setRmsThreshold(Number(e.target.value))}
-                        className="w-full cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none accent-black"
+                        className="w-full cursor-pointer h-1.5 bg-slate-200 dark:bg-[#2a2a2a] rounded-lg appearance-none accent-black"
                       />
                       <span className="text-[10px] font-semibold">
                         {rmsThreshold < 0.005 ? (
                           <span className="text-red-500">🔊 Ultra Sensitive (Triggers on subtle noise)</span>
                         ) : rmsThreshold <= 0.015 ? (
-                          <span className="text-green-600">✨ Normal (Recommended silence filter)</span>
+                          <span className="text-green-600 dark:text-green-400">✨ Normal (Recommended silence filter)</span>
                         ) : (
-                          <span className="text-purple-600">💨 High Noise Gate (Requires speaking louder)</span>
+                          <span className="text-purple-600 dark:text-purple-400">💨 High Noise Gate (Requires speaking louder)</span>
                         )}
                       </span>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-3.5 flex flex-col gap-1.5">
+                    <div className="border-t border-slate-200 dark:border-[#4c4c4c] pt-3.5 flex flex-col gap-1.5">
                       <div className="flex justify-between items-center text-sm">
                         <span className="font-bold">Temporal Smoothing</span>
-                        <span className="font-mono font-bold bg-[#F6EC24] px-2 py-0.5 rounded border border-black text-xs">
+                        <span className="font-mono font-bold bg-[#F6EC24] dark:text-black px-2 py-0.5 rounded border border-black text-xs">
                           {classifier.smoothingWindow} Frames
                         </span>
                       </div>
@@ -889,17 +891,17 @@ export default function AudioApp() {
                         step={1}
                         value={classifier.smoothingWindow}
                         onChange={(e) => classifier.setSmoothingWindow(Number(e.target.value))}
-                        className="w-full cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none accent-black"
+                        className="w-full cursor-pointer h-1.5 bg-slate-200 dark:bg-[#2a2a2a] rounded-lg appearance-none accent-black"
                       />
-                      <span className="text-[10px] text-slate-500 font-semibold leading-normal">
-                        Must detect same word for <span className="font-bold font-mono text-black">{classifier.smoothingWindow}</span> consecutive cycles before triggering.
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
+                        Must detect same word for <span className="font-bold font-mono text-black dark:text-white">{classifier.smoothingWindow}</span> consecutive cycles before triggering.
                       </span>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-3.5 flex flex-col gap-1.5">
+                    <div className="border-t border-slate-200 dark:border-[#4c4c4c] pt-3.5 flex flex-col gap-1.5">
                       <div className="flex justify-between items-center text-sm">
                         <span className="font-bold">Word Hold Cooldown</span>
-                        <span className="font-mono font-bold bg-[#F6EC24] px-2 py-0.5 rounded border border-black text-xs">
+                        <span className="font-mono font-bold bg-[#F6EC24] dark:text-black px-2 py-0.5 rounded border border-black text-xs">
                           {classifier.detectionCooldown > 0 ? `${classifier.detectionCooldown.toFixed(1)}s` : 'Disabled'}
                         </span>
                       </div>
@@ -910,15 +912,15 @@ export default function AudioApp() {
                         step={0.5}
                         value={classifier.detectionCooldown}
                         onChange={(e) => classifier.setDetectionCooldown(Number(e.target.value))}
-                        className="w-full cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none accent-black"
+                        className="w-full cursor-pointer h-1.5 bg-slate-200 dark:bg-[#2a2a2a] rounded-lg appearance-none accent-black"
                       />
-                      <span className="text-[10px] text-slate-500 font-semibold leading-normal">
-                        Locks the detected word active for <span className="font-bold font-mono text-black">{classifier.detectionCooldown}s</span> before permitting a new command.
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
+                        Locks the detected word active for <span className="font-bold font-mono text-black dark:text-white">{classifier.detectionCooldown}s</span> before permitting a new command.
                       </span>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-3.5 flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-800">Show Unknown in Breakdown</span>
+                    <div className="border-t border-slate-200 dark:border-[#4c4c4c] pt-3.5 flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-800 dark:text-white">Show Unknown in Breakdown</span>
                       <label className="relative inline-flex items-center cursor-pointer select-none">
                         <input
                           type="checkbox"
@@ -1020,16 +1022,16 @@ export default function AudioApp() {
           </div>
 
           {/* Model controls & trainer details */}
-          <div className="bg-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-4 shrink-0">
-            <div className="flex items-center justify-between border-b-2 border-slate-100 pb-3.5">
-              <span className="font-black text-sm uppercase tracking-wider text-slate-600">Model Engine Mode</span>
+          <div className="bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-4 shrink-0">
+            <div className="flex items-center justify-between border-b-2 border-slate-100 dark:border-[#4c4c4c] pb-3.5">
+              <span className="font-black text-sm uppercase tracking-wider text-slate-600 dark:text-slate-300">Model Engine Mode</span>
               <span className="text-xs font-black bg-yellow-100 text-yellow-800 border border-yellow-300 px-3 py-1 rounded-full uppercase tracking-wider">
                 TensorFlow.js (WebGL) ⚡
               </span>
             </div>
 
             {classifier.trainError && (
-              <div className="bg-red-50 border-2 border-red-200 text-red-700 text-xs font-bold p-3 rounded-xl leading-relaxed">
+              <div className="bg-red-50 border-2 border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-800 dark:text-red-300 text-xs font-bold p-3 rounded-xl leading-relaxed">
                 ⚠️ {classifier.trainError}
               </div>
             )}
@@ -1056,15 +1058,15 @@ export default function AudioApp() {
 
         {/* COLUMN 3: Testing Panel (Right Column Card) */}
         <div className="flex flex-col w-[320px] shrink-0 gap-4 min-h-0">
-          <div className="flex-1 min-h-0 overflow-y-auto bg-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="text-xl font-black border-b-2 border-slate-100 pb-3 mb-4 tracking-wider uppercase">
+          <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h2 className="text-xl font-black border-b-2 border-slate-100 dark:border-[#4c4c4c] pb-3 mb-4 tracking-wider uppercase">
               Testing Workspace
             </h2>
 
             {!isTrained ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
                 <span className="text-4xl mb-4">🎙️</span>
-                <p className="text-sm font-semibold text-slate-500 leading-relaxed">
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
                   You must collect speech spectrograms and **Train a Model** on the left before you can test it here.
                 </p>
               </div>
@@ -1110,15 +1112,15 @@ export default function AudioApp() {
 
                 {/* Real-Time Predictions Gauges */}
                 {isTesting && (
-                  <div className="mt-4 border-2 border-black rounded-xl p-4 bg-slate-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="mt-4 border-2 border-black rounded-xl p-4 bg-slate-50 dark:bg-[#2a2a2a] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <span className="text-[0.62rem] text-slate-400 font-bold uppercase tracking-widest">Active Output Class</span>
-                    <div className="text-lg font-black text-slate-800 mb-4">
+                    <div className="text-lg font-black text-slate-800 dark:text-white mb-4">
                       {prediction?.className || 'Analyzing Voice... 🎙️'}
                     </div>
 
                     <span className="text-[0.62rem] text-slate-400 font-bold uppercase tracking-widest">Prediction Confidence</span>
                     <div className="flex items-center gap-3 mt-1.5 mb-5">
-                      <div className="flex-1 h-3.5 bg-slate-200 rounded-full border border-slate-300 overflow-hidden">
+                      <div className="flex-1 h-3.5 bg-slate-200 rounded-full border border-slate-300 dark:bg-[#151515] dark:border-[#4c4c4c] overflow-hidden">
                         <div
                           className={`h-full transition-[width] duration-150 border-r border-black ${
                             prediction && prediction.isDetected ? '' : 'bg-slate-300'
@@ -1143,7 +1145,7 @@ export default function AudioApp() {
                     </div>
 
                     {/* Breakdown of other classes */}
-                    <span className="text-[0.62rem] text-slate-400 font-bold uppercase tracking-widest border-t border-slate-200 block pt-3 mb-2">
+                    <span className="text-[0.62rem] text-slate-400 font-bold uppercase tracking-widest border-t border-slate-200 dark:border-[#4c4c4c] block pt-3 mb-2">
                       Class Breakdown
                     </span>
                     <div className="space-y-2">
@@ -1156,7 +1158,7 @@ export default function AudioApp() {
                               {prediction && !prediction.isDetected ? '100%' : '0%'}
                             </span>
                           </div>
-                          <div className="h-2 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
+                          <div className="h-2 bg-slate-200 rounded-full overflow-hidden border border-slate-300 dark:bg-[#151515] dark:border-[#4c4c4c]">
                             <div
                               className="h-full transition-[width] duration-150 bg-slate-400"
                               style={{ width: `${prediction && !prediction.isDetected ? 100 : 0}%` }}
@@ -1181,7 +1183,7 @@ export default function AudioApp() {
                               <span>{c.name}</span>
                               <span className="font-mono">{probValue}%</span>
                             </div>
-                            <div className="h-2 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
+                            <div className="h-2 bg-slate-200 rounded-full overflow-hidden border border-slate-300 dark:bg-[#151515] dark:border-[#4c4c4c]">
                               <div
                                 className="h-full transition-[width] duration-150"
                                 style={{ width: `${probValue}%`, backgroundColor: color }}

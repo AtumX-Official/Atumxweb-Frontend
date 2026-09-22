@@ -92,8 +92,8 @@ export default function ModeCard({ onClick, mode, image, text, linkto }: ModeCar
       default: 'border-zinc-900'
     },
     dark: {
-      code: 'border-[#02e519]',
-      'ai box': 'border-[#36d3ff]',
+      code: 'border-[#78e64d]',
+      'ai box': 'border-[#78d1fa]',
       games: 'border-orange-400',
       default: 'border-white'
     }
@@ -102,8 +102,8 @@ export default function ModeCard({ onClick, mode, image, text, linkto }: ModeCar
   const backgroundColor = {
     light: { code: 'bg-[#2EED08] hover:bg-black', 'ai box': 'bg-[#36D3FF] hover:bg-black', games: 'hover:bg-black' },
     dark: {
-      code: 'bg-black dark:hover:bg-[#02e519]',
-      'ai box': 'bg-black dark:hover:bg-[#36d3ff]',
+      code: 'bg-black dark:hover:bg-[#78e64d]',
+      'ai box': 'bg-black dark:hover:bg-[#78d1fa]',
       games: 'bg-black dark:hover:bg-orange-400'
     }
   }

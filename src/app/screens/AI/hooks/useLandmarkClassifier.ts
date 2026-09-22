@@ -34,7 +34,7 @@ export interface Prediction {
 }
 
 // Shared training hyper-parameters — identical across the hand, pose, and 2-hand classifiers.
-const MIN_SAMPLES = 15
+const MIN_SAMPLES = 20
 const EPOCHS = 120
 const SMOOTHING_WINDOW = 8
 // Self-calibrating reject gate: distance to a class centre measured in units of that

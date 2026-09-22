@@ -39,10 +39,10 @@ export default function RecordingSettings({
     <div className="flex flex-col h-full">
       <div className="flex-1">
         {/* HEADER */}
-        <div className="flex justify-between items-center border-b border-black pb-1 mb-4">
+        <div className="flex justify-between items-center border-b border-black dark:border-[#4c4c4c] pb-1 mb-4">
           <span className="text-m font-bold">More Settings</span>
           {onClose && (
-            <button onClick={onClose} className="text-gray-500 hover:text-red-500 text-lg font-bold">
+            <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-red-500 text-lg font-bold">
               ✕
             </button>
           )}
@@ -56,7 +56,7 @@ export default function RecordingSettings({
             value={fps}
             onFocus={() => { if (fps === 0) onFps('') }}
             onChange={(e) => onFps(e.target.value === '' ? '' : Number(e.target.value))}
-            className="w-[60px] bg-yellow-300 border border-black text-center outline-none"
+            className="w-[60px] bg-yellow-300 text-black border border-black text-center outline-none"
             min={1}
             max={60}
           />
@@ -71,7 +71,7 @@ export default function RecordingSettings({
               value={delay}
               onFocus={() => { if (delay === 0) onDelay('') }}
               onChange={(e) => onDelay(e.target.value === '' ? '' : Number(e.target.value))}
-              className="w-[60px] bg-yellow-300 border border-black text-center outline-none"
+              className="w-[60px] bg-yellow-300 text-black border border-black text-center outline-none"
               min={0}
               step={0.5}
             />
@@ -87,7 +87,7 @@ export default function RecordingSettings({
             value={duration}
             onFocus={() => { if (duration === 0) onDuration('') }}
             onChange={(e) => onDuration(e.target.value === '' ? '' : Number(e.target.value))}
-            className="w-[60px] bg-yellow-300 border border-black text-center outline-none"
+            className="w-[60px] bg-yellow-300 text-black border border-black text-center outline-none"
             min={0}
             placeholder="30"
           />
@@ -101,7 +101,7 @@ export default function RecordingSettings({
       <div className="flex justify-center mt-4">
         <button
           onClick={onReset}
-          className="w-full mt-4 py-2 rounded-lg font-semibold transition text-m bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black"
+          className="w-full mt-4 py-2 rounded-lg font-semibold transition text-m bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black dark:border dark:border-yellow-400"
         >
           Reset to Default
         </button>

@@ -37,7 +37,7 @@ export default function Navbar({ mode }: { mode: AppMode }) {
   }, [showSettings])
 
   const darkBgColor =
-    mode === 'code' ? 'bg-[#02e519]' : mode === 'ai box' ? 'bg-[#36d3ff]' : 'bg-orange-400'
+    mode === 'code' ? 'bg-[#78e64d]' : mode === 'ai box' ? 'bg-[#78d1fa]' : 'bg-orange-400'
 
   return (
     <nav className="flex justify-between items-center p-4 w-full text-black dark:text-white mt-3 ">

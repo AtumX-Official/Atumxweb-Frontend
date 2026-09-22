@@ -202,7 +202,10 @@ function ClassCard({
     setEditing(false)
   }
 
-  const GRID = 16
+  // One slot per required sample (5 × 4 = 20); the badge caps at "20+" past that.
+  const GRID_COLS = 5
+  const GRID = minSamples
+  const countLabel = count > minSamples ? `${minSamples}+` : String(count)
 
   return (
     <>
@@ -219,13 +222,12 @@ function ClassCard({
 
       <div
         onClick={onSelect}
-        className="rounded-2xl border-2 bg-white shadow-sm flex cursor-pointer transition-all p-2"
-        style={{ borderColor: '#000' }}>
+        className="rounded-2xl border-2 border-black dark:border-[#4c4c4c] bg-white dark:bg-[#1f1f1f] shadow-sm flex cursor-pointer transition-all p-2">
 
-        {/* Left: 4×4 image grid */}
+        {/* Left: 5×4 image grid */}
         <div
-          className="grid flex-shrink-0 bg-gray-100 p-2 gap-1 rounded-md"
-          style={{ gridTemplateColumns: 'repeat(4,1fr)', width: 140 }}
+          className="grid flex-shrink-0 content-center bg-gray-100 dark:bg-[#2a2a2a] p-2 gap-1 rounded-md"
+          style={{ gridTemplateColumns: `repeat(${GRID_COLS},1fr)`, width: 175 }}
         >
           {Array.from({ length: GRID }).map((_, j) => (
             <button
@@ -268,7 +270,7 @@ function ClassCard({
           {/* Top row: count badge + action buttons */}
           <div className="flex items-start justify-between gap-1">
             <span className="text-[0.72rem] font-mono font-bold text-white rounded-md px-2 py-0.5" style={{ background: '#111' }}>
-              {count}
+              {countLabel}
             </span>
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
 
@@ -280,7 +282,7 @@ function ClassCard({
                     cursor-pointer
                     text-gray-400
                     transition-all duration-200
-                    hover:text-black
+                    hover:text-black dark:hover:text-white
                   "
                 title={isEnabled ? 'Enabled' : 'Disabled'}
               >
@@ -304,7 +306,7 @@ function ClassCard({
           </div>
 
           {/* Class name + rename */}
-          <div className="flex items-end gap-1 border-b border-black-200 pb-1 mt-1" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-end gap-1 border-b border-black dark:border-[#626363] pb-1 mt-1" onClick={(e) => e.stopPropagation()}>
             {editing ? (
               <input
                 autoFocus value={nameVal}
@@ -314,14 +316,14 @@ function ClassCard({
                   if (e.key === 'Enter') commitRename()
                   if (e.key === 'Escape') { setNameVal(cls.name); setEditing(false) }
                 }}
-                className="flex-1 text-[1rem] font-bold text-black outline-none border-none bg-transparent"
+                className="flex-1 text-[1rem] font-bold text-black dark:text-white outline-none border-none bg-transparent"
               />
             ) : (
-              <span className="flex-1 text-[1rem] font-bold text-black truncate">{cls.name}</span>
+              <span className="flex-1 text-[1rem] font-bold text-black dark:text-white truncate">{cls.name}</span>
             )}
             <button
               onClick={() => { setEditing(true); setNameVal(cls.name) }}
-              className="flex-shrink-0 bg-transparent border-none cursor-pointer text-black-500 hover:text-black text-[0.9rem] pb-0.5"
+              className="flex-shrink-0 bg-transparent border-none cursor-pointer text-black dark:text-gray-300 dark:hover:text-white text-[0.9rem] pb-0.5"
               title="Rename"
             >
               <RenameIcon />
@@ -332,14 +334,14 @@ function ClassCard({
           <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={onActivateCamera}
-              className="w-10 h-10 rounded-xl bg-white flex items-center justify-center cursor-pointer border-none hover:text-black transition-colors flex-shrink-0"
+              className="w-10 h-10 rounded-xl bg-white dark:bg-transparent flex items-center justify-center cursor-pointer border-none hover:text-black transition-colors flex-shrink-0"
               title="Show camera">
               <CameraIcon />
             </button>
 
             <button
               onClick={() => { onActivateUpload() }}
-              className="w-10 h-10 rounded-xl bg-white flex items-center justify-center cursor-pointer border-none hover:text-white transition-colors flex-shrink-0"
+              className="w-10 h-10 rounded-xl bg-white dark:bg-transparent flex items-center justify-center cursor-pointer border-none hover:text-white transition-colors flex-shrink-0"
               title="Show upload zone & pick file">
               <UploadIcon />
             </button>
@@ -413,7 +415,7 @@ export default function TrainingPanel({
         {/* Class cards */}
         <div className="flex flex-col gap-2.5 overflow-y-auto no-scrollbar" style={{ maxHeight: 'calc(100vh - 320px)' }}>
           {classes.length === 0 && (
-            <div className="border-2 border-dashed border-gray-200 rounded-2xl py-8 text-center text-gray-400 text-sm">
+            <div className="border-2 border-dashed border-gray-200 dark:border-[#4c4c4c] rounded-2xl py-8 text-center text-gray-400 text-sm">
               Add your first gesture class below
             </div>
           )}
@@ -443,21 +445,21 @@ export default function TrainingPanel({
 
         {/* Training feedback */}
         {trainError && (
-          <p className="text-red-500 text-[0.75rem] bg-red-50 rounded-xl px-3 py-2 border border-red-100">⚠ {trainError}</p>
+          <p className="text-red-500 dark:text-red-300 text-[0.75rem] bg-red-50 dark:bg-red-950/40 rounded-xl px-3 py-2 border border-red-100 dark:border-red-800">⚠ {trainError}</p>
         )}
         {isTraining && (
           <div>
-            <div className="flex justify-between text-[0.72rem] text-gray-500 mb-1">
+            <div className="flex justify-between text-[0.72rem] text-gray-500 dark:text-gray-400 mb-1">
               <span>Training model…</span><span className="font-mono">{trainProgress}%</span>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-100 dark:bg-[#2a2a2a] rounded-full overflow-hidden">
               <div className="h-full rounded-full transition-[width] duration-300"
                 style={{ width: `${trainProgress}%`, background: '#F6EC24', boxShadow: '0 0 6px #F6EC24aa' }} />
             </div>
           </div>
         )}
         {isTrained && trainAccuracy != null && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-xl border border-green-200 text-[0.78rem] font-semibold text-green-600">
+          <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-950/40 rounded-xl border border-green-200 dark:border-green-800 text-[0.78rem] font-semibold text-green-600 dark:text-green-400">
             ✓ Trained · val accuracy {trainAccuracy}%
           </div>
         )}
@@ -471,14 +473,14 @@ export default function TrainingPanel({
               onChange={(e) => setNewClassName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') commitAddClass(); if (e.key === 'Escape') cancelAddClass() }}
               placeholder="Gesture name…"
-              className="flex-1 border border-gray-300 rounded-xl text-black px-3 py-2 text-[0.85rem] outline-none"
+              className="flex-1 border border-gray-300 dark:border-[#4c4c4c] bg-white dark:bg-[#2a2a2a] rounded-xl text-black dark:text-white px-3 py-2 text-[0.85rem] outline-none"
             />
             <button onClick={commitAddClass} disabled={!newClassName.trim()}
-              className={`border rounded-xl px-4 py-2 text-[0.85rem] font-bold transition-all ${newClassName.trim() ? 'bg-[#F6EC24] border-[#F6EC24] text-black cursor-pointer' : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'}`}>
+              className={`border rounded-xl px-4 py-2 text-[0.85rem] font-bold transition-all ${newClassName.trim() ? 'bg-[#F6EC24] border-[#F6EC24] text-black cursor-pointer' : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed dark:bg-[#2a2a2a] dark:border-[#4c4c4c]'}`}>
               Add
             </button>
             <button onClick={cancelAddClass}
-              className="border border-gray-200 rounded-xl px-3 py-2 text-gray-400 text-[0.85rem] cursor-pointer hover:text-gray-600">
+              className="border border-gray-200 dark:border-[#4c4c4c] rounded-xl px-3 py-2 text-gray-400 text-[0.85rem] cursor-pointer hover:text-gray-600 dark:hover:text-white">
               ✕
             </button>
           </div>
@@ -513,7 +515,7 @@ export default function TrainingPanel({
         </div>
 
         {!canTrain && !isTraining && classes.length > 0 && (
-          <p className="text-center text-[0.72rem] text-gray-400">
+          <p className="text-center text-[0.72rem] text-gray-400 dark:text-gray-300">
             {classes.length < 2 ? 'Add at least 2 classes' : `Each class needs ${minSamples}+ samples`}
           </p>
         )}

@@ -1,3 +1,5 @@
+import { useAppSelector } from '../../../store/hooks'
+
 type AppMode = 'code' | 'ai box' | 'games'
 
 interface ModeSwitchProps {
@@ -5,18 +7,25 @@ interface ModeSwitchProps {
   setMode: (mode: AppMode) => void
 }
 
-const MODES: { key: AppMode; label: string; color: string }[] = [
-  { key: 'code', label: 'Code', color: '#5AD231' },
-  { key: 'ai box', label: 'AI box', color: '#36D3FF' },
-  { key: 'games', label: 'Games', color: '#F48301' }
+const MODES: { key: AppMode; label: string; color: string; darkColor: string }[] = [
+  { key: 'code', label: 'Code', color: '#5AD231', darkColor: '#78E64D' },
+  { key: 'ai box', label: 'AI box', color: '#36D3FF', darkColor: '#78D1FA' },
+  { key: 'games', label: 'Games', color: '#F48301', darkColor: '#FB923C' }
 ]
 
 export default function ModeSwitch({ mode, setMode }: ModeSwitchProps) {
+  const themeMode = useAppSelector((state) => state.theme.mode)
+  const isDark = themeMode === 'dark'
   const activeIndex = MODES.findIndex((m) => m.key === mode)
+  // In dark mode the switch border and pill take the active mode's accent colour
+  const accent = isDark ? MODES[activeIndex]?.darkColor ?? '#fff' : '#000'
 
   return (
     <div
-      className="text-nowrap rounded-2xl py-2 px-2 lg:py-3 lg:px-4 select-none border-[5px] border-black bg-white/20 backdrop-blur-md shadow-lg"
+      className={`text-nowrap rounded-2xl py-2 px-2 lg:py-3 lg:px-4 select-none border-[5px] backdrop-blur-md shadow-lg transition-colors duration-300 ${
+        isDark ? 'bg-black/80' : 'bg-white/20'
+      }`}
+      style={{ borderColor: accent }}
       role="radiogroup"
       aria-label="Mode switch"
     >
@@ -29,8 +38,8 @@ export default function ModeSwitch({ mode, setMode }: ModeSwitchProps) {
           style={{
             width: `${100 / MODES.length}%`,
             transform: `translateX(${activeIndex * 100}%)`,
-            backgroundColor: '#000',
-            transition: 'transform 0.40s cubic-bezier(0.4, 0, 0.2, 1)',
+            backgroundColor: accent,
+            transition: 'transform 0.40s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease',
           }}
         />
 
@@ -51,7 +60,11 @@ export default function ModeSwitch({ mode, setMode }: ModeSwitchProps) {
             />
             <span
               className={`font-black text-3xl uppercase tracking-widest px-20 py-4 rounded-lg transition-all duration-150 ease-in-out hover:scale-[1.03] peer-checked:scale-[1.05] ${
-                mode === item.key ? 'text-white' : 'text-black dark:text-white'
+                mode === item.key
+                  ? isDark
+                    ? 'text-black'
+                    : 'text-white'
+                  : 'text-black dark:text-white'
               }`}
               tabIndex={0}
               role="radio"

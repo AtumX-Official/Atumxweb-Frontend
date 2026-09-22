@@ -64,7 +64,8 @@ export default function ControlsPanel({ classes, classColors, defaultColors, onS
   const TABS: { key: Tab; label: React.ReactNode }[] = [
     {
       key: 'preview',
-      label: activeTab === 'preview' ? <Preview /> : <PreviewIcon />,
+      // PreviewIcon is drawn for the yellow (active) tab, Preview for the black one
+      label: activeTab === 'preview' ? <PreviewIcon /> : <Preview />,
     },
     {
       key: 'controls',
@@ -94,24 +95,29 @@ export default function ControlsPanel({ classes, classColors, defaultColors, onS
                 key={tab.key}
                 id={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center h-[48px] w-[160px] px-3 gap-2 rounded-t-lg transition-all
-                    ${i !== 0 ? "-ml-3" : ""}   
+                aria-pressed={isActive}
+                className={`relative flex items-center h-[48px] w-[160px] px-3 gap-2 rounded-t-lg transition-all
+                    ${i !== 0 ? "-ml-3" : ""}
                     ${isActive
-                    ? "bg-black text-[#F6EC24]"
-                    : "bg-[#F6EC24] text-black"}
+                    ? "bg-[#F6EC24] text-black z-10 border-2 border-b-0 border-black"
+                    : "bg-black text-[#F6EC24] hover:text-white"}
                 `}
               >
                 {tab.label}
                 <span className="text-[13px] font-bold uppercase">
                   {tab.key}
                 </span>
+                {/* underline marks the active tab so it reads at a glance in both themes */}
+                {isActive && (
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-[5px] rounded-full bg-black" />
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="w-[clamp(320px,30vw,480px)] rounded-lg border-2 border-black bg-[#EDEDED] shadow-[2px_4px_4px_rgba(0,0,0,0.4)] overflow-visible">
+      <div className="w-[clamp(320px,30vw,480px)] rounded-lg border-2 border-black bg-[#EDEDED] dark:bg-[#1f1f1f] text-black dark:text-white shadow-[2px_4px_4px_rgba(0,0,0,0.4)] overflow-visible">
 
         { !isTrained && <div
             className="flex flex-col h-[250px] text-lg justify-center items-center font-extrabold"

@@ -69,16 +69,16 @@ export default function RecordingControls({
       {/* Mode switch — hidden while recording (can't switch mid-capture), and
           optionally relocated into the three-dot menu via showModeSwitch={false} */}
       {!recording && showModeSwitch && (
-        <div className="inline-flex rounded-full border-2 border-black overflow-hidden text-xs font-black shrink-0">
+        <div className="inline-flex rounded-full border-2 border-black dark:border-[#4c4c4c] overflow-hidden text-xs font-black shrink-0">
           <button
             onClick={() => onModeChange('hold')}
-            className={`px-3 py-2 ${mode === 'hold' ? 'bg-black text-[#F6EC24]' : 'bg-white text-black hover:bg-slate-100'}`}
+            className={`px-3 py-2 ${mode === 'hold' ? 'bg-black text-[#F6EC24] dark:bg-[#F6EC24] dark:text-black' : 'bg-white text-black hover:bg-slate-100 dark:bg-[#2a2a2a] dark:text-white'}`}
           >
             HOLD
           </button>
           <button
             onClick={() => onModeChange('auto')}
-            className={`px-3 py-2 ${mode === 'auto' ? 'bg-black text-[#F6EC24]' : 'bg-white text-black hover:bg-slate-100'}`}
+            className={`px-3 py-2 ${mode === 'auto' ? 'bg-black text-[#F6EC24] dark:bg-[#F6EC24] dark:text-black' : 'bg-white text-black hover:bg-slate-100 dark:bg-[#2a2a2a] dark:text-white'}`}
           >
             AUTO
           </button>
@@ -98,7 +98,7 @@ export default function RecordingControls({
           onTouchStart={(e) => { e.preventDefault(); onHoldStart() }}
           onTouchEnd={(e) => { e.preventDefault(); onHoldStop() }}
           disabled={disabled}
-          className={`${BTN} h-[50px] px-8 border-transparent hover:border-black ${isCapturing ? 'bg-red-500 text-white' : 'bg-[#F6EC24] text-black'}`}
+          className={`${BTN} h-[50px] px-8 border-transparent hover:border-black dark:hover:border-white ${isCapturing ? 'bg-red-500 text-white' : 'bg-[#F6EC24] text-black'}`}
         >
           {isCapturing ? 'RECORDING' : 'HOLD'}
         </button>
@@ -107,7 +107,7 @@ export default function RecordingControls({
           ■ STOP
         </button>
       ) : (
-        <button onClick={onAutoStart} disabled={disabled} className={`${BTN} h-[50px] px-8 bg-[#F6EC24] text-black border-transparent hover:border-black`}>
+        <button onClick={onAutoStart} disabled={disabled} className={`${BTN} h-[50px] px-8 bg-[#F6EC24] text-black border-transparent hover:border-black dark:hover:border-white`}>
           ● Auto Record
         </button>
       )}
