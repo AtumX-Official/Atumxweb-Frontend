@@ -1,15 +1,25 @@
 
-import { useState,useRef } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import MuteIcon from "./assets/Volume_mute";
 import LowIcon from "./assets/Volume_low";
 import MediumIcon from "./assets/Volume_medium"
 import HighIcon from "./assets/Volume_high"
+import { setSfxVolumeLevel } from "../../../../store/themeSlice";
+import { DEFAULT_SFX_VOLUME, playSfx, setSfxVolume } from "../../services/sfx";
+
+// Last non-zero volume, kept at module scope so unmuting still restores it
+// after the Sound tab has been switched away from and back.
+let prevVolume = DEFAULT_SFX_VOLUME;
 
 export default function SoundEffects() {
-  const [volume, setVolume] = useState(50);
-  const prevVolumeRef = useRef(50); // remember last non-zero volume
+  const dispatch = useDispatch();
+  const volume: number = useSelector((state: any) => state.theme.sfxVolume);
+
+  const applyVolume = (val: number) => {
+    setSfxVolume(val); // updates playing sounds immediately + persists
+    dispatch(setSfxVolumeLevel(val));
+  };
 
   const themeMode = useSelector((state: any) => state.theme.mode);
 
@@ -21,17 +31,18 @@ export default function SoundEffects() {
   const handleIconClick = () => {
     if (isMuted) {
       // restore previous volume
-      setVolume(prevVolumeRef.current || 50);
+      applyVolume(prevVolume || DEFAULT_SFX_VOLUME);
+      playSfx("click");
     } else {
       // save current volume and mute
-      prevVolumeRef.current = volume;
-      setVolume(0);
+      prevVolume = volume;
+      applyVolume(0);
     }
   };
 
   const handleSliderChange = (val: number) => {
-    setVolume(val);
-    if (val > 0) prevVolumeRef.current = val;
+    applyVolume(val);
+    if (val > 0) prevVolume = val;
   };
 
   // Decide icon + size
@@ -69,6 +80,9 @@ export default function SoundEffects() {
           max={100}
           value={volume}
           onChange={(e) => handleSliderChange(Number(e.target.value))}
+          // Preview the chosen level once the user lets go of the slider.
+          onPointerUp={() => playSfx("click")}
+          onKeyUp={() => playSfx("click")}
           className="custom-slider w-full"
         />
       </div>

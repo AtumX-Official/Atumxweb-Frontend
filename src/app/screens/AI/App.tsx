@@ -45,12 +45,15 @@ export default function AIApp() {
   const [images, setImages] = useState<Record<string, string[]>>({})
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [classColors, setClassColors] = useState<Record<string, string>>({})
+  // Classes are enabled by default; disabled ones are skipped for capture and training.
+  const [disabledClassIds, setDisabledClassIds] = useState<Set<string>>(() => new Set())
   const [, setThumbOffset] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [projectName, setProjectName] = useState('')
   const [projectDesc, setProjectDesc] = useState('')
   const [showProjectPopup, setShowProjectPopup] = useState(false)
   const classIdCounter = useRef(0)
+  const defaultClassesAddedRef = useRef(false)
   const manualCaptureRef = useRef<{ classId: string } | null>(null)
   const latestRef = useRef<LatestRef | null>(null)
   const handTrackerRef = useRef<HandTrackerHandle>(null)
@@ -101,6 +104,12 @@ export default function AIApp() {
   const selectedColor = selectedClassId
     ? (classColors[selectedClassId] ?? DEFAULT_CLASS_COLORS[classes.findIndex((c) => c.id === selectedClassId) % DEFAULT_CLASS_COLORS.length])
     : '#a3e635'
+  const enabledClasses = classes.filter((c) => !disabledClassIds.has(c.id))
+  // Colours keyed by id so the controls/predict panels keep each class's colour
+  // even though they only list the enabled classes.
+  const resolvedClassColors = Object.fromEntries(
+    classes.map((c, i) => [c.id, classColors[c.id] ?? DEFAULT_CLASS_COLORS[i % DEFAULT_CLASS_COLORS.length]]),
+  )
 
   function addImage(classId: string, imageUrl: string) {
     setImages((prev) => ({ ...prev, [classId]: [...(prev[classId] ?? []), imageUrl] }))
@@ -120,8 +129,29 @@ export default function AIApp() {
     setClasses((prev) => prev.filter((c) => c.id !== id))
     setImages((prev) => { const n = { ...prev }; delete n[id]; return n })
     setClassColors((prev) => { const n = { ...prev }; delete n[id]; return n })
+    setDisabledClassIds((prev) => { if (!prev.has(id)) return prev; const n = new Set(prev); n.delete(id); return n })
     if (manualCaptureRef.current?.classId === id) manualCaptureRef.current = null
     if (selectedClassId === id) { setSelectedClassId(null); setThumbOffset(0) }
+  }
+
+  function handleToggleClassEnabled(id: string) {
+    const disabling = !disabledClassIds.has(id)
+    setDisabledClassIds((prev) => {
+      const n = new Set(prev)
+      if (disabling) n.add(id)
+      else n.delete(id)
+      return n
+    })
+    if (!disabling) return
+    // A disabled class can't receive samples: stop any recording into it and
+    // move the selection to the next enabled class.
+    if (manualCaptureRef.current?.classId === id) manualCaptureRef.current = null
+    if (selectedClassId === id) {
+      if (isCapturing || countdown !== null) recorder.stop()
+      const next = classes.find((c) => c.id !== id && !disabledClassIds.has(c.id))
+      setSelectedClassId(next?.id ?? null)
+      setThumbOffset(0)
+    }
   }
 
   function handleRenameClass(id: string, name: string) {
@@ -173,6 +203,7 @@ export default function AIApp() {
   }
 
   function handleSelectClass(id: string) {
+    if (disabledClassIds.has(id)) return
     setSelectedClassId(id)
     setThumbOffset(0)
   }
@@ -216,6 +247,7 @@ export default function AIApp() {
     setPrediction(null)
     setImages({})
     setClassColors({})
+    setDisabledClassIds(new Set())
     classIdCounter.current = 0
     const id1 = `cls_${++classIdCounter.current}`
     const id2 = `cls_${++classIdCounter.current}`
@@ -335,7 +367,9 @@ export default function AIApp() {
     }
   }, [])
 
-  const handleTrain = useCallback(() => { classifier.trainModel(classes) }, [classes, classifier])
+  const handleTrain = useCallback(() => {
+    classifier.trainModel(classes.filter((c) => !disabledClassIds.has(c.id)))
+  }, [classes, disabledClassIds, classifier])
   const handleReset = useCallback(() => { classifier.resetModel(); setPrediction(null) }, [classifier])
 
   const handleCreateProject = (name: string, desc: string) => {
@@ -346,6 +380,7 @@ export default function AIApp() {
     setClasses([])
     setImages({})
     setClassColors({})
+    setDisabledClassIds(new Set())
     setSelectedClassId(null)
     classIdCounter.current = 0
   }
@@ -411,8 +446,8 @@ export default function AIApp() {
 
   if (page === 'predict') return (
     <PredictPage
-      classes={classes}
-      classColors={classColors}
+      classes={enabledClasses}
+      classColors={resolvedClassColors}
       defaultColors={DEFAULT_CLASS_COLORS}
       prediction={prediction}
       predict={classifier.predict}
@@ -443,6 +478,9 @@ export default function AIApp() {
         onProjectNameChange={setProjectName}
         onNewProject={() => setShowProjectPopup(true)}
         onOpenProject={handleOpenProject}
+        useBookIcon
+        centerProjectName
+        backIconSrc="/icons/misc/gesture_dark.svg"
       />
 {trainingPopup && (
   <div
@@ -776,6 +814,8 @@ export default function AIApp() {
             selectedClassId={selectedClassId}
             classColors={classColors}
             defaultColors={DEFAULT_CLASS_COLORS}
+            disabledClassIds={disabledClassIds}
+            onToggleClassEnabled={handleToggleClassEnabled}
             onAddClass={handleAddClass}
             onDeleteClass={handleDeleteClass}
             onRenameClass={handleRenameClass}
@@ -786,11 +826,13 @@ export default function AIApp() {
             onSelectClass={handleSelectClass}
             onChangeColor={handleChangeColor}
             onActivateCamera={(id) => {
+              if (disabledClassIds.has(id)) return
               handleSelectClass(id)
               if (isCapturing) stopCapture()
               setInputMode('camera')
             }}
             onActivateUpload={(id) => { // upload
+              if (disabledClassIds.has(id)) return
               handleSelectClass(id)
               if (isCapturing) stopCapture()
               setInputMode('upload')
@@ -804,8 +846,8 @@ export default function AIApp() {
         {/* ── Right: controls panel ──────────────────────────────────── */}
         <div className="w-[clamp(320px,30vw,480px)] shrink-0 mx-auto">
           <ControlsPanel
-            classes={classes}
-            classColors={classColors}
+            classes={enabledClasses}
+            classColors={resolvedClassColors}
             defaultColors={DEFAULT_CLASS_COLORS}
             onStart={() => setPage('predict')}
             onExportToBlockly={handleExportToBlockly}

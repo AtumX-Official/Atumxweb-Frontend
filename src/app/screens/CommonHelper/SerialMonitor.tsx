@@ -31,10 +31,13 @@ const SerialMonitor = ({
 
   useEffect(() => {
     if (!ws) return;
-    ws.onmessage = (e) => {
+    // addEventListener, NOT ws.onmessage: websocketSlice owns onmessage
+    // (firmware-version parsing + connection status).
+    const onMessage = (e: MessageEvent) => {
       setSerialData((prev) => prev + e.data + "\n");
-      console.log("Serial Data:", e.data);
     };
+    ws.addEventListener("message", onMessage);
+    return () => ws.removeEventListener("message", onMessage);
   }, [ws]);
   useEffect(() => {
     const removeListener = SerialService.addDataListener((data) => {

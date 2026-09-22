@@ -21,6 +21,7 @@ const Models: React.FC = () => {
     // { id: "snowflake", label: "SNOWFLAKE", Icon: Snowflake },
     { id: "subo", label: "SUBO", Icon: Subu },
     { id: "rekka", label: "REKKA", Icon: Rekka },
+    { id: "wingz", label: "WingZ", Icon: Rekka },
     {id: "stemrobo", label: "STEMROBO", Icon: DemoBoard}
   ]
 
@@ -61,7 +62,8 @@ const Models: React.FC = () => {
             {/* CONTENT */}
             <div className="relative z-10 p-6 h-full">
 
-              <div className="p-4 grid grid-cols-3 gap-x-6 gap-y-4">
+              {/* One row: 4 columns once there are more than 3 boards, so the card height stays fixed */}
+              <div className={`p-4 grid ${models.length > 3 ? "grid-cols-4 gap-x-4" : "grid-cols-3 gap-x-6"} gap-y-4`}>
                 {models.map(({ id, label, Icon }) => {
                   const isActive = activeModel === id
 
@@ -82,7 +84,7 @@ const Models: React.FC = () => {
 
                       {/* White icon area */}
                       <div className="bg-white rounded-xl flex items-center justify-center h-[180px]">
-                        <Icon className="w-[140px] h-[140px] hover:scale-110 transition-transform" />
+                        <Icon className={`${models.length > 3 ? "w-[110px] h-[110px]" : "w-[140px] h-[140px]"} hover:scale-110 transition-transform`} />
                       </div>
 
                       {/* Label */}

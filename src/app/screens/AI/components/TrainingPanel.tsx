@@ -8,8 +8,6 @@ import CameraIcon from '../icons/cameraIcon'
 import UploadIcon from '../icons/uploadIcon'
 import ClearAllIcon from '../icons/clearAllIcon'
 import RenameIcon from '../icons/renameIcon'
-import DisabledIcon from '../icons/disabledIcon'
-import EnabledIcon from '../icons/enabledIcon'
 import AddIcon from '../icons/addIcon'
 import NextIcon from '../icons/nextIcon'
 import PreviousIcon from '../icons/previousIcon'
@@ -29,6 +27,8 @@ export interface TrainingPanelProps {
   selectedClassId: string | null
   classColors: Record<string, string>
   defaultColors: string[]
+  disabledClassIds: Set<string>
+  onToggleClassEnabled: (id: string) => void
   onAddClass: (name: string) => void
   onDeleteClass: (id: string) => void
   onRenameClass: (id: string, name: string) => void
@@ -182,6 +182,25 @@ function ImagePopup({
   )
 }
 
+// ── Enable toggle icons ───────────────────────────────────────────────────────
+
+function ClassEnabledIcon() {
+  return (
+    <svg width="21" height="22" viewBox="0 0 32 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="13.5" cy="13.5" r="12" stroke="currentColor" strokeWidth="3" />
+    </svg>
+  )
+}
+
+function ClassDisabledIcon() {
+  return (
+    <svg width="21" height="22" viewBox="0 0 32 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="13.5" cy="13.5" r="12" stroke="currentColor" strokeWidth="3" />
+      <path d="M5 22L22 5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 // ── Can't-train notice ────────────────────────────────────────────────────────
 
 /** Explains why TRAIN did nothing, instead of leaving a dead greyed-out button. */
@@ -232,6 +251,8 @@ interface ClassCardProps {
   images: string[]
   color: string
   isSelected: boolean
+  isEnabled: boolean
+  onToggleEnabled: () => void
   onSelect: () => void
   onCapture: () => void
   onUpload: (file: File) => void
@@ -242,8 +263,6 @@ interface ClassCardProps {
   onChangeColor: (color: string) => void
   onActivateCamera: () => void
   onActivateUpload: () => void
-  isEnabled: boolean
-  onToggleEnabled: () => void
   showUpload: boolean
   sourceLabel: string
 }
@@ -255,6 +274,8 @@ function ClassCard({
   images,
   color,
   isSelected,
+  isEnabled,
+  onToggleEnabled,
   onSelect,
   onCapture,
   onUpload,
@@ -265,8 +286,6 @@ function ClassCard({
   onChangeColor,
   onActivateCamera,
   onActivateUpload,
-  isEnabled,
-  onToggleEnabled,
   showUpload,
   sourceLabel
 }: ClassCardProps) {
@@ -275,6 +294,8 @@ function ClassCard({
   const [editing, setEditing] = useState(false)
   const [nameVal, setNameVal] = useState(cls.name)
   const [popup, setPopup] = useState<number | null>(null)
+  // Faded parts of a disabled card; the enable toggle stays fully visible.
+  const disabledFade = isEnabled ? '' : 'opacity-40 grayscale pointer-events-none'
 
   function commitRename() {
     const v = nameVal.trim()
@@ -285,6 +306,7 @@ function ClassCard({
 
   // 5 columns × 4 rows: twenty thumbnails at the old cell size, so the card keeps
   // its height. Past twenty the badge reads "20+" (the grid can't show more).
+  const GRID_COLS = 5
   const GRID = 20
   const CaptureIcon = sourceLabel === 'Record into this class' ? Mic : CameraIcon
 
@@ -307,13 +329,17 @@ function ClassCard({
       <div
         onClick={isEnabled ? onSelect : undefined}
         data-class-card
-        className={`rounded-2xl border-2 border-black dark:border-white/20 text-black dark:text-white shadow-sm flex transition-all p-2 ${isEnabled ? 'bg-white dark:bg-[#1f1f1f] cursor-pointer' : 'bg-slate-100/80 dark:bg-[#252525]/80 opacity-75 cursor-default'}`}
+        className={`rounded-2xl border-2 shadow-sm flex transition-all p-2 text-black dark:text-white ${
+          isEnabled
+            ? 'border-black dark:border-[#4c4c4c] bg-white dark:bg-[#1f1f1f] cursor-pointer'
+            : 'border-gray-300 dark:border-[#333333] bg-slate-100/80 dark:bg-[#252525]/80 opacity-75 cursor-default'
+        }`}
         style={{ scrollSnapAlign: 'start' }}
       >
         {/* Left: 5×4 image grid */}
         <div
-          className="grid flex-shrink-0 bg-gray-100 dark:bg-[#2a2a2a] p-2 gap-1 rounded-md"
-          style={{ gridTemplateColumns: 'repeat(5,1fr)', width: 172 }}
+          className={`grid flex-shrink-0 content-center bg-gray-100 dark:bg-[#2a2a2a] p-2 gap-1 rounded-md ${disabledFade}`}
+          style={{ gridTemplateColumns: `repeat(${GRID_COLS},1fr)`, width: 175 }}
         >
           {Array.from({ length: GRID }).map((_, j) => (
             <button
@@ -341,7 +367,7 @@ function ClassCard({
         <div className="flex-1 flex flex-col justify-between p-2 min-w-0 relative">
           {/* Color picker triangle (bottom-right corner) */}
           <label
-            className={`absolute bottom-2 right-2 ${isEnabled ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+            className={`absolute bottom-2 right-2 ${isEnabled ? 'cursor-pointer' : 'cursor-not-allowed'} ${disabledFade}`}
             title={isEnabled ? 'Pick color' : 'Class is disabled'}
             onClick={(e) => {
               e.stopPropagation()
@@ -369,23 +395,23 @@ function ClassCard({
           {/* Top row: count badge + action buttons */}
           <div className="flex items-start justify-between gap-1">
             <span
-              className="text-[0.72rem] font-mono font-bold text-white rounded-md px-2 py-0.5"
+              className={`text-[0.72rem] font-mono font-bold text-white rounded-md px-2 py-0.5 ${disabledFade}`}
               style={{ background: '#111' }}
             >
               {count > GRID ? `${GRID}+` : count}
             </span>
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              {/* Enable / Disable Button */}
+              {/* Enable / Disable Button — empty circle = enabled (default) */}
               <button
                 onClick={onToggleEnabled}
-                className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-all duration-200 ${isEnabled ? 'text-gray-500 hover:text-black' : 'text-red-500 hover:text-red-600'}`}
+                className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-all duration-200 ${isEnabled ? 'text-gray-500 hover:text-black dark:hover:text-white' : 'text-red-500 hover:text-red-600'}`}
                 title={
                   isEnabled
                     ? 'Enabled — click to exclude from training'
                     : 'Disabled — click to include in training'
                 }
               >
-                {isEnabled ? <EnabledIcon /> : <DisabledIcon />}
+                {isEnabled ? <ClassEnabledIcon /> : <ClassDisabledIcon />}
               </button>
 
               <button
@@ -410,7 +436,7 @@ function ClassCard({
 
           {/* Class name + rename */}
           <div
-            className="flex items-end gap-1 border-b border-gray-300 dark:border-white/30 pb-1 mt-1"
+            className={`flex items-end gap-1 border-b border-black dark:border-[#626363] pb-1 mt-1 ${disabledFade}`}
             onClick={(e) => e.stopPropagation()}
           >
             {editing ? (
@@ -504,6 +530,8 @@ export default function TrainingPanel({
   selectedClassId,
   classColors,
   defaultColors,
+  disabledClassIds,
+  onToggleClassEnabled,
   onAddClass,
   onDeleteClass,
   onRenameClass,
@@ -525,13 +553,16 @@ export default function TrainingPanel({
   emptyHint = 'Add your first gesture class below',
   onDisabledChange
 }: TrainingPanelProps) {
-  // Classes the user switched off with the card's disable icon. They keep their
-  // samples but take no part in training, so the model only learns what's enabled.
-  const [disabledIds, setDisabledIds] = useState<Set<string>>(new Set())
-  const enabledClasses = classes.filter((c) => !disabledIds.has(c.id))
+  // Disabled classes are owned by the parent (controlled via disabledClassIds /
+  // onToggleClassEnabled) and left out of training and the sample-count check.
+  const enabledClasses = classes.filter((c) => !disabledClassIds.has(c.id))
+
+  // Courtesy notification for any caller still listening on onDisabledChange,
+  // now that the disabled set itself lives in the parent.
   useEffect(() => {
-    onDisabledChange?.([...disabledIds])
-  }, [disabledIds, onDisabledChange])
+    onDisabledChange?.([...disabledClassIds])
+  }, [disabledClassIds, onDisabledChange])
+
   // One enabled class is enough to train — the reject gate handles "not this one".
   const canTrain =
     enabledClasses.length >= 1 &&
@@ -593,21 +624,17 @@ export default function TrainingPanel({
   }
 
   function toggleClassEnabled(id: string) {
-    setDisabledIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    const currentlyDisabled = disabledClassIds.has(id)
+    onToggleClassEnabled(id)
     // A disabled class must not keep receiving captures from a running camera,
     // so hand the selection to the first class that is still enabled.
-    if (!disabledIds.has(id) && selectedClassId === id) {
-      const fallback = classes.find((c) => c.id !== id && !disabledIds.has(c.id))
+    if (!currentlyDisabled && selectedClassId === id) {
+      const fallback = classes.find((c) => c.id !== id && !disabledClassIds.has(c.id))
       if (fallback) onSelectClass(fallback.id)
     }
     // Switching a class back on while nothing usable is selected makes it the
     // recording target, so the camera works again without an extra click.
-    if (disabledIds.has(id) && (!selectedClassId || disabledIds.has(selectedClassId))) {
+    if (currentlyDisabled && (!selectedClassId || disabledClassIds.has(selectedClassId))) {
       onSelectClass(id)
     }
   }
@@ -615,17 +642,6 @@ export default function TrainingPanel({
   function getColor(id: string, idx: number) {
     return classColors[id] ?? defaultColors[idx % defaultColors.length]
   }
-
-  // Class ids are handed out from a counter that resets with each new project, so
-  // a stale id left here would silently disable a freshly created class.
-  useEffect(() => {
-    setDisabledIds((prev) => {
-      if (prev.size === 0) return prev
-      const live = new Set(classes.map((c) => c.id))
-      const next = new Set([...prev].filter((id) => live.has(id)))
-      return next.size === prev.size ? prev : next
-    })
-  }, [classes])
 
   // ── Whole-card scrolling ───────────────────────────────────────────────────
   // The list is clipped by its own height, so an arbitrary height slices the
@@ -754,7 +770,7 @@ export default function TrainingPanel({
               images={images[cls.id] ?? []}
               color={getColor(cls.id, i)}
               isSelected={selectedClassId === cls.id}
-              isEnabled={!disabledIds.has(cls.id)}
+              isEnabled={!disabledClassIds.has(cls.id)}
               onToggleEnabled={() => toggleClassEnabled(cls.id)}
               onSelect={() => onSelectClass(cls.id)}
               onCapture={() => onCaptureOne(cls.id)}
@@ -888,7 +904,7 @@ export default function TrainingPanel({
       </div>
 
       {!canTrain && !isTraining && classes.length > 0 && (
-        <p className="text-center text-[0.72rem] text-gray-400">
+        <p className="text-center text-[0.72rem] text-gray-400 dark:text-gray-300">
           {enabledClasses.length < 1
             ? 'All classes are disabled — enable one or add a new class'
             : `Each enabled class needs ${minSamples}+ samples`}

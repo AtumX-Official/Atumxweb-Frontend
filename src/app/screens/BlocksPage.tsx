@@ -37,6 +37,9 @@ import { registerAIClassBlocks, registerPlaceholderAIBlocks } from '../blockly/s
 import { buildToolboxXml } from './toobox/toolboxBuilder'
 import "../blockly";
 import AIRunnerOverlay from './Blocks/components/AIRunnerOverlay';
+
+// Blockly User Manual (same PDF as the desktop app), served from /public.
+const BLOCKLY_MANUAL_URL = '/manuals/blockly-user-manual.pdf'
 declare global {
   interface Window {
     __aiLoadedModels?: Array<{
@@ -64,7 +67,7 @@ const BlocksPage: React.FC = () => {
 
   const [code, setCode] = useState('')
   const [output, setOutput] = useState('')
-  const [projectName, setProjectName] = useState('project 1')
+  const [projectName, setProjectName] = useState('Awesome Project 1')
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [unsavedChanges, setUnsavedChanges] = useState(true)
 
@@ -448,14 +451,14 @@ useEffect(() => {
         {showUnderDev && <UnderdevelopmentPopup onNo={() => setShowUnderDev(false)} />}
         {actions.showSavetokitpop && <Savetokitpop type={actions.popupType} />}
 
-        {/* {showPDF && (
+        {showPDF && (
           <Curriculum
-            pdfUrl={samplePdf}
+            pdfUrl={BLOCKLY_MANUAL_URL}
             position={pdfPosition}
             onClose={() => setShowPDF(false)}
             title="Blockly User Manual"
           />
-        )} */}
+        )}
 
       </DndContext>
     </>

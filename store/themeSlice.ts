@@ -1,15 +1,19 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { getStoredSfxVolume } from "../src/app/services/sfx";
 
 export interface ThemeState {
   mode: "light" | "dark";
   sfx: "on" | "off";
   music: "on" | "off";
+  /** Sound-effects volume, 0–100. */
+  sfxVolume: number;
 }
 
 const initialState: ThemeState = {
   mode: "light",
   sfx: "on",
   music: "on",
+  sfxVolume: getStoredSfxVolume(),
 };
 
 const themeSlice = createSlice({
@@ -27,6 +31,10 @@ const themeSlice = createSlice({
 
     setMusic: (state, action: PayloadAction<"on" | "off">) => {
       state.music = action.payload;
+    },
+
+    setSfxVolumeLevel: (state, action: PayloadAction<number>) => {
+      state.sfxVolume = action.payload;
     },
 
     toggleSfx: (state) => {
@@ -64,6 +72,7 @@ export const {
   setTheme,
   setSfx,
   setMusic,
+  setSfxVolumeLevel,
   toggleSfx,
   toggleMusic,
   toggleTheme,

@@ -26,8 +26,8 @@ const TopBarCenter: React.FC<TopBarCenterProps> = ({
 <div className="relative group">
   <input
     type="text"
-    value={`Project ${projectName}`}
-    onChange={(e) => setProjectName(e.target.value.replace(/^Project\s*/i, ''))}
+    value={`${projectName}`}
+    onChange={(e) => setProjectName(e.target.value)}
     className="flex-1 h-full text-black font-semibold text-sm bg-transparent outline-none"
     placeholder="Project Name"
   />
