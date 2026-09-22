@@ -103,7 +103,7 @@ export default function PredictPage({
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <AIToolbar onSave={onSave} onBack={onBack} isTrained={true} />
+      <AIToolbar onSave={onSave} onBack={onBack} isTrained={true} useBookIcon centerProjectName backIconSrc="/icons/misc/gesture_dark.svg" />
 
       <main className={`flex-1 relative z-20 flex gap-6 p-6 items-center justify-center overflow-auto ${DOTTED_BG}`}>
 

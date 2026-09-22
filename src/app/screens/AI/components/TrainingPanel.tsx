@@ -7,8 +7,6 @@ import CameraIcon from '../icons/cameraIcon'
 import UploadIcon from '../icons/uploadIcon'
 import ClearAllIcon from '../icons/clearAllIcon'
 import RenameIcon from '../icons/renameIcon'
-import DisabledIcon from '../icons/disabledIcon'
-import EnabledIcon from '../icons/enabledIcon'
 import AddIcon from '../icons/addIcon'
 import NextIcon from '../icons/nextIcon'
 import PreviousIcon from '../icons/previousIcon'
@@ -28,6 +26,8 @@ export interface TrainingPanelProps {
   selectedClassId: string | null
   classColors: Record<string, string>
   defaultColors: string[]
+  disabledClassIds: Set<string>
+  onToggleClassEnabled: (id: string) => void
   onAddClass: (name: string) => void
   onDeleteClass: (id: string) => void
   onRenameClass: (id: string, name: string) => void
@@ -161,6 +161,25 @@ function ImagePopup({ images, initialIndex, className, color, onDelete, onClose 
   )
 }
 
+// ── Enable toggle icons ───────────────────────────────────────────────────────
+
+function ClassEnabledIcon() {
+  return (
+    <svg width="21" height="22" viewBox="0 0 32 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="13.5" cy="13.5" r="12" stroke="currentColor" strokeWidth="3" />
+    </svg>
+  )
+}
+
+function ClassDisabledIcon() {
+  return (
+    <svg width="21" height="22" viewBox="0 0 32 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="13.5" cy="13.5" r="12" stroke="currentColor" strokeWidth="3" />
+      <path d="M5 22L22 5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 // ── Class Card ────────────────────────────────────────────────────────────────
 
 interface ClassCardProps {
@@ -171,6 +190,8 @@ interface ClassCardProps {
   images: string[]
   color: string
   isSelected: boolean
+  isEnabled: boolean
+  onToggleEnabled: () => void
   onSelect: () => void
   onCapture: () => void
   onUpload: (file: File) => void
@@ -184,7 +205,7 @@ interface ClassCardProps {
 }
 
 function ClassCard({
-  cls, count, minSamples, images, color, isSelected,
+  cls, count, minSamples, images, color, isSelected, isEnabled, onToggleEnabled,
   onSelect, onCapture, onUpload, onClear, onDelete, onRename, onDeleteSample, onChangeColor,
   onActivateCamera, onActivateUpload,
 }: ClassCardProps) {
@@ -193,7 +214,8 @@ function ClassCard({
   const [editing, setEditing] = useState(false)
   const [nameVal,  setNameVal]  = useState(cls.name)
   const [popup,    setPopup]    = useState<number | null>(null)
-  const [isEnabled, setIsEnabled] = useState(false)
+  // Faded parts of a disabled card; the enable toggle stays fully visible.
+  const disabledFade = isEnabled ? '' : 'opacity-40 grayscale pointer-events-none'
 
   function commitRename() {
     const v = nameVal.trim()
@@ -221,12 +243,16 @@ function ClassCard({
       )}
 
       <div
-        onClick={onSelect}
-        className="rounded-2xl border-2 border-black dark:border-[#4c4c4c] bg-white dark:bg-[#1f1f1f] shadow-sm flex cursor-pointer transition-all p-2">
+        onClick={isEnabled ? onSelect : undefined}
+        className={`rounded-2xl border-2 bg-white dark:bg-[#1f1f1f] shadow-sm flex transition-all p-2 ${
+          isEnabled
+            ? 'border-black dark:border-[#4c4c4c] cursor-pointer'
+            : 'border-gray-300 dark:border-[#333333] cursor-default'
+        }`}>
 
         {/* Left: 5×4 image grid */}
         <div
-          className="grid flex-shrink-0 content-center bg-gray-100 dark:bg-[#2a2a2a] p-2 gap-1 rounded-md"
+          className={`grid flex-shrink-0 content-center bg-gray-100 dark:bg-[#2a2a2a] p-2 gap-1 rounded-md ${disabledFade}`}
           style={{ gridTemplateColumns: `repeat(${GRID_COLS},1fr)`, width: 175 }}
         >
           {Array.from({ length: GRID }).map((_, j) => (
@@ -246,7 +272,7 @@ function ClassCard({
         <div className="flex-1 flex flex-col justify-between p-2 min-w-0 relative">
           {/* Color picker triangle (bottom-right corner) */}
           <label
-            className="absolute bottom-2 right-2 cursor-pointer"
+            className={`absolute bottom-2 right-2 cursor-pointer ${disabledFade}`}
             title="Pick color"
             onClick={(e) => e.stopPropagation()}
           >
@@ -269,14 +295,14 @@ function ClassCard({
 
           {/* Top row: count badge + action buttons */}
           <div className="flex items-start justify-between gap-1">
-            <span className="text-[0.72rem] font-mono font-bold text-white rounded-md px-2 py-0.5" style={{ background: '#111' }}>
+            <span className={`text-[0.72rem] font-mono font-bold text-white rounded-md px-2 py-0.5 ${disabledFade}`} style={{ background: '#111' }}>
               {countLabel}
             </span>
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
 
-              {/* Enable / Disable Button */}
+              {/* Enable / Disable Button — empty circle = enabled (default) */}
               <button
-                onClick={() => setIsEnabled(!isEnabled)}
+                onClick={onToggleEnabled}
                 className="
                     w-6 h-6 flex items-center justify-center
                     cursor-pointer
@@ -284,9 +310,9 @@ function ClassCard({
                     transition-all duration-200
                     hover:text-black dark:hover:text-white
                   "
-                title={isEnabled ? 'Enabled' : 'Disabled'}
+                title={isEnabled ? 'Disable class' : 'Enable class'}
               >
-                {isEnabled ? <EnabledIcon /> : <DisabledIcon />}
+                {isEnabled ? <ClassEnabledIcon /> : <ClassDisabledIcon />}
               </button>
 
               <button
@@ -306,7 +332,7 @@ function ClassCard({
           </div>
 
           {/* Class name + rename */}
-          <div className="flex items-end gap-1 border-b border-black dark:border-[#626363] pb-1 mt-1" onClick={(e) => e.stopPropagation()}>
+          <div className={`flex items-end gap-1 border-b border-black dark:border-[#626363] pb-1 mt-1 ${disabledFade}`} onClick={(e) => e.stopPropagation()}>
             {editing ? (
               <input
                 autoFocus value={nameVal}
@@ -331,9 +357,10 @@ function ClassCard({
           </div>
 
           {/* Bottom: camera + upload */}
-          <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+          <div className={`flex items-center gap-2 mt-2 ${disabledFade}`} onClick={(e) => e.stopPropagation()}>
             <button
               onClick={onActivateCamera}
+              disabled={!isEnabled}
               className="w-10 h-10 rounded-xl bg-white dark:bg-transparent flex items-center justify-center cursor-pointer border-none hover:text-black transition-colors flex-shrink-0"
               title="Show camera">
               <CameraIcon />
@@ -341,6 +368,7 @@ function ClassCard({
 
             <button
               onClick={() => { onActivateUpload() }}
+              disabled={!isEnabled}
               className="w-10 h-10 rounded-xl bg-white dark:bg-transparent flex items-center justify-center cursor-pointer border-none hover:text-white transition-colors flex-shrink-0"
               title="Show upload zone & pick file">
               <UploadIcon />
@@ -363,13 +391,16 @@ export default function TrainingPanel({
   classes, sampleCounts, minSamples,
   trainingStatus, trainProgress, trainAccuracy, trainError,
   prediction, images, selectedClassId, classColors, defaultColors,
+  disabledClassIds, onToggleClassEnabled,
   onAddClass, onDeleteClass, onRenameClass, onClearSamples,
   onCaptureOne, onDeleteSample, onUploadImage,
   onSelectClass, onChangeColor,
   onActivateCamera, onActivateUpload,
   onTrain, onSave, onReset,
 }: TrainingPanelProps) {
-  const canTrain   = classes.length >= 2 && classes.every((c) => (sampleCounts[c.id] ?? 0) >= minSamples)
+  // Disabled classes are left out of training and the sample-count check.
+  const enabledClasses = classes.filter((c) => !disabledClassIds.has(c.id))
+  const canTrain   = enabledClasses.length >= 2 && enabledClasses.every((c) => (sampleCounts[c.id] ?? 0) >= minSamples)
   const isTraining = trainingStatus === 'training'
   const isTrained  = trainingStatus === 'ready'
   const MAX_CLASSES = 5
@@ -429,6 +460,8 @@ export default function TrainingPanel({
               images={images[cls.id] ?? []}
               color={getColor(cls.id, i)}
               isSelected={selectedClassId === cls.id}
+              isEnabled={!disabledClassIds.has(cls.id)}
+              onToggleEnabled={() => onToggleClassEnabled(cls.id)}
               onSelect={() => onSelectClass(cls.id)}
               onCapture={() => onCaptureOne(cls.id)}
               onUpload={(f) => onUploadImage(cls.id, f)}
@@ -516,7 +549,11 @@ export default function TrainingPanel({
 
         {!canTrain && !isTraining && classes.length > 0 && (
           <p className="text-center text-[0.72rem] text-gray-400 dark:text-gray-300">
-            {classes.length < 2 ? 'Add at least 2 classes' : `Each class needs ${minSamples}+ samples`}
+            {classes.length < 2
+              ? 'Add at least 2 classes.'
+              : enabledClasses.length < 2
+                ? 'Enable at least 2 classes.'
+                : `Each enabled class needs ${minSamples}+ samples.`}
           </p>
         )}
       </div>

@@ -5,6 +5,17 @@
 
 @theme {
   --animate-moving-bg: moving-bg 10s linear infinite;
+
+  --animate-hand-gesture-bg: hand-gesture-bg 18s linear infinite;
+  @keyframes hand-gesture-bg {
+    from { background-position: 0 0; }
+    to { background-position: -600px 0; }
+  }
+
+  @keyframes moving-bg {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
+  }
   
   --animate-loading-dots: loading-dots 1s ease-in-out infinite;
   @keyframes loading-dots {

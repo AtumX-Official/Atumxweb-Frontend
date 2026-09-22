@@ -7,6 +7,7 @@ import Settings from '@renderer/assets/icons/common/Settings'
 import BackgroundImg from "@renderer/assets/Background.svg?url"
 import DownloadIcon from '@renderer/assets/icons/common/DownloadIcon'
 import Savedtokit from '@renderer/assets/icons/common/Savetokit'
+import BookIcon from '@renderer/assets/icons/common/BookIcon'
 import BackIcon from '@renderer/assets/icons/common/Backicon'
 import SettingsModal from '@renderer/components/supporting/SettingModal'
 import WifiIcon from '../icons/WifiIcon'
@@ -20,9 +21,15 @@ interface AIToolbarProps {
   onProjectNameChange?: (name: string) => void
   onNewProject?: () => void
   onOpenProject?: () => void
+  /** Use the desktop app's book icon instead of the save-to-kit icon. */
+  useBookIcon?: boolean
+  /** Center the project name box horizontally in the toolbar. */
+  centerProjectName?: boolean
+  /** Image the back arrow cross-fades into on hover (e.g. the screen's mode icon). */
+  backIconSrc?: string
 }
 
-export default function AIToolbar({ onSave, onBack, isTrained, projectName = '', onProjectNameChange, onNewProject, onOpenProject }: AIToolbarProps) {
+export default function AIToolbar({ onSave, onBack, isTrained, projectName = '', onProjectNameChange, onNewProject, onOpenProject, useBookIcon = false, centerProjectName = false, backIconSrc }: AIToolbarProps) {
   // Settings was a dead decorative gear on the AI screens — they render their own
   // toolbar instead of the shared Navbar, so the modal wiring never came with it.
   // Mirror Navbar's self-contained pattern (state + click-outside + portal) here.
@@ -48,19 +55,50 @@ export default function AIToolbar({ onSave, onBack, isTrained, projectName = '',
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showSettings])
 
+  const projectNameBox = (
+    <div className={`flex bg-white px-10 py-3 rounded-xl ${centerProjectName ? 'w-[clamp(220px,26vw,400px)]' : 'justify-right max-w-[400px]'}`}>
+      <span className='font-bold text-sm shrink-0'>
+        Project
+      </span>
+      <input
+        type="text"
+        value={projectName}
+        onChange={(e) => onProjectNameChange?.(e.target.value)}
+        className={`px-3 font-semibold text-sm text-black bg-transparent border-black focus:outline-none ${centerProjectName ? 'flex-1 min-w-0' : ''}`}
+        placeholder="Project Name"
+      />
+    </div>
+  )
+
   return (
-    <div className="flex px-4 pt-6 pb-4 bg-[#36D3FF] w-screen items-end overflow-visible flex-shrink-0">
+    <div className={`flex px-4 pt-6 pb-4 bg-[#36D3FF] w-screen items-end overflow-visible flex-shrink-0 ${centerProjectName ? 'relative' : ''}`}>
+      {centerProjectName && (
+        // Centered on the full toolbar width, level with the 60px icon row.
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-4 h-15 flex items-center z-[1000]">
+          {projectNameBox}
+        </div>
+      )}
       <div
-        className="absolute inset-0 z-10 animate-moving-bg bg-repeat bg bg-center bg-contain pointer-events-none opacity-30"
+        className="absolute inset-0 z-10 animate-hand-gesture-bg bg-repeat bg-[length:600px_600px] pointer-events-none opacity-30"
         style={{ backgroundImage: `url(${BackgroundImg})` }}
       />
       <div
         onClick={onBack}
-        className="bg-black relative z-20 rounded flex items-center justify-center w-15 h-15 cursor-pointer hover:opacity-80 transition-opacity"
+        className="group bg-black relative z-20 rounded flex items-center justify-center w-15 h-15 cursor-pointer hover:opacity-80 transition-opacity"
       >
-        <BackIcon className="w-10 h-10" />
+        <BackIcon className={`w-10 h-10 transition-all duration-300 ease-in-out ${backIconSrc ? 'group-hover:opacity-0 group-hover:scale-75' : ''}`} />
+        {backIconSrc && (
+          // Cross-fades in over the arrow on hover.
+          <img
+            src={backIconSrc}
+            alt=""
+            aria-hidden
+            draggable={false}
+            className="absolute inset-0 m-auto w-12 h-12 object-contain select-none pointer-events-none opacity-0 scale-75 transition-all duration-300 ease-in-out group-hover:opacity-100 group-hover:scale-100"
+          />
+        )}
       </div>
-      <div className="flex flex-col justify-center w-full bg-[#36D3FF]">
+      <div className="flex flex-col justify-center w-full">
         <div className="flex items-center justify-between w-full relative z-[999]">
           <div className="flex items-center gap-4 px-4 relative z-[999]">
             <div className="group relative hover:scale-110 transition-transform duration-200" onClick={onNewProject}>
@@ -76,23 +114,16 @@ export default function AIToolbar({ onSave, onBack, isTrained, projectName = '',
               <Tooltip text="Save" />
             </div>
             <div className="group relative cursor-pointer hover:scale-110 transition-transform duration-200">
-              <Savedtokit className="w-12 h-12 bg-[#F6EC24] p-2 rounded border-black hover:border-[3px] border-black transition-transform duration-200" />
+              {useBookIcon ? (
+                <BookIcon className="w-12 h-12 bg-[#F6EC24] p-2 rounded border-black hover:border-[3px] border-black transition-transform duration-200" />
+              ) : (
+                <Savedtokit className="w-12 h-12 bg-[#F6EC24] p-2 rounded border-black hover:border-[3px] border-black transition-transform duration-200" />
+              )}
               <Tooltip text="Book" />
             </div>
           </div>
-          
-          <div className='flex justify-right bg-white px-10 py-3 max-w-[400px] rounded-xl'>
-            <span className='font-bold text-sm'>
-              Project
-            </span>
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => onProjectNameChange?.(e.target.value)}
-              className="px-3 font-semibold text-sm text-black bg-transparent border-black focus:outline-none"
-              placeholder="Project Name"
-            />
-          </div>
+
+          {!centerProjectName && projectNameBox}
 
           <div className="flex items-end gap-2">
             { isTrained && <div className="w-12 bg-black rounded border-2 flex items-center justify-center" style={{ height: 52 }}>
