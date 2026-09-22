@@ -1,29 +1,36 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import PoseTracker, { type Landmark, type PoseTrackerHandle } from './components/PoseTracker'
+import TrainingPanel from './components/TrainingPanel'
+import ConfidenceList from './components/ConfidenceList'
+import TestInputPanel, { UploadStage, type TestInputMode } from './components/TestInputPanel'
+import ControlsPanel from './components/ControlsPanel'
 import AIToolbar from './components/AIToolbar'
 import ProjectPopup from './components/ProjectPopup'
+import NoticePopup from './components/NoticePopup'
+import { useNotice } from './hooks/useNotice'
 import { usePoseClassifier, type GestureClass, type Prediction } from './hooks/usePoseClassifier'
 import { useSampleRecorder, type SampleRecorder } from './hooks/useSampleRecorder'
 import RecordingSettings from './components/RecordingSettings'
 import RecordingControls from './components/RecordingControls'
 import CaptureMenu from './components/CaptureMenu'
+import TrainingStatusPopup from './components/TrainingStatusPopup'
+import trainposegif from './icons/trainpose.gif'
+import readyposegif from './icons/readyposegif.gif'
+import posepng from './icons/posepng.png'
 import BackendSelector from './components/BackendSelector'
 import { useBackendPreference } from './hooks/useBackendPreference'
 import LayersReveal, { POSE_LAYERS } from './components/LayersReveal'
 import { uniqueClassName } from './utils/uniqueClassName'
-import { POSE_FEATURE_DIM } from './utils/normalizeLandmarks'
-import { useRouter } from 'next/navigation'
-import { useAppSelector } from '../../../../store/hooks'
+import { openProjectFile, projectNameFromFile } from './utils/projectFile'
 
 const DEFAULT_CLASS_COLORS = ['#36D3FF', '#F6268B', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171', '#fbbf24']
 
-interface FileOpenResult {
-  success: boolean
-  data: string
-  fileName: string
-}
+import { detectPoseInImage } from './utils/imageDetector'
+
+
 
 interface LatestRef {
   classifier: ReturnType<typeof usePoseClassifier>
@@ -35,7 +42,6 @@ interface LatestRef {
 
 export default function PoseApp() {
   const router = useRouter()
-  const isDark = useAppSelector((s) => s.theme.mode) === 'dark'
   const classifier = usePoseClassifier()
   // Capability-based backend routing (GPU→JS, no-GPU→Python) with manual override.
   const { capability, preference, setPreference, backend, labelFor } = useBackendPreference()
@@ -47,9 +53,13 @@ export default function PoseApp() {
 
   const [classes, setClasses] = useState<GestureClass[]>([])
   const [images, setImages] = useState<Record<string, string[]>>({})
+  const imagesRef = useRef(images)
+  imagesRef.current = images
+  // Every save carries the class-card pictures so an opened project shows them again.
+  const saveProject = () => classifier.saveModel(projectName || 'pose-model', imagesRef.current)
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [classColors, setClassColors] = useState<Record<string, string>>({})
-  const [thumbOffset, setThumbOffset] = useState(0)
+  const [, setThumbOffset] = useState(0)
 
   // Settings
   const [showSettings, setShowSettings] = useState(false)
@@ -58,7 +68,21 @@ export default function PoseApp() {
   const [delay, setDelay] = useState<number | ''>(0)
   const [duration, setDuration] = useState<number | ''>(0)
 
-  // Prediction Page
+  // Camera / upload input source for the left panel
+  const [inputMode, setInputMode] = useState<'camera' | 'upload' | null>(null)
+  // Preview of the last image picked in upload mode (null = show the drop zone)
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+  const uploadPreviewRef = useRef<string | null>(null)
+  function showUploadPreview(file: File | null) {
+    if (uploadPreviewRef.current) URL.revokeObjectURL(uploadPreviewRef.current)
+    uploadPreviewRef.current = file ? URL.createObjectURL(file) : null
+    setUploadPreview(uploadPreviewRef.current)
+  }
+  const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  // Live prediction (driven by the START button in the controls panel)
   const [isTesting, setIsTesting] = useState(false)
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [showLayers, setShowLayers] = useState(false)
@@ -68,12 +92,35 @@ export default function PoseApp() {
   const [projectName, setProjectName] = useState('')
   const [, setProjectDesc] = useState('')
   const [showProjectPopup, setShowProjectPopup] = useState(false)
+  const { notice, showNotice, dismissNotice } = useNotice()
+  // Bumped on every new project. The training panel keeps its own per-class state
+  // (which classes are disabled) keyed by class id, and ids restart at cls_1, so the
+  // panel is remounted rather than inheriting the last project's toggles.
+  const [projectSession, setProjectSession] = useState(0)
   // Cosmetic lag-shadow trail (visual only — never affects detection/training)
   const [effectsOn, setEffectsOn] = useState(false)
 
   // Fullscreen camera mode
   const camStageRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const classIdCounter = useRef(0)
+  const poseTrackerRef = useRef<PoseTrackerHandle>(null)
+  const manualCaptureRef = useRef<{ classId: string } | null>(null)
+  const latestRef = useRef<LatestRef | null>(null)
+
+  // Selected Class details
+  // Classes switched off in the training panel keep their samples but must not
+  // receive new ones, so recording only ever targets an enabled selection.
+  const [disabledIds, setDisabledIds] = useState<string[]>([])
+  const disabledRef = useRef<string[]>([])
+  disabledRef.current = disabledIds
+  const recordTargetId = selectedClassId && !disabledIds.includes(selectedClassId) ? selectedClassId : null
+  const allClassesDisabled = classes.length > 0 && classes.every((c) => disabledIds.includes(c.id))
+  const selectedClass = classes.find((c) => c.id === selectedClassId) ?? null
+  const selectedColor = selectedClassId
+    ? (classColors[selectedClassId] ?? DEFAULT_CLASS_COLORS[classes.findIndex((c) => c.id === selectedClassId) % DEFAULT_CLASS_COLORS.length])
+    : '#36D3FF'
 
   function toggleFullscreen() {
     const el = camStageRef.current
@@ -83,28 +130,23 @@ export default function PoseApp() {
     // is best-effort. (See the matching fix in the hand screen's App.tsx.)
     const next = !isFullscreen
     setIsFullscreen(next)
-    if (next) el.requestFullscreen?.().catch(() => {})
+    if (next) el.requestFullscreen?.().catch((err) => console.warn('requestFullscreen rejected — using in-window fullscreen overlay', err))
     else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
   }
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', onFsChange)
-    return () => document.removeEventListener('fullscreenchange', onFsChange)
+    // Esc must also exit the in-window fallback, where no fullscreenchange ever fires.
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.fullscreenElement) setIsFullscreen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [])
-
-
-
-  const classIdCounter = useRef(0)
-  const poseTrackerRef = useRef<PoseTrackerHandle>(null)
-  const latestRef = useRef<LatestRef | null>(null)
-
-  // Selected Class details
-  const selectedClass = classes.find((c) => c.id === selectedClassId) ?? null
-  const selectedImages = selectedClassId ? (images[selectedClassId] ?? []) : []
-  const selectedColor = selectedClassId
-    ? (classColors[selectedClassId] ?? DEFAULT_CLASS_COLORS[classes.findIndex((c) => c.id === selectedClassId) % DEFAULT_CLASS_COLORS.length])
-    : '#36D3FF'
 
   function addImage(classId: string, imageUrl: string) {
     setImages((prev) => ({ ...prev, [classId]: [...(prev[classId] ?? []), imageUrl] }))
@@ -119,27 +161,19 @@ export default function PoseApp() {
     setThumbOffset(0)
   }
 
-  // Rename updates freely on each keystroke (below); on blur we normalize so the
-  // final name can't duplicate another class (which would corrupt save/load).
-  function handleCommitClassName(id: string) {
-    setClasses((prev) => {
-      const cur = prev.find((c) => c.id === id)
-      if (!cur) return prev
-      const unique = uniqueClassName(cur.name, prev.filter((c) => c.id !== id).map((c) => c.name))
-      return unique === cur.name ? prev : prev.map((c) => (c.id === id ? { ...c, name: unique } : c))
-    })
-  }
-
   function handleDeleteClass(id: string) {
     classifier.removeClassData(id)
     setClasses((prev) => prev.filter((c) => c.id !== id))
     setImages((prev) => { const n = { ...prev }; delete n[id]; return n })
     setClassColors((prev) => { const n = { ...prev }; delete n[id]; return n })
+    if (manualCaptureRef.current?.classId === id) manualCaptureRef.current = null
     if (selectedClassId === id) { setSelectedClassId(null); setThumbOffset(0) }
   }
 
   function handleRenameClass(id: string, name: string) {
-    setClasses((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)))
+    // Called on commit (blur/Enter). Auto-suffix if the new name duplicates another.
+    const unique = uniqueClassName(name, classes.filter((c) => c.id !== id).map((c) => c.name))
+    setClasses((prev) => prev.map((c) => (c.id === id ? { ...c, name: unique } : c)))
   }
 
   function handleClearSamples(classId?: string) {
@@ -152,24 +186,64 @@ export default function PoseApp() {
     setThumbOffset(0)
   }
 
+  function handleCaptureOne(classId: string) {
+    manualCaptureRef.current = { classId }
+  }
+
+  function handleDeleteSample(classId: string, index: number) {
+    classifier.deleteSample(classId, index)
+    setImages((prev) => {
+      const arr = [...(prev[classId] ?? [])]
+      arr.splice(index, 1)
+      return { ...prev, [classId]: arr }
+    })
+  }
+
+  async function handleUploadImage(classId: string, file: File) {
+    const result = await detectPoseInImage(file)
+    if (!result) return
+    classifier.addSample(classId, result.vector)
+    addImage(classId, result.imageUrl)
+  }
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || !recordTargetId) return
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) continue
+      showUploadPreview(file)
+      await handleUploadImage(recordTargetId!, file)
+    }
+  }
+
+  function handleChangeColor(classId: string, color: string) {
+    setClassColors((prev) => ({ ...prev, [classId]: color }))
+  }
+
   function handleSelectClass(id: string) {
     setSelectedClassId(id)
     setThumbOffset(0)
   }
 
-  // Pre-initialize Class 1 and Class 2
+  // Pre-initialize Class 1 and Class 2, but keep the initial view on the chooser
+  // state until the user explicitly selects camera or upload.
   useEffect(() => {
-    handleAddClass('Class 1')
-    handleAddClass('Class 2')
-    // handleAddClass selects each class as it's added, so Class 2 ends up selected.
-    // Select Class 1 (the first id) — matching the 1-hand / 2-hand classifiers.
-    setSelectedClassId('cls_1')
+    // Replace the list rather than appending: React Strict Mode runs this twice in
+    // dev, and appending turned "Class 1, Class 2" into four cards.
+    classIdCounter.current = 0
+    const initial = ['Class 1', 'Class 2'].map((name) => {
+      const id = `cls_${++classIdCounter.current}`
+      classifier.initClass(id)
+      return { id, name }
+    })
+    setClasses(initial)
+    setSelectedClassId(initial[0].id)
+    setInputMode(null)
   }, [])
 
   const handleExportToBlockly = useCallback(async () => {
     try {
       if (!classifier.isSavedToDisk) {
-        await classifier.saveModel(projectName || 'pose-model')
+        await saveProject()
       }
       await classifier.exportToBlockly(projectName || 'pose-model')
       router.push('/blocks')
@@ -180,22 +254,36 @@ export default function PoseApp() {
 
   latestRef.current = { classifier, setPrediction, addImage, isTesting, recorder }
 
-  // Handlers for incoming landmarks vector (99 elements)
+  // Handlers for incoming landmarks vector (109 elements)
   const handleLandmarks = useCallback((vector: Float32Array) => {
-    const { classifier: clf, addImage: addImg, isTesting: testingActive, recorder: rec } = latestRef.current!
+    const { classifier: clf, setPrediction: setP, addImage: addImg, isTesting: testingActive, recorder: rec } = latestRef.current!
+
+    // Manual single capture (TrainingPanel "+1" button)
+    const mc = manualCaptureRef.current
+    if (mc) {
+      manualCaptureRef.current = null
+      if (!disabledRef.current.includes(mc.classId)) {
+        clf.addSample(mc.classId, vector)
+        const snap = poseTrackerRef.current?.snapshot() ?? ''
+        if (snap) addImg(mc.classId, snap)
+      }
+    }
 
     // Shared recorder decides when a sample is due (hold / timed / countdown).
     const { capture, classId } = rec.tick(performance.now())
-    if (capture && classId) {
+    // The class was switched off mid-recording — end the run instead of feeding it.
+    if (capture && disabledRef.current.includes(classId)) {
+      rec.stop()
+    } else if (capture) {
       clf.addSample(classId, vector)
       const snap = poseTrackerRef.current?.snapshot() ?? ''
       if (snap) addImg(classId, snap)
     }
 
-    // Predict if testing is active
+    // Predict only while live testing is on — keeps the training view clean.
     if (clf.modelReady && testingActive) {
       clf.predict(vector).then((res) => {
-        if (res) setPrediction(res)
+        if (res) setP(res)
       })
     }
   }, [])
@@ -217,16 +305,18 @@ export default function PoseApp() {
     recorder.stop()
   }
   function startHoldCapture() {
-    if (!selectedClassId) return
-    recorder.startHold(selectedClassId)
+    if (!recordTargetId) return
+    recorder.startHold(recordTargetId)
   }
   function startCountdownCapture() {
-    if (!selectedClassId) return
-    recorder.startCountdown(selectedClassId, { delaySec: numOr(delay), durationN: numOr(duration), defaultDurationN: 30 })
+    if (!recordTargetId) return
+    recorder.startCountdown(recordTargetId, { delaySec: numOr(delay), durationN: numOr(duration), defaultDurationN: 30 })
   }
 
-  const handleTrain = useCallback(() => {
-    classifier.trainModel(classes)
+  // The panel hands over only the classes left enabled — disabled ones keep their
+  // samples but stay out of the model.
+  const handleTrain = useCallback((enabledClasses: GestureClass[] = classes) => {
+    classifier.trainModel(enabledClasses)
   }, [classes, classifier])
 
   const handleReset = useCallback(() => {
@@ -239,30 +329,45 @@ export default function PoseApp() {
     setProjectName(name)
     setProjectDesc(desc)
     setShowProjectPopup(false)
+    setProjectSession((n) => n + 1)
     handleReset()
-    setClasses([])
+    // Old samples are keyed by class id and the counter restarts at 1 below, so
+    // without this the new project's Class 1 would inherit the previous one's data.
+    classifier.clearSamples()
     setImages({})
     setClassColors({})
-    setSelectedClassId(null)
     classIdCounter.current = 0
+    // A new project starts the way the screen first opens: two empty classes with
+    // the first one selected, rather than an empty panel.
+    const id1 = `cls_${++classIdCounter.current}`
+    const id2 = `cls_${++classIdCounter.current}`
+    classifier.initClass(id1); classifier.initClass(id2)
+    setClasses([{ id: id1, name: 'Class 1' }, { id: id2, name: 'Class 2' }])
+    setSelectedClassId(id1)
+    setThumbOffset(0)
+    setInputMode('camera')
   }
 
   const handleOpenProject = async () => {
     try {
-      const res = (await window.api?.file?.open?.('poseClassifier')) as FileOpenResult | undefined
-      if (!res || !res.success) return
+      const res = await openProjectFile('poseClassifier')
+      if (!res.success || !res.data) return
       const bundle = JSON.parse(res.data)
       const restoredClasses = await classifier.loadModel(bundle)
       setClasses(restoredClasses)
-      setImages({})
+      setImages(classifier.restoreImages(bundle, restoredClasses))
       setClassColors({})
-      setProjectName(res.fileName.replace('.json', ''))
+      setProjectName(projectNameFromFile(res.fileName))
       if (restoredClasses.length > 0) {
         setSelectedClassId(restoredClasses[0].id)
       }
     } catch (err) {
       console.error('Failed to load project:', err)
-      alert('Failed to load project: ' + (err instanceof Error ? err.message : String(err)))
+      showNotice({
+        tone: 'error',
+        title: "Couldn't open that project",
+        message: err instanceof Error ? err.message : String(err)
+      })
     }
   }
 
@@ -270,451 +375,433 @@ export default function PoseApp() {
   const isTraining = classifier.trainingStatus === 'training'
   const [trainingPopup, setTrainingPopup] = useState(false)
 
+  // While testing, the middle column lists what the model actually learned
+  // (disabled classes were left out of training). Colours resolve against the full
+  // list so a class keeps the colour it has on its training card.
+  const showResults = isTrained && isTesting
+
+  // Test view input: live camera, or a single uploaded photo judged once.
+  const [testMode, setTestMode] = useState<TestInputMode>('idle')
+  const [testImage, setTestImage] = useState<string | null>(null)
+  const [testPrediction, setTestPrediction] = useState<Prediction | null>(null)
+  const [testError, setTestError] = useState<string | null>(null)
+  const [testProcessing, setTestProcessing] = useState(false)
+  // Every START begins on the "Select camera or upload" prompt, like the hand screen.
+  useEffect(() => {
+    if (!showResults) return
+    setTestMode('idle'); setTestImage(null); setTestPrediction(null); setTestError(null)
+  }, [showResults])
+
+  async function handleTestFile(file: File) {
+    if (!file.type.startsWith('image/')) return
+    setTestMode('upload')
+    setTestProcessing(true)
+    setTestError(null)
+    setTestImage(null)
+    setTestPrediction(null)
+    const result = await detectPoseInImage(file)
+    setTestProcessing(false)
+    if (!result) {
+      setTestError('No person detected — try a clearer full-body photo')
+      return
+    }
+    setTestImage(result.imageUrl)
+    setTestPrediction(await classifier.predict(result.vector))
+  }
+  const resultClasses = classifier.trainedClasses.length > 0 ? classifier.trainedClasses : classes
+  const colorOf = (id: string, idx: number) => {
+    const full = classes.findIndex((c) => c.id === id)
+    return classColors[id] ?? DEFAULT_CLASS_COLORS[(full === -1 ? idx : full) % DEFAULT_CLASS_COLORS.length]
+  }
+
   useEffect(() => {
     if (isTraining) setTrainingPopup(true)
   }, [isTraining])
 
-  const maxThumb = Math.max(0, selectedImages.length - 5)
-  const clampedOffset = Math.min(thumbOffset, maxThumb)
-
   return (
-    <div className="flex flex-col h-screen overflow-hidden text-slate-800 bg-[#f3f4f6] dark:text-white dark:bg-[#151515]">
-      <AIToolbar
-        onBack={() => router.push('/')}
-        onSave={() => classifier.saveModel(projectName || 'pose-model')}
-        isTrained={classifier.modelReady}
-        projectName={projectName}
-        onProjectNameChange={setProjectName}
-        onNewProject={() => setShowProjectPopup(true)}
-        onOpenProject={handleOpenProject}
-      />
+    <div className="flex flex-col h-screen overflow-hidden">
+      {!isFullscreen && (
+        <AIToolbar
+          backImage="pose"
+          onBack={() => router.push('/')}
+          onSave={saveProject}
+          isTrained={classifier.modelReady}
+          projectName={projectName}
+          onProjectNameChange={setProjectName}
+          onNewProject={() => setShowProjectPopup(true)}
+          onOpenProject={handleOpenProject}
+        />
+      )}
 
-      {/* Training reveal — "how your model learns" */}
-      <LayersReveal
+      {/* Training feedback — gif → confetti → "Tap OK to see results" */}
+      <TrainingStatusPopup
         open={trainingPopup}
-        mode="train"
-        config={POSE_LAYERS}
-        classes={classes}
-        colorOf={(id, idx) => classColors[id] ?? DEFAULT_CLASS_COLORS[idx % DEFAULT_CLASS_COLORS.length]}
-        sampleCounts={classifier.sampleCounts}
         isTraining={isTraining}
         isTrained={isTrained}
-        trainProgress={classifier.trainProgress}
-        trainAccuracy={classifier.trainAccuracy}
-        getSubject={() => (livePoseRef.current.length ? livePoseRef.current : null)}
-        getVideo={() => poseTrackerRef.current?.getVideo() ?? null}
-        subjectCount={1}
         onClose={() => setTrainingPopup(false)}
-        onCancel={() => setTrainingPopup(false)}
+        trainingGif={trainposegif.src}
+        successGif={readyposegif.src}
+        resultPng={posepng.src}
       />
 
-      {/* Main Content Layout */}
       <main
-        className="flex-1 flex relative z-20 justify-center items-stretch gap-6 p-6 overflow-hidden"
+        className="flex-1 flex relative z-20 justify-center items-center gap-6 p-6 overflow-hidden bg-[#efefef] dark:bg-[#151515]"
         style={{
-          backgroundColor: isDark ? '#151515' : '#efefef',
-          backgroundImage: `radial-gradient(circle, ${isDark ? '#3a3a3a' : '#d0d0d0'} 1.5px, transparent 1.5px)`,
-          backgroundSize: '20px 20px'
+          backgroundImage: 'radial-gradient(circle, #c0c0c0 1.5px, transparent 1.5px)',
+          backgroundSize: '20px 20px',
         }}
       >
-
-        {/* COLUMN 1: Pose Classes list (Left Card) */}
-        <div className="flex flex-col w-[320px] shrink-0 gap-4 mx-auto min-h-0">
-          <div className="flex-1 min-h-0 bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="text-xl font-black border-b-2 border-slate-100 dark:border-[#4c4c4c] pb-3 mb-4 tracking-wider flex items-center justify-between">
-              <span>POSE CLASSES</span>
-              <button
-                onClick={() => handleAddClass(`Class ${classes.length + 1}`)}
-                className="bg-black text-[#F6EC24] font-black text-sm px-3 py-1.5 rounded-lg border hover:bg-slate-900 transition-colors"
-              >
-                + ADD
-              </button>
-            </h2>
-
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
-              {classes.map((cls, idx) => {
-                const count = classifier.sampleCounts[cls.id] || 0
-                const isSelected = selectedClassId === cls.id
-                const color = classColors[cls.id] || DEFAULT_CLASS_COLORS[idx % DEFAULT_CLASS_COLORS.length]
-
-                return (
-                  <div
-                    key={cls.id}
-                    onClick={() => handleSelectClass(cls.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${isSelected ? 'border-black bg-slate-50 dark:border-white dark:bg-[#2a2a2a]' : 'border-slate-200 hover:border-slate-400 bg-white dark:border-[#4c4c4c] dark:hover:border-slate-400 dark:bg-[#1f1f1f]'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3.5 h-3.5 rounded-full border border-black" style={{ backgroundColor: color }} />
-                        <input
-                          type="text"
-                          value={cls.name}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => handleRenameClass(cls.id, e.target.value)}
-                          onBlur={() => handleCommitClassName(cls.id)}
-                          className="font-bold text-sm bg-transparent outline-none border-b border-transparent focus:border-slate-500 dark:text-white w-28"
-                        />
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteClass(cls.id)
-                        }}
-                        className="text-slate-400 hover:text-red-500 text-xs font-black"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
-                      <span className="font-mono">{count > classifier.MIN_SAMPLES ? `${classifier.MIN_SAMPLES}+` : count} Pose Samples</span>
-                      {count > 0 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleClearSamples(cls.id)
-                          }}
-                          className="text-xs hover:underline text-red-400"
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Quick webcam activation */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleSelectClass(cls.id)
-                          document.getElementById(`file-input-${cls.id}`)?.click()
-                        }}
-                        className="bg-slate-100 hover:bg-slate-200 dark:bg-[#2a2a2a] dark:hover:bg-[#333333] dark:text-white dark:border-[#4c4c4c] text-[0.7rem] font-bold py-1.5 rounded-md border border-slate-300 transition-colors"
-                      >
-                        📁 Upload
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleSelectClass(cls.id)
-                          setIsTesting(false)
-                        }}
-                        className="bg-[#36D3FF] hover:bg-[#20bdff] text-[0.7rem] font-bold dark:text-black py-1.5 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
-                      >
-                        🎥 Webcam
-                      </button>
-                    </div>
-
-                    {/* Hidden inputs for uploading directly to this class */}
-                    <input
-                      id={`file-input-${cls.id}`}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        if (!e.target.files) return
-                        for (const f of Array.from(e.target.files)) {
-                          // Standard detect placeholder vector for upload
-                          const dummyVector = new Float32Array(POSE_FEATURE_DIM)
-                          classifier.addSample(cls.id, dummyVector)
-                          // Read file URL to save preview thumbnail
-                          const reader = new FileReader()
-                          reader.onload = (ev) => {
-                            if (ev.target?.result) addImage(cls.id, ev.target.result as string)
-                          }
-                          reader.readAsDataURL(f)
-                        }
-                        e.target.value = ''
-                      }}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* COLUMN 2: Webcam Stream & Training controls (Center Column) */}
-        <div className="flex-1 flex flex-col gap-4 max-w-xl mx-auto">
-
-          {/* Webcam stream card */}
-          <div className="bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-4 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
-            <div className="flex items-center justify-between mb-3.5">
-              <span
-                className="px-4 py-1 rounded-full text-xs font-black dark:text-black border border-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                style={{ backgroundColor: selectedClass ? selectedColor : '#e2e8f0' }}
-              >
-                {selectedClass ? `${selectedClass.name} Preview` : 'Camera Preview'}
-              </span>
-
-              {selectedClassId && !isTesting && (
-                <CaptureMenu
-                  mode={hold ? 'hold' : 'auto'}
-                  onModeChange={(m) => setHold(m === 'hold')}
-                  showModeSwitch={!(isCapturing || countdown !== null)}
-                  onOpenSettings={() => setShowSettings(true)}
-                  dropUp={false}
+        {/* Left: camera panel — while testing, a live-camera / upload-a-photo panel
+            like the hand screen's predict view */}
+        <div className="flex justify-center items-center w-[clamp(320px,30vw,480px)] shrink-0 mx-auto">
+          {showResults ? (
+            <TestInputPanel
+              live="camera"
+              mode={testMode}
+              onModeChange={setTestMode}
+              onFile={handleTestFile}
+              accept="image/*"
+            >
+              {testMode === 'live' ? (
+                <PoseTracker
+                  ref={poseTrackerRef}
+                  onStats={handleStats}
+                  onLandmarks={handleLandmarks}
+                  prediction={prediction}
+                  isCapturing={false}
+                  targetFps={typeof fps === 'number' && fps > 0 ? fps : undefined}
+                  backendMode={backend}
+                  backendLabel={poseBackendLabel}
+                  effectsEnabled={effectsOn}
+                />
+              ) : (
+                <UploadStage
+                  processing={testProcessing}
+                  processingLabel="Detecting pose…"
+                  error={testError}
+                  result={testImage ? <img src={testImage} alt="uploaded" className="w-full h-full object-contain" /> : null}
+                  onFile={handleTestFile}
+                  accept="image/*"
                 />
               )}
-            </div>
+            </TestInputPanel>
+          ) : (
+          <div className="w-[clamp(320px,30vw,480px)] flex flex-col">
 
-            {/* Main view container */}
-            <div
-              ref={camStageRef}
-              className="relative aspect-video rounded-xl bg-black overflow-hidden border border-black shadow-[inset_0px_4px_10px_rgba(0,0,0,0.5)]"
-              style={isFullscreen ? { width: '100vw', height: '100vh', aspectRatio: 'auto', borderRadius: 0 } : undefined}
-            >
-              {!showSettings && (
-                <button
-                  onClick={toggleFullscreen}
-                  className="absolute top-2 right-2 z-30 bg-black/60 hover:bg-black/80 text-white rounded-lg px-3 py-1.5 text-xs font-bold"
-                  title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            {!showSettings ? (<>
+
+              {/* Class Label */}
+              <div
+                className="w-[clamp(240px,21vw,340px)] h-[clamp(40px,3vw,56px)] border-t-2 border-l-2 border-r-2 border-black dark:border-black rounded-t-lg flex items-center pl-4 font-bold"
+                style={{ background: selectedClass ? selectedColor : '#d1d5db' }}>
+                {selectedClass ? selectedClass.name : 'Select Class'}
+              </div>
+
+              {/* Camera Card */}
+              <div className="w-full bg-white dark:bg-[#1f1f1f] border-2 border-black dark:border-black rounded-tr-xl rounded-br-xl rounded-bl-xl p-3">
+                {/* Video / Upload zone */}
+                <div
+                  ref={camStageRef}
+                  className="relative w-full aspect-video mx-auto rounded-lg overflow-hidden bg-black"
+                  style={isFullscreen ? { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', aspectRatio: 'auto', borderRadius: 0, zIndex: 9999 } : undefined}
                 >
-                  {isFullscreen ? '✕ Exit' : '⛶ Fullscreen'}
-                </button>
-              )}
-              {!showSettings && (
-                <button
-                  onClick={() => setEffectsOn((v) => !v)}
-                  className={`absolute top-12 right-2 z-30 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${effectsOn ? 'bg-fuchsia-500/90 text-white' : 'bg-black/60 hover:bg-black/80 text-white'}`}
-                  title="Lag-shadow trail (visual only — doesn't affect detection)"
+                  {inputMode === 'camera' ? (
+                    <PoseTracker
+                      ref={poseTrackerRef}
+                      onStats={handleStats}
+                      onLandmarks={handleLandmarks}
+                      prediction={isTesting ? prediction : null}
+                      isCapturing={isCapturing}
+                      targetFps={typeof fps === 'number' && fps > 0 ? fps : undefined}
+                      backendMode={backend}
+                      backendLabel={poseBackendLabel}
+                      idle={!isCapturing && !isTesting}
+                      effectsEnabled={effectsOn}
+                    />
+                  ) : inputMode === null ? (
+                    <div className="w-full h-full flex items-center justify-center select-none bg-[#FFF000]">
+                      <p className="font-bold text-center text-black text-xl leading-tight">
+                        Select camera or<br />upload files.
+                      </p>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                      onDragEnter={(e) => { e.preventDefault(); setDragOver(true) }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setDragOver(false)
+                        handleFiles(e.dataTransfer.files)
+                      }}
+                      className={`w-full h-full bg-[#F6EC24] cursor-pointer flex flex-col items-center justify-center gap-3 transition-colors select-none
+                        ${dragOver ? 'ring-4 ring-black bg-yellow-300' : ''}
+                        ${!recordTargetId ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                      {uploadPreview ? (
+                        <img src={uploadPreview} alt="uploaded" className="w-full h-full object-contain" />
+                      ) : (<>
+                        <span className="text-6xl font-black leading-none">+</span>
+                        <span className="font-bold text-center text-black leading-tight">
+                          Add or Drop files<br />from your computer
+                        </span>
+                      </>)}
+                    </div>
+                  )}
+
+                  {/* nothing to record into — every class is off, or the selected one is */}
+                  {inputMode !== null && classes.length > 0 && !recordTargetId && (
+                    <div className="absolute inset-x-0 bottom-3 flex justify-center z-20 pointer-events-none px-3">
+                      <div className="rounded-full bg-black/80 text-white text-xs font-bold px-4 py-1.5 text-center">
+                        {allClassesDisabled
+                          ? 'All classes are disabled — enable a class or add a new one to record'
+                          : 'This class is disabled — enable it or select another class to record'}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* countdown overlay */}
+                  {countdown !== null && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-white font-black z-20 pointer-events-none" style={{ fontSize: isFullscreen ? 180 : 96 }}>
+                      {countdown}
+                    </div>
+                  )}
+
+                  {/* capture flash — brief white pulse each time a frame is recorded */}
+                  {captureFlash && (
+                    <div className="absolute inset-0 z-30 pointer-events-none border-4 border-white" style={{ boxShadow: 'inset 0 0 60px rgba(255,255,255,0.7)' }} />
+                  )}
+
+                  {/* fullscreen toggle */}
+                  {inputMode === 'camera' && (
+                    <button
+                      onClick={toggleFullscreen}
+                      className={isFullscreen
+                        ? 'absolute bottom-8 right-8 z-40 bg-black/60 hover:bg-black/80 text-white rounded-full px-5 py-2.5 text-sm font-bold'
+                        : 'absolute top-2 right-2 z-30 bg-black/60 hover:bg-black/80 text-white rounded-lg px-3 py-1.5 text-xs font-bold'}
+                      title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen recording'}
+                    >
+                      {isFullscreen ? '✕ Exit' : '⛶ Fullscreen'}
+                    </button>
+                  )}
+
+                  {/* lag-shadow trail toggle */}
+                  {inputMode === 'camera' && (
+                    <button
+                      onClick={() => setEffectsOn((v) => !v)}
+                      className={`absolute ${isFullscreen ? 'top-24 right-6' : 'top-12 right-2'} z-30 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${effectsOn ? 'bg-fuchsia-500/90 text-white' : 'bg-black/60 hover:bg-black/80 text-white'}`}
+                      title="Lag-shadow trail (visual only — doesn't affect detection)"
+                    >
+                      {effectsOn ? '✨ Effects ON' : '✨ Effects'}
+                    </button>
+                  )}
+
+                  {/* fullscreen recording controls — record without leaving the big view */}
+                  {isFullscreen && inputMode === 'camera' && (
+                    <>
+                      <div
+                        className="absolute top-6 left-6 z-40 px-5 py-2.5 rounded-full font-bold text-black text-lg shadow-lg"
+                        style={{ background: selectedClass ? selectedColor : '#d1d5db' }}
+                      >
+                        {selectedClass ? selectedClass.name : 'Select a class first'}
+                      </div>
+                      {selectedClass && (
+                        <div
+                          className="absolute top-6 right-6 z-40 px-5 py-2.5 rounded-full font-bold text-black text-lg shadow-lg"
+                          style={{ background: selectedColor }}
+                        >
+                          {classifier.sampleCounts[selectedClass.id] ?? 0} samples
+                        </div>
+                      )}
+                      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
+                        <RecordingControls
+                          variant="fullscreen"
+                          mode="auto"
+                          onModeChange={() => { }}
+                          isCapturing={isCapturing}
+                          countdown={countdown}
+                          disabled={!recordTargetId}
+                          onHoldStart={startHoldCapture}
+                          onHoldStop={stopCapture}
+                          onAutoStart={startCountdownCapture}
+                          onStop={stopCapture}
+                          isHolding={() => recorder.currentMode() === 'hold'}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Hidden file input — triggered by upload zone click */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFiles(e.target.files)
+                    e.target.value = ''
+                  }}
+                />
+              </div>
+
+            </>
+
+            ) : (<>
+              <div className="w-full min-h-[19vw] bg-white border-2 border-black rounded-xl p-4 flex flex-col">
+                <RecordingSettings
+                  fps={fps}
+                  onFps={setFps}
+                  delay={delay}
+                  onDelay={setDelay}
+                  duration={duration}
+                  onDuration={setDuration}
+                  onClose={() => setShowSettings(false)}
+                  onReset={() => { setDelay(0); setDuration(0); setHold(true); setFps(30) }}
                 >
-                  {effectsOn ? '✨ Effects ON' : '✨ Effects'}
-                </button>
-              )}
+                  {/* Detection engine (GPU / CPU) — shared across all AI screens */}
+                  <BackendSelector preference={preference} onChange={setPreference} capability={capability} />
+                </RecordingSettings>
+              </div>
+            </>
+            )}
+
+            <div className="w-full flex items-center justify-center mt-4">
+
               {!showSettings ? (
-                !isTesting ? (
-                  <PoseTracker
-                    ref={poseTrackerRef}
-                    onStats={handleStats}
-                    onLandmarks={handleLandmarks}
-                    prediction={null}
-                    isCapturing={isCapturing}
-                    targetFps={typeof fps === 'number' && fps > 0 ? fps : undefined}
-                    backendMode={backend}
-                    backendLabel={poseBackendLabel}
-                    idle={!isCapturing && !isTesting}
-                    effectsEnabled={effectsOn}
-                  />
-                ) : (
-                  <PoseTracker
-                    ref={poseTrackerRef}
-                    onStats={handleStats}
-                    onLandmarks={handleLandmarks}
-                    prediction={prediction}
-                    isCapturing={false}
-                    targetFps={typeof fps === 'number' && fps > 0 ? fps : undefined}
-                    backendMode={backend}
-                    backendLabel={poseBackendLabel}
-                    idle={!isCapturing && !isTesting}
-                    effectsEnabled={effectsOn}
-                  />
-                )
-              ) : (
-                /* Shared settings panel (uniform across hand + pose) */
-                <div className="absolute inset-0 bg-white dark:bg-[#1f1f1f] p-5 overflow-y-auto">
-                  <RecordingSettings
-                    fps={fps}
-                    onFps={setFps}
-                    delay={delay}
-                    onDelay={setDelay}
-                    duration={duration}
-                    onDuration={setDuration}
-                    onClose={() => setShowSettings(false)}
-                    onReset={() => { setFps(30); setHold(true); setDelay(0); setDuration(0) }}
-                  >
-                    {/* Detection engine (GPU / CPU) — shared across all AI screens */}
-                    <BackendSelector preference={preference} onChange={setPreference} capability={capability} />
-                  </RecordingSettings>
-                </div>
-              )}
+                <div className="flex items-center gap-4">
 
-              {/* Capture pulse + hands-free countdown overlay */}
-              {captureFlash && <div className="absolute inset-0 bg-white/40 pointer-events-none" />}
-              {countdown !== null && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-white text-7xl font-black drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">{countdown}</span>
-                </div>
-              )}
-
-              {/* Fullscreen record controls (Auto / hands-free) — parity with hand */}
-              {isFullscreen && !showSettings && !isTesting && (
-                <>
-                  <div
-                    className="absolute top-4 left-4 z-30 px-4 py-2 rounded-lg font-bold text-black text-lg"
-                    style={{ background: selectedClass ? selectedColor : '#d1d5db' }}
-                  >
-                    {selectedClass ? selectedClass.name : 'Select a class first'}
-                  </div>
-                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
+                  {/* START / STOP — Hold | Auto (shared, uniform with hand) */}
+                  {inputMode === 'camera' && (
                     <RecordingControls
-                      variant="fullscreen"
-                      mode="auto"
-                      onModeChange={() => {}}
+                      mode={hold ? 'hold' : 'auto'}
+                      onModeChange={(m) => setHold(m === 'hold')}
+                      showModeSwitch={false}
                       isCapturing={isCapturing}
                       countdown={countdown}
-                      disabled={!selectedClassId}
+                      disabled={!recordTargetId}
                       onHoldStart={startHoldCapture}
                       onHoldStop={stopCapture}
                       onAutoStart={startCountdownCapture}
                       onStop={stopCapture}
                       isHolding={() => recorder.currentMode() === 'hold'}
                     />
-                  </div>
-                </>
-              )}
-            </div>
+                  )}
 
-            {/* Slider for snapshots */}
-            {selectedImages.length > 0 && (
-              <div className="mt-3">
-                <input
-                  type="range"
-                  min={0}
-                  max={maxThumb}
-                  value={clampedOffset}
-                  onChange={(e) => setThumbOffset(Number(e.target.value))}
-                  disabled={maxThumb === 0}
-                  className="thumb-slider block w-full h-[8px] my-1"
-                />
+                  {inputMode === 'upload' && <>
+                    <button
+                      disabled={!recordTargetId}
+                      onClick={() => { fileRef.current?.click() }}
+                      className="w-[140px] h-[50px] rounded-lg font-black border-2 border-transparent hover:border-black transition-all duration-200 select-none bg-[#F6EC24] text-black"
+                    >
+                      UPLOAD
+                    </button>
+                    <input
+                      ref={fileRef} type="file" accept="image/*" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) { showUploadPreview(f); handleUploadImage(recordTargetId!, f); e.target.value = '' } }}
+                    />
+                  </>
+                  }
 
-                {/* Thumbnails row */}
-                <div className="flex gap-2 justify-between mt-2 overflow-x-auto">
-                  {Array.from({ length: 5 }).map((_, idx) => {
-                    const img = selectedImages[clampedOffset + idx]
-                    return (
-                      <div key={idx} className="w-[88px] h-[52px] rounded-lg overflow-hidden border border-slate-200 bg-slate-100 dark:border-[#4c4c4c] dark:bg-[#2a2a2a] shrink-0">
-                        {img && <img src={img} className="w-full h-full object-cover" />}
-                      </div>
-                    )
-                  })}
+                  {/* 3 DOT MENU — holds the Hold|Auto switch + Settings */}
+                  {inputMode === 'camera' && (
+                    <CaptureMenu
+                      mode={hold ? 'hold' : 'auto'}
+                      onModeChange={(m) => setHold(m === 'hold')}
+                      showModeSwitch={!(isCapturing || countdown !== null)}
+                      onOpenSettings={() => setShowSettings(true)}
+                    />
+                  )}
+
                 </div>
-              </div>
-            )}
+              ) : (
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="w-[140px] h-[50px] rounded-lg font-black border-2 border-transparent hover:border-black transition-all duration-200 bg-green-500 text-white"
+                >
+                  SAVE
+                </button>
+              )}
 
-            {/* Capture triggers — Hold | Auto (shared, uniform with hand) */}
-            {!showSettings && !isTesting && selectedClassId && (
-              <div className="mt-4">
-                <RecordingControls
-                  mode={hold ? 'hold' : 'auto'}
-                  onModeChange={(m) => setHold(m === 'hold')}
-                  showModeSwitch={false}
-                  isCapturing={isCapturing}
-                  countdown={countdown}
-                  disabled={!selectedClassId}
-                  onHoldStart={startHoldCapture}
-                  onHoldStop={stopCapture}
-                  onAutoStart={startCountdownCapture}
-                  onStop={stopCapture}
-                  isHolding={() => recorder.currentMode() === 'hold'}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Model toggle and Training Card */}
-          <div className="bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-4">
-
-
-            {/* Error alerts if any */}
-            {classifier.trainError && (
-              <div className="bg-red-50 border-2 border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-800 dark:text-red-300 text-xs font-bold p-3 rounded-xl leading-relaxed">
-                ⚠️ {classifier.trainError}
-              </div>
-            )}
-
-            {/* Train Trigger */}
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={handleReset}
-                className="bg-black text-[#F6EC24] font-black py-3 rounded-xl border-2 border-transparent hover:border-black transition-all hover:bg-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs tracking-widest uppercase"
-              >
-                Reset Model
-              </button>
-              <button
-                onClick={handleTrain}
-                disabled={classes.length < 2 || isTraining}
-                className={`font-black py-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs tracking-widest uppercase transition-all ${isTrained ? 'bg-[#2EED08] text-white hover:bg-green-600' : 'bg-[#F6EC24] text-black hover:bg-yellow-300'
-                  }`}
-              >
-                {isTraining ? 'TRAINING...' : isTrained ? 'RETRAIN MODEL' : 'TRAIN MODEL'}
-              </button>
             </div>
+
+          </div>
+          )}
+        </div>
+
+        {/* Middle: training panel, swapped for confidence bars while testing (like
+            the hand screen's predict view). The panel stays mounted but hidden so
+            its per-class enabled/disabled toggles survive a START/STOP. */}
+        <div className="shrink-0 w-[clamp(300px,28vw,450px)] mx-auto">
+          {showResults && (
+            <ConfidenceList
+              classes={resultClasses}
+              prediction={testMode === 'upload' ? testPrediction : testMode === 'live' ? prediction : null}
+              colorOf={colorOf}
+              onViewLayers={() => setShowLayers(true)}
+              layersTitle="Watch your pose travel through the model's layers"
+            />
+          )}
+          <div className={showResults ? 'hidden' : undefined}>
+          <TrainingPanel
+            key={projectSession}
+            classes={classes}
+            sampleCounts={classifier.sampleCounts}
+            minSamples={classifier.MIN_SAMPLES}
+            trainingStatus={classifier.trainingStatus}
+            trainProgress={classifier.trainProgress}
+            trainAccuracy={classifier.trainAccuracy}
+            trainError={classifier.trainError}
+            prediction={isTesting ? prediction : null}
+            images={images}
+            selectedClassId={selectedClassId}
+            classColors={classColors}
+            defaultColors={DEFAULT_CLASS_COLORS}
+            showLivePrediction={false}
+            onAddClass={handleAddClass}
+            onDeleteClass={handleDeleteClass}
+            onRenameClass={handleRenameClass}
+            onClearSamples={handleClearSamples}
+            onCaptureOne={handleCaptureOne}
+            onDeleteSample={handleDeleteSample}
+            onUploadImage={handleUploadImage}
+            onSelectClass={handleSelectClass}
+            onDisabledChange={setDisabledIds}
+            onChangeColor={handleChangeColor}
+            onActivateCamera={(id) => {
+              handleSelectClass(id)
+              if (isCapturing) stopCapture()
+              setInputMode('camera')
+            }}
+            onActivateUpload={(id) => {
+              handleSelectClass(id)
+              if (isCapturing) stopCapture()
+              setInputMode('upload')
+              showUploadPreview(null)
+            }}
+            onTrain={handleTrain}
+            onSave={saveProject}
+            onReset={handleReset}
+          />
           </div>
         </div>
 
-        {/* COLUMN 3: Testing Panel (Right Column Card) */}
-        <div className="flex flex-col w-[320px] shrink-0 gap-4 mx-auto">
-          <div className="flex-1 bg-white dark:bg-[#1f1f1f] dark:text-white rounded-2xl border-2 border-black p-5 flex flex-col shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="text-xl font-black border-b-2 border-slate-100 dark:border-[#4c4c4c] pb-3 mb-4 tracking-wider uppercase">
-              Testing Workspace
-            </h2>
-
-            {!isTrained ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                <span className="text-4xl mb-4">🤖</span>
-                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
-                  You must collect pose landmarks and **Train a Model** on the left before you can test it here.
-                </p>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col gap-4">
-                <p className="text-xs text-slate-400 font-bold leading-normal">
-                  Model successfully trained! Turn on real-time testing to run pose landmark coordinates through the custom TFJS network.
-                </p>
-
-                <button
-                  onClick={() => setIsTesting(!isTesting)}
-                  className={`w-full py-3 rounded-xl font-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase text-xs tracking-wider transition-all ${isTesting ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-[#2EED08] text-white hover:bg-green-600'
-                    }`}
-                >
-                  {isTesting ? 'Stop Real-Time Predict' : 'Start Real-Time Predict'}
-                </button>
-
-                <button
-                  onClick={handleExportToBlockly}
-                  className="w-full py-3 rounded-xl font-black border-2 border-black bg-[#F6EC24] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase text-xs tracking-wider transition-all hover:bg-yellow-300"
-                >
-                  Export to Blocks
-                </button>
-
-                <button
-                  onClick={() => { setIsTesting(true); setShowLayers(true) }}
-                  className="w-full py-3 rounded-xl font-black border-2 border-black bg-[#04050d] text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase text-xs tracking-wider transition-all hover:scale-[1.02]"
-                  title="Watch your pose travel through the model's layers"
-                >
-                  🔬 View in Layers
-                </button>
-
-                {/* Real-Time Predictions layout */}
-                {isTesting && prediction && (() => {
-                  const confVal = prediction.className ? Math.round(prediction.confidence * 100) : 0
-                  return (
-                    <div className="mt-4 border-2 border-black rounded-xl p-4 bg-slate-50 dark:bg-[#2a2a2a] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                      <span className="text-[0.62rem] text-slate-400 font-bold uppercase tracking-widest">Active Output Class</span>
-                      <div className="text-lg font-black text-slate-800 dark:text-white mb-3">{prediction.className || 'Undetected'}</div>
-
-                      <span className="text-[0.62rem] text-slate-400 font-bold uppercase tracking-widest">Prediction Confidence</span>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <div className="flex-1 h-3.5 bg-slate-200 rounded-full border border-slate-300 dark:bg-[#151515] dark:border-[#4c4c4c] overflow-hidden">
-                          <div
-                            className="h-full bg-[#36D3FF] transition-[width] duration-150"
-                            style={{ width: `${confVal}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-mono font-bold">{confVal}%</span>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
-          </div>
+        {/* ── Right: controls panel ──────────────────────────────────── */}
+        <div className="w-[clamp(320px,30vw,480px)] shrink-0 mx-auto">
+          <ControlsPanel
+            classes={classes}
+            classColors={classColors}
+            defaultColors={DEFAULT_CLASS_COLORS}
+            onStart={() => setIsTesting((v) => !v)}
+            onExportToBlockly={handleExportToBlockly}
+            onViewLayers={showResults ? undefined : () => { setIsTesting(true); setShowLayers(true) }}
+            trainingStatus={classifier.trainingStatus}
+            currentPage={isTesting ? 'predict' : 'main'}
+            comingSoonExports={['python', 'c++']}
+          />
         </div>
-
-
       </main>
 
       <LayersReveal
@@ -732,6 +819,11 @@ export default function PoseApp() {
         getVideo={() => poseTrackerRef.current?.getVideo() ?? null}
         livePrediction={prediction}
         onClose={() => setShowLayers(false)}
+      />
+
+      <NoticePopup
+        notice={classifier.notice ?? notice}
+        onClose={() => { classifier.dismissNotice(); dismissNotice() }}
       />
 
       <ProjectPopup

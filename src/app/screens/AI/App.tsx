@@ -21,6 +21,8 @@ import trainsucessgif from './icons/readyhandgif.gif'
 import modelready from './icons/handpng.png'
 import { uniqueClassName } from './utils/uniqueClassName'
 import { DOTTED_BG, PANEL } from './utils/themeClasses'
+import { openProjectFile, projectNameFromFile } from './utils/projectFile'
+import type { ModelBundle } from './utils/modelIO'
 type Page = 'main' | 'blocky' | 'predict'
 
 const DEFAULT_CLASS_COLORS = ['#a3e635', '#f472b6', '#a78bfa', '#60a5fa', '#fb923c', '#34d399', '#f87171', '#fbbf24']
@@ -268,17 +270,19 @@ export default function AIApp() {
     else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
   }
 
+  // Start with Class 1 selected. The camera is NOT opened automatically — the
+  // user picks camera or upload from a class card first.
   useEffect(() => {
-    // Effects run twice under React Strict Mode (dev) — without this guard the
-    // page started with duplicate "Class 1" / "Class 2" cards.
-    if (defaultClassesAddedRef.current) return
-    defaultClassesAddedRef.current = true
-    handleAddClass('Class 1')
-    handleAddClass('Class 2')
-    // handleAddClass selects each class as it's added, so Class 2 ends up selected.
-    // Select Class 1 (the first id). The camera is NOT opened automatically — the
-    // user picks camera or upload from a class card first.
-    setSelectedClassId('cls_1')
+    // Replace the list rather than appending: React Strict Mode runs this twice in
+    // dev, and appending turned "Class 1, Class 2" into four cards.
+    classIdCounter.current = 0
+    const initial = ['Class 1', 'Class 2'].map((name) => {
+      const id = `cls_${++classIdCounter.current}`
+      classifier.initClass(id)
+      return { id, name }
+    })
+    setClasses(initial)
+    setSelectedClassId(initial[0].id)
   }, [])
 
   useEffect(() => {
@@ -381,20 +385,39 @@ export default function AIApp() {
     classIdCounter.current = 0
   }
 
+  // A saved bundle doesn't record its hand mode, but its vectors do: 63 values per
+  // sample for one hand, 126 for two. Fall back to the model's input width.
+  function bundleHandMode(bundle: ModelBundle): 1 | 2 | null {
+    const firstSample = Object.values(bundle.samples ?? {}).find((s) => s.length > 0)?.[0]
+    const dim = firstSample?.length
+      ?? Number(JSON.stringify(bundle.modelTopology).match(/"batch_input_shape":\[null,(\d+)\]/)?.[1])
+    if (dim === classifierTwo.featureDim) return 2
+    if (dim === classifierSingle.featureDim) return 1
+    return null
+  }
+
   const handleOpenProject = async () => {
     try {
-      const res = await (window as any).api.file.open(handMode === 2 ? 'handGesture2H' : 'handGesture')
-      if (!res || !res.success) return
-      const bundle = JSON.parse(res.data)
-      const restoredClasses = await classifier.loadModel(bundle)
-      setClasses(restoredClasses)
-      setImages({})
-      setClassColors({})
-      setDisabledClassIds(new Set())
-      setProjectName(res.fileName.replace('.json', ''))
-      if (restoredClasses.length > 0) {
-        setSelectedClassId(restoredClasses[0].id)
+      const res = await openProjectFile(handMode === 2 ? 'handGesture2H' : 'handGesture')
+      if (!res.success || !res.data) return
+      const bundle = JSON.parse(res.data) as ModelBundle
+      const mode = bundleHandMode(bundle) ?? handMode
+      const target = mode === 2 ? classifierTwo : classifierSingle
+      if (mode !== handMode) {
+        // Switch to the file's hand mode; the other classifier is left empty.
+        stopCountdownRecord()
+        const other = mode === 2 ? classifierSingle : classifierTwo
+        other.resetModel(); other.clearSamples()
+        setHandMode(mode)
       }
+      const restoredClasses = await target.loadModel(bundle)
+      classIdCounter.current = restoredClasses.length
+      setClasses(restoredClasses)
+      setImages(target.restoreImages(bundle, restoredClasses))
+      setClassColors({})
+      setPrediction(null)
+      setProjectName(projectNameFromFile(res.fileName))
+      setSelectedClassId(restoredClasses[0]?.id ?? null)
     } catch (err) {
       console.error('Failed to load project:', err)
       alert('Failed to load project: ' + (err instanceof Error ? err.message : String(err)))

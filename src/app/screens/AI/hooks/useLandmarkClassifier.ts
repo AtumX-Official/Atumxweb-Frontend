@@ -11,8 +11,12 @@ import {
   modelFromBundle,
   restoreCentroids,
   restoreSamples,
+  restoreThumbnails,
   smoothProbabilities,
 } from '../utils/classifierBundle'
+import { shrinkImages, sketchLandmarks } from '../utils/sampleThumbnails'
+import { createPredictionStabilizer } from '../utils/predictionStabilizer'
+import type { Notice } from './useNotice'
 
 export type TrainingStatus = 'idle' | 'training' | 'ready' | 'error'
 
@@ -34,9 +38,11 @@ export interface Prediction {
 }
 
 // Shared training hyper-parameters — identical across the hand, pose, and 2-hand classifiers.
-const MIN_SAMPLES = 20
+const MIN_SAMPLES = 20 // every AI screen needs at least 20 samples per class
 const EPOCHS = 120
-const SMOOTHING_WINDOW = 8
+// Lowered 8→5: the prediction stabilizer now supplies the temporal stability, so a heavy
+// smoothing window is no longer needed for steadiness and only added detection latency.
+const SMOOTHING_WINDOW = 5
 // Self-calibrating reject gate: distance to a class centre measured in units of that
 // class's OWN training spread. Replaces a fixed absolute limit, which rejected slight
 // movement and small GPU↔CPU landmark drift alike. Still strict against out-of-distribution
@@ -90,6 +96,9 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
   const centroidsRef = useRef<Record<string, number[]>>({})
   const radiiRef = useRef<Record<string, number>>({}) // per-class spread, powers the reject gate
   const cancelRef = useRef(false) // set by cancelTraining() to abort at the next epoch boundary
+  // One stabilizer per classifier instance — adds hysteresis + switch-debounce +
+  // confidence EMA on top of the per-frame decision so the prediction/bar stays steady.
+  const stabilizerRef = useRef(createPredictionStabilizer())
 
   const [sampleCounts, setSampleCounts] = useState<Record<string, number>>({})
   const [trainingStatus, setTrainingStatus] = useState<TrainingStatus>('idle')
@@ -97,7 +106,17 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
   const [trainAccuracy, setTrainAccuracy] = useState<number | null>(null)
   const [trainError, setTrainError] = useState<string | null>(null)
   const [isSavedToDisk, setIsSavedToDisk] = useState(false)
+  // The classes the current model was actually fitted on. Training can be handed a
+  // subset (the user disables classes in the panel), and the model's output slots
+  // follow THIS list — anything reading `probabilities` by index must use it, not
+  // the full class list the screen is still editing.
+  const [trainedClasses, setTrainedClasses] = useState<GestureClass[]>([])
   const [useFocusBox, setUseFocusBox] = useState(false)
+  // Messages the screen shows in the themed NoticePopup. These used to be
+  // `window.alert`, which can't be styled and titles itself "Trix".
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const dismissNotice = useCallback(() => setNotice(null), [])
+
 
   useEffect(() => {
     ensureTfBackend()
@@ -142,8 +161,13 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
 
   const trainModel = useCallback(async (classes: GestureClass[]) => {
     classesRef.current = classes
+    setTrainedClasses(classes)
     setTrainError(null)
     historyRef.current = []
+    // The new model can have a different number of output slots than the old one
+    // (classes added, deleted, or disabled), so a held-over index would point at
+    // the wrong class on the first frames after training.
+    stabilizerRef.current.reset()
 
     for (const cls of classes) {
       const count = samplesRef.current[cls.id]?.length ?? 0
@@ -177,23 +201,46 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
     const sVectors = Array.from(idx).map((i) => allVectors[i])
     const sLabels = Array.from(idx).map((i) => allLabels[i])
 
-    const xs = tf.tensor2d(sVectors, [sVectors.length, featureDim])
-    const ys = tf.oneHot(tf.tensor1d(sLabels, 'int32'), classes.length).toFloat()
+    // runFit builds fresh tensors each attempt (so a CPU-fallback retry gets CPU-backed
+    // tensors, not GPU-bound ones) and always disposes them.
+    const runFit = async (m: tf.LayersModel) => {
+      const xs = tf.tensor2d(sVectors, [sVectors.length, featureDim])
+      const ys = tf.oneHot(tf.tensor1d(sLabels, 'int32'), classes.length).toFloat()
+      try {
+        return await fitWithEarlyStopping(m, xs, ys, {
+          epochs: EPOCHS,
+          batchSize: 32,
+          validationSplit: 0.2,
+          classWeight,
+          patience: EARLY_STOP_PATIENCE,
+          isCancelled: () => cancelRef.current,
+          setProgress: setTrainProgress,
+          setAccuracy: setTrainAccuracy,
+          guardNonFiniteLoss: true,
+        })
+      } finally {
+        xs.dispose()
+        ys.dispose()
+      }
+    }
 
     modelRef.current?.dispose()
-    const model = cfg.buildModel(classes.length)
+    let model = cfg.buildModel(classes.length)
 
     try {
-      const { stopped } = await fitWithEarlyStopping(model, xs, ys, {
-        epochs: EPOCHS,
-        batchSize: 32,
-        validationSplit: 0.2,
-        classWeight,
-        patience: EARLY_STOP_PATIENCE,
-        isCancelled: () => cancelRef.current,
-        setProgress: setTrainProgress,
-        setAccuracy: setTrainAccuracy,
-      })
+      let { stopped, fatalLoss } = await runFit(model)
+
+      // GPU math blew up (NaN/Inf) → retrain once on the slower but stable CPU backend,
+      // matching the audio classifier. Fixes "trains fine on some GPUs, crashes/bad on
+      // others" and the pose Train-Model crash on certain devices.
+      if (fatalLoss && !cancelRef.current && tf.getBackend() !== 'cpu') {
+        console.warn(`${cfg.logPrefix} Non-finite loss on ${tf.getBackend()} — retraining on CPU`)
+        model.dispose()
+        await tf.setBackend('cpu')
+        await tf.ready()
+        model = cfg.buildModel(classes.length)
+        ;({ stopped, fatalLoss } = await runFit(model))
+      }
 
       // User exited training midway → discard the half-trained model, reset to idle.
       if (cancelRef.current) {
@@ -203,6 +250,10 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
         setTrainProgress(0)
         setTrainAccuracy(null)
         return
+      }
+
+      if (fatalLoss) {
+        throw new Error('Training was numerically unstable (NaN) even on CPU. Try recording a few more samples per class and train again.')
       }
 
       modelRef.current = model
@@ -219,9 +270,6 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
       model.dispose()
       setTrainError(err instanceof Error ? err.message : String(err))
       setTrainingStatus('error')
-    } finally {
-      xs.dispose()
-      ys.dispose()
     }
   }, [cfg, featureDim])
 
@@ -229,20 +277,27 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
 
   // ── Persistence ──────────────────────────────────────────────────────────────
 
-  const saveModel = useCallback(async (projectName?: string) => {
+  /** `images` is the screen's class-card pictures (by class id), saved as thumbnails. */
+  const saveModel = useCallback(async (projectName?: string, images?: Record<string, string[]>) => {
     if (!modelRef.current || trainingStatus !== 'ready') {
-      alert('Please train your model successfully before saving!')
+      setNotice({
+        tone: 'warning',
+        title: 'Train first',
+        message: 'There is no trained model to save yet. Train your classes, then save.'
+      })
       return
     }
     const name = typeof projectName === 'string' && projectName ? projectName : cfg.save.defaultName
 
     const samples: Record<string, number[][]> = {}
     const centroids: Record<string, number[]> = {}
-    classesRef.current.forEach((c) => {
+    const thumbnails: Record<string, string[]> = {}
+    for (const c of classesRef.current) {
       const key = cfg.save.keyBy === 'name' ? c.name : c.id
       samples[key] = (samplesRef.current[c.id] || []).map((arr) => Array.from(arr))
       if (centroidsRef.current[c.id]) centroids[key] = centroidsRef.current[c.id]
-    })
+      if (images?.[c.id]?.length) thumbnails[key] = await shrinkImages(images[c.id])
+    }
 
     await saveModelToFile(
       modelRef.current,
@@ -251,7 +306,8 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
       centroids,
       samples,
       cfg.save.includeFocusBox ? useFocusBox : undefined,
-      cfg.save.language
+      cfg.save.language,
+      Object.keys(thumbnails).length ? thumbnails : undefined
     )
     setIsSavedToDisk(true)
   }, [cfg, trainingStatus, useFocusBox])
@@ -269,17 +325,23 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
 
     const restoredClasses = bundle.classNames.map((name, i) => ({ id: `cls_restored_${i}`, name }))
     classesRef.current = restoredClasses
+    setTrainedClasses(restoredClasses)
 
     const { samples, counts } = restoreSamples(bundle, restoredClasses)
     samplesRef.current = samples
     setSampleCounts(counts)
+
+    historyRef.current = []
+    stabilizerRef.current.reset()
 
     const restoredCentroids = restoreCentroids(bundle, restoredClasses)
     centroidsRef.current = restoredCentroids
     // Recompute per-class spread so the adaptive gate behaves the same as after training.
     radiiRef.current = computeRadii(restoredClasses, samples, restoredCentroids, featureDim)
 
-    if (cfg.legacyAlert && (!bundle.samples || !bundle.centroids)) alert(cfg.legacyAlert)
+    if (cfg.legacyAlert && (!bundle.samples || !bundle.centroids)) {
+      setNotice({ tone: 'warning', title: 'Older project file', message: cfg.legacyAlert })
+    }
 
     setTrainingStatus('ready')
     setTrainProgress(100)
@@ -291,10 +353,25 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
     return restoredClasses
   }, [cfg, featureDim])
 
+  /** Class-card pictures for a just-loaded bundle: the saved thumbnails, or — for
+   *  files saved before thumbnails existed — a skeleton drawn from each sample. */
+  const restoreImages = useCallback((bundle: ModelBundle, restoredClasses: GestureClass[]) => {
+    const saved = restoreThumbnails(bundle, restoredClasses)
+    const images: Record<string, string[]> = {}
+    for (const c of restoredClasses) {
+      images[c.id] = saved[c.id]?.length
+        ? saved[c.id]
+        : (samplesRef.current[c.id] || []).map((vec) => sketchLandmarks(vec))
+    }
+    return images
+  }, [])
+
   const resetModel = useCallback(() => {
     modelRef.current?.dispose()
     modelRef.current = null
     historyRef.current = []
+    stabilizerRef.current.reset()
+    setTrainedClasses([])
     setTrainingStatus('idle')
     setTrainProgress(0)
     setTrainAccuracy(null)
@@ -353,11 +430,15 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
       }
     }
 
+    // Stabilize the per-frame decision: hysteresis + switch-debounce + confidence EMA,
+    // so a class hovering at the threshold (or two similar classes) don't flicker the bar.
+    const st = stabilizerRef.current.update(smoothed, aboveThreshold ? maxIdx : null)
+    const stableClass = st.classIdx !== null ? classes[st.classIdx] : undefined
     return {
-      classId: aboveThreshold ? classes[maxIdx]?.id : undefined,
-      className: aboveThreshold ? (classes[maxIdx]?.name ?? 'Unknown') : '',
-      confidence: aboveThreshold ? smoothed[maxIdx] : 0,
-      probabilities: aboveThreshold ? probabilities : probabilities.map((p) => ({ ...p, prob: 0 })),
+      classId: stableClass?.id,
+      className: stableClass?.name ?? '',
+      confidence: st.confidence,
+      probabilities: st.isDetected ? probabilities : probabilities.map((p) => ({ ...p, prob: 0 })),
     }
   }, [cfg, featureDim, trainingStatus, useFocusBox])
 
@@ -387,15 +468,22 @@ export function useLandmarkClassifier(cfg: LandmarkClassifierConfig) {
     removeClassData,
     deleteSample,
     MIN_SAMPLES,
+    /** length of one sample vector — lets a screen tell which classifier a file belongs to */
+    featureDim,
     trainModel,
     cancelTraining,
     saveModel,
     loadModel,
+    restoreImages,
     resetModel,
     trainingStatus,
+    trainedClasses,
     trainProgress,
     trainAccuracy,
     trainError,
+    notice,
+    setNotice,
+    dismissNotice,
     predict,
     exportToBlockly,
     getSamples: () => samplesRef.current,

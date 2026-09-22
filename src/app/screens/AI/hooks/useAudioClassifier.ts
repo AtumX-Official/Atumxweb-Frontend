@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as tf from '@tensorflow/tfjs'
 import { ensureTfBackend } from '../utils/tfBackend'
+import { saveProjectFile } from '../utils/projectFile'
+import type { Notice } from './useNotice'
 import { fitWithEarlyStopping } from '../utils/trainLoop'
 import { computeClassWeights, modelFromBundle, restoreSamples } from '../utils/classifierBundle'
 import {
@@ -21,7 +23,7 @@ export interface AudioClass {
   name: string
 }
 
-const MIN_SAMPLES = 10 // allow training with at least 10 samples (25 is recommended)
+const MIN_SAMPLES = 20 // every AI screen needs at least 20 samples per class (25 is recommended)
 const EPOCHS = 80 // a ceiling; early stopping ends training once it plateaus
 const EARLY_STOP_PATIENCE = 12 // val_loss is noisy on tiny voice datasets — give it room
 
@@ -39,6 +41,13 @@ export function useAudioClassifier() {
   const [trainAccuracy, setTrainAccuracy] = useState<number | null>(null)
   const [trainError, setTrainError] = useState<string | null>(null)
   const [isSavedToDisk, setIsSavedToDisk] = useState(false)
+  // Classes the current model was actually trained on (disabled ones are left out).
+  const [trainedClasses, setTrainedClasses] = useState<AudioClass[]>([])
+  // Messages the screen shows in the themed NoticePopup. These used to be
+  // `window.alert`, which can't be styled and titles itself "Trix".
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const dismissNotice = useCallback(() => setNotice(null), [])
+
 
   // Real-time detection tuning, all user-adjustable (see createAudioDetector for how the
   // window, stability, and cooldown interact).
@@ -88,6 +97,7 @@ export function useAudioClassifier() {
 
   const trainModel = useCallback(async (classes: AudioClass[]) => {
     classesRef.current = classes
+    setTrainedClasses(classes)
     setTrainError(null)
     detectorRef.current.reset()
 
@@ -142,9 +152,22 @@ export function useAudioClassifier() {
     }
 
     try {
-      let sawNaN = await runFit(model)
+      let sawNaN = false
+      try {
+        sawNaN = await runFit(model)
+      } catch (gpuErr) {
+        // WebGL out-of-memory / lost-context mid-fit (weak GPUs) → fall back to CPU
+        // instead of letting the renderer crash. Only when we're not already on CPU.
+        if (cancelRef.current || tf.getBackend() === 'cpu') throw gpuErr
+        console.warn('[AudioClassifier] Training error on', tf.getBackend(), '— retrying on CPU:', gpuErr)
+        try { model.dispose() } catch { /* already disposed */ }
+        await tf.setBackend('cpu')
+        await tf.ready()
+        model = buildAudioModel(classes.length)
+        sawNaN = await runFit(model)
+      }
 
-      // GPU math blew up → retrain once on the (slower but deterministic) CPU backend.
+      // GPU math blew up (NaN) → retrain once on the (slower but deterministic) CPU backend.
       if (sawNaN && !cancelRef.current && tf.getBackend() !== 'cpu') {
         console.warn('[AudioClassifier] Non-finite loss on', tf.getBackend(), '— retraining on CPU')
         model.dispose()
@@ -184,7 +207,11 @@ export function useAudioClassifier() {
 
   const saveModel = useCallback(async (projectName?: string) => {
     if (!modelRef.current || trainingStatus !== 'ready') {
-      alert('Please train your model successfully before saving!')
+      setNotice({
+        tone: 'warning',
+        title: 'Train first',
+        message: 'There is no trained model to save yet. Train your classes, then save.'
+      })
       return
     }
     const name = typeof projectName === 'string' && projectName ? projectName : 'audio-model'
@@ -196,13 +223,17 @@ export function useAudioClassifier() {
     )
 
     try {
-      const res = await window.api.file.save('', json, 'audioClassifier', name, '', '')
+      const res = await saveProjectFile('audioClassifier', name, json)
       // file.save resolves with { success, error } — it does NOT throw on a cancelled
       // dialog, so only mark saved when it actually wrote a file.
       if (res && (res as { success?: boolean }).success) setIsSavedToDisk(true)
     } catch (err) {
       console.error('Failed to save audio project:', err)
-      alert('Failed to save project: ' + String(err))
+      setNotice({
+        tone: 'error',
+        title: "Couldn't save",
+        message: `Saving this project failed: ${String(err)}`
+      })
     }
   }, [trainingStatus])
 
@@ -219,6 +250,7 @@ export function useAudioClassifier() {
 
     const restoredClasses = bundle.classNames.map((name: string, i: number) => ({ id: `cls_restored_${i}`, name }))
     classesRef.current = restoredClasses
+    setTrainedClasses(restoredClasses)
 
     const { samples, counts } = restoreSamples(bundle, restoredClasses)
     samplesRef.current = samples
@@ -237,6 +269,7 @@ export function useAudioClassifier() {
     modelRef.current?.dispose()
     modelRef.current = null
     detectorRef.current.reset()
+    setTrainedClasses([])
     setTrainingStatus('idle')
     setTrainProgress(0)
     setTrainAccuracy(null)
@@ -278,6 +311,7 @@ export function useAudioClassifier() {
     deleteSample,
     MIN_SAMPLES,
     trainModel,
+    trainedClasses,
     cancelTraining,
     saveModel,
     loadModel,
@@ -286,6 +320,9 @@ export function useAudioClassifier() {
     trainProgress,
     trainAccuracy,
     trainError,
+    notice,
+    setNotice,
+    dismissNotice,
     predict,
     modelReady: trainingStatus === 'ready',
     isSavedToDisk,
